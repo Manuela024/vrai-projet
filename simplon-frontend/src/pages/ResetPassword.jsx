@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { authService } from '../services/auth';
+// import authService from '../services/auth';
+import authService from '../services/auth'; // ⭐ CHANGEMENT ICI
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState('');

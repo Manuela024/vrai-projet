@@ -1,4 +1,4 @@
- @tailwind base;
+ /* @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -7,4 +7,17 @@
 body {
   font-family: 'Inter', sans-serif;
 } 
+ */
+
+
+ @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  /* reste du CSS */
+}
+
 

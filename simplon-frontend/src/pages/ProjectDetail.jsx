@@ -1,7 +1,9 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { projectService } from '../services/projects';
-import { authService } from '../services/auth';
+// import authService from '../services/auth';
+
+import authService from '../services/auth'; // ⭐ CHANGEMENT ICI
 
 const ProjectDetail = () => {
   const { id } = useParams();

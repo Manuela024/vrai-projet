@@ -1,876 +1,695 @@
+﻿// // src/services/projects.js - SERVICE COMPLET
+// import api from "./api";
 
+// console.log("📦 projects.js chargé, export type: nommé (avec accolades)");
 
-// // src/services/projects.js
-// import api from './api';
-
-// export const projectService = {
-//   // Récupérer tous les projets (publics)
+// const projectService = {
 //   async getAllProjects() {
 //     try {
-//       const response = await api.get('/projects/');
-//       console.log('✅ Tous les projets récupérés:', response.data.length);
-//       return response.data;
+//       console.log("📥 Récupération de tous les projets...");
+//       const response = await api.get("/projects/");
+      
+//       let projects = [];
+//       if (Array.isArray(response.data)) {
+//         projects = response.data;
+//       } else if (response.data && response.data.results) {
+//         projects = response.data.results;
+//       } else if (response.data && response.data.data) {
+//         projects = response.data.data;
+//       } else {
+//         projects = response.data || [];
+//       }
+      
+//       console.log(`✅ ${projects.length} projets récupérés`);
+//       return projects;
 //     } catch (error) {
-//       console.error('❌ Erreur /projects/:', error.response?.data);
-//       return this.getMockProjects();
+//       console.error("❌ Erreur lors de la récupération des projets:", error);
+//       throw new Error("Erreur lors du chargement des projets");
 //     }
 //   },
 
-//   // Récupérer les projets de l'utilisateur connecté
 //   async getUserProjects() {
 //     try {
-//       const response = await api.get('/projects/my-projects/', {
-//         withCredentials: true,
-//       });
-//       console.log('✅ Projets utilisateur récupérés:', response.data.length);
-//       return response.data;
-//     } catch (error) {
-//       console.error('❌ Erreur my-projects:', error.response?.data);
+//       console.log("📥 Récupération des projets utilisateur...");
       
-//       if (error.response?.status === 401) {
-//         console.log('🔐 Non authentifié - redirection vers login');
+//       const endpoints = [
+//         "/my-projects/",
+//         "/projects/?my=true",
+//         "/projects/?author=me",
+//         "/projects/"
+//       ];
+      
+//       for (const endpoint of endpoints) {
+//         try {
+//           console.log(`🔍 Essai endpoint: ${endpoint}`);
+//           const response = await api.get(endpoint);
+          
+//           if (response.data) {
+//             console.log(`✅ Réponse de ${endpoint}:`, response.data);
+            
+//             let projects = [];
+//             if (Array.isArray(response.data)) {
+//               projects = response.data;
+//             } else if (response.data.results) {
+//               projects = response.data.results;
+//             } else if (response.data.data) {
+//               projects = response.data.data;
+//             } else if (response.data.projects) {
+//               projects = response.data.projects;
+//             } else {
+//               projects = [response.data];
+//             }
+            
+//             if (endpoint === "/projects/" && projects.length > 0) {
+//               const user = JSON.parse(localStorage.getItem("user"));
+//               if (user && user.id) {
+//                 const filteredProjects = projects.filter(project => {
+//                   const authorId = project.author || project.author_id || (project.author && project.author.id);
+//                   return authorId === user.id;
+//                 });
+//                 if (filteredProjects.length > 0) {
+//                   console.log(`🎯 ${filteredProjects.length} projets filtrés`);
+//                   return filteredProjects;
+//                 }
+//               }
+//             } else if (projects.length > 0) {
+//               console.log(`🎯 ${projects.length} projets récupérés`);
+//               return projects;
+//             }
+//           }
+//         } catch {
+//           console.log(`⚠️ Endpoint ${endpoint} non disponible`);
+//           continue;
+//         }
 //       }
       
-//       try {
-//         console.log('🔄 Fallback: utilisation de getAllProjects');
-//         return await this.getAllProjects();
-//       } catch (fallbackError) {
-//         console.error('❌ Tous les fallbacks ont échoué');
-//         return this.getMockProjects();
-//       }
-//     }
-//   },
-
-//   async getProjectById(id) {
-//     try {
-//       const response = await api.get(`/projects/${id}/`);
-//       return response.data;
+//       console.log("📭 Aucun projet trouvé, retour tableau vide");
+//       return [];
+      
 //     } catch (error) {
-//       console.error('❌ Erreur getProjectById:', error);
-//       return this.getMockProject(id);
+//       console.error("❌ Erreur récupération projets utilisateur:", error);
+//       return [];
 //     }
 //   },
 
 //   async createProject(projectData) {
 //     try {
-//       console.log('🎯 Données envoyées à l\'API:', projectData);
+//       console.log("🛠️ CRÉATION PROJET:", projectData);
       
-//       const response = await api.post('/projects/', projectData, {
-//         withCredentials: true,
-//       });
-      
-//       console.log('✅ Projet créé avec succès:', response.data);
-      
-//       // ⭐⭐ CORRECTION : Gestion robuste de l'ID
-//       if (response.data && response.data.id) {
-//         console.log('🆔 ID du projet créé:', response.data.id);
-//         return response.data;
-//       } else {
-//         console.warn('⚠️ Aucun ID dans la réponse:', response.data);
-//         // Essaie de trouver l'ID dans différentes propriétés possibles
-//         const projectId = response.data.id || response.data.pk || response.data.project_id;
-//         if (projectId) {
-//           console.log('🆔 ID trouvé dans autre propriété:', projectId);
-//           return { ...response.data, id: projectId };
-//         }
-//         // Si toujours pas d'ID, crée un ID temporaire
-//         const tempId = Date.now();
-//         console.log('🆔 ID temporaire généré:', tempId);
-//         return { ...response.data, id: tempId };
+//       if (!projectData.title?.trim()) {
+//         throw new Error("Le titre du projet est requis");
 //       }
       
-//     } catch (error) {
-//       console.error('❌ ERREUR DÉTAILLÉE création projet:');
-      
-//       if (error.response) {
-//         console.log('📊 Status:', error.response.status);
-//         console.log('📋 Données erreur:', error.response.data);
-        
-//         if (error.response.data) {
-//           console.log('🚨 ERREURS DE VALIDATION:');
-//           for (const [field, errors] of Object.entries(error.response.data)) {
-//             console.log(`   ${field}:`, errors);
-//           }
-//         }
-//       } else if (error.request) {
-//         console.log('🌐 Pas de réponse du serveur:', error.request);
-//       } else {
-//         console.log('⚡ Erreur config:', error.message);
+//       if (!projectData.technologies?.trim()) {
+//         throw new Error("Les technologies sont requises");
 //       }
       
-//       throw error;
-//     }
-//   },
-
-//   async updateProject(id, projectData) {
-//     try {
-//       console.log('🎯 DEBUG - Mise à jour projet:', id, projectData);
-      
-//       const response = await api.patch(`/projects/${id}/`, projectData, {
-//         withCredentials: true,
-//       });
-      
-//       console.log('✅ DEBUG - Projet mis à jour:', response.data);
-//       return response.data;
-      
-//     } catch (error) {
-//       console.error('❌ DEBUG - Erreur mise à jour projet:');
-      
-//       if (error.response) {
-//         console.log('📊 Status:', error.response.status);
-//         console.log('📋 Données erreur:', error.response.data);
-//       }
-      
-//       throw error;
-//     }
-//   },
-
-//   async uploadProjectFile(projectId, file) {
-//     try {
-//       console.log('📤 DEBUG - Upload fichier pour projet:', projectId);
-      
-//       // ⭐⭐ CORRECTION : Validation de l'ID
-//       if (!projectId || projectId === 'undefined') {
-//         throw new Error(`ID de projet invalide: ${projectId}`);
+//       if (!projectData.author) {
+//         throw new Error("Auteur non spécifié");
 //       }
       
 //       const formData = new FormData();
-//       formData.append('file', file);
+//       formData.append("title", projectData.title.trim());
+//       formData.append("description", projectData.description?.trim() || "");
+//       formData.append("technologies", projectData.technologies.trim());
+//       formData.append("status", projectData.status || "draft");
+//       formData.append("author", projectData.author);
       
-//       const response = await api.post(`/projects/${projectId}/upload/`, formData, {
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
-//         withCredentials: true,
-//       });
-      
-//       console.log('✅ DEBUG - Fichier uploadé:', response.data);
-//       return response.data;
-      
-//     } catch (error) {
-//       console.error('❌ DEBUG - Erreur upload fichier:');
-//       console.error('📋 Détails:', error.response?.data);
-//       throw error;
-//     }
-//   },
-
-//   async deleteProject(id) {
-//     try {
-//       const response = await api.delete(`/projects/${id}/`, {
-//         withCredentials: true,
-//       });
-//       return response.data;
-//     } catch (error) {
-//       console.error('❌ Erreur suppression projet:', error);
-//       return { success: true, message: 'Projet supprimé (mock)' };
-//     }
-//   },
-
-//   // Méthodes mockées pour le fallback
-//   getMockProjects() {
-//     console.log('🔄 Utilisation des données mockées');
-//     return [
-//       {
-//         id: 1,
-//         title: "Portfolio en React",
-//         status: "published",
-//         technologies: "React, Tailwind CSS, Node.js",
-//         description: "Un portfolio personnel développé avec React",
-//         cohort: "DWWM - Mars 2024",
-//         tags: "portfolio, web, react",
-//         created_at: "2024-01-15T10:00:00Z",
-//         author: 1,
-//         author_name: "Utilisateur Demo",
-//         download_count: 5,
-//         view_count: 25
-//       },
-//       {
-//         id: 2,
-//         title: "API E-commerce",
-//         status: "draft", 
-//         technologies: "Django, PostgreSQL, REST",
-//         description: "API backend pour un site e-commerce",
-//         cohort: "CDA - Janvier 2024",
-//         tags: "api, ecommerce, backend",
-//         created_at: "2024-01-10T14:30:00Z",
-//         author: 1,
-//         author_name: "Utilisateur Demo",
-//         download_count: 3,
-//         view_count: 18
+//       if (projectData.cohort?.trim()) {
+//         formData.append("cohort", projectData.cohort.trim());
 //       }
-//     ];
+      
+//       if (projectData.tags?.trim()) {
+//         formData.append("tags", projectData.tags.trim());
+//       }
+      
+//       if (projectData.github_url?.trim()) {
+//         formData.append("github_url", projectData.github_url.trim());
+//       }
+      
+//       if (projectData.demo_url?.trim()) {
+//         formData.append("demo_url", projectData.demo_url.trim());
+//       }
+      
+//       if (projectData.image && projectData.image instanceof File) {
+//         formData.append("image", projectData.image);
+//       }
+      
+//       if (projectData.zip_file && projectData.zip_file instanceof File) {
+//         formData.append("zip_file", projectData.zip_file);
+//       }
+      
+//       console.log("🚀 Envoi vers /projects/...");
+//       const response = await api.post("/projects/", formData, {
+//         headers: {
+//           "Content-Type": "multipart/form-data",
+//         },
+//       });
+      
+//       console.log("✅ PROJET CRÉÉ AVEC SUCCÈS:", response.data);
+//       return response.data;
+      
+//     } catch (error) {
+//       console.error("❌ ERREUR LORS DE LA CRÉATION:", error);
+      
+//       let errorMessage = "Erreur lors de la création du projet";
+//       if (error.response?.data) {
+//         const errors = error.response.data;
+//         if (typeof errors === "object") {
+//           if (errors.author) {
+//             errorMessage = "Erreur avec l'auteur: " + (errors.author[0] || "Auteur invalide");
+//           } else if (errors.title) {
+//             errorMessage = "Titre: " + errors.title[0];
+//           } else if (errors.technologies) {
+//             errorMessage = "Technologies: " + errors.technologies[0];
+//           }
+//         }
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
 //   },
 
-//   getMockProject(id, projectData = {}) {
-//     return {
-//       id: id,
-//       title: projectData.title || "Projet de démonstration",
-//       status: projectData.status || "published",
-//       technologies: projectData.technologies || "React, Django",
-//       description: projectData.description || "Ceci est un projet de démonstration",
-//       cohort: projectData.cohort || "DWWM - Mars 2024",
-//       tags: projectData.tags || "portfolio, web",
-//       created_at: new Date().toISOString(),
-//       author: 1,
-//       author_name: "Utilisateur Demo",
-//       download_count: 0,
-//       view_count: 0,
-//       ...projectData
-//     };
+//   async getProjectDetails(id) {
+//     try {
+//       console.log(`🔍 DÉTAILS PROJET ID ${id}...`);
+//       const response = await api.get(`/projects/${id}/`);
+//       console.log("✅ Détails projet récupérés");
+//       return response.data;
+//     } catch (error) {
+//       console.error(`❌ Erreur détails projet ${id}:`, error);
+//       throw new Error("Erreur lors du chargement des détails");
+//     }
+//   },
+
+//   async isProjectOwner(projectId) {
+//     try {
+//       const project = await this.getProjectDetails(projectId);
+//       const user = JSON.parse(localStorage.getItem("user"));
+//       return project.author === user?.id || project.author_id === user?.id;
+//     } catch (error) {
+//       console.error("❌ Erreur vérification propriétaire:", error);
+//       return false;
+//     }
 //   }
 // };
 
+// export { projectService };
 
-// src/services/projects.js
-import api from './api';
+// src/services/projects.js - SERVICE COMPLET AVEC GESTION D'ERREURS
+import api from "./api";
 
-export const projectService = {
-  // ==================== MÉTHODES EXISTANTES ====================
-
-  // Récupérer tous les projets (publics)
+const projectService = {
+  // ==================== MÉTHODES PUBLIQUES ====================
+  
+  // Récupérer tous les projets (public ou authentifié)
   async getAllProjects() {
     try {
-      const response = await api.get('/projects/');
-      console.log('✅ Tous les projets récupérés:', response.data.length);
-      return response.data;
+      console.log("📥 Récupération de tous les projets...");
+      
+      // ESSAYER D'ABORD L'ENDPOINT PUBLIC (sans token)
+      try {
+        const publicResponse = await api.get("/public-projects/");
+        if (publicResponse.data?.results || Array.isArray(publicResponse.data)) {
+          const projects = publicResponse.data.results || publicResponse.data;
+          console.log(`✅ ${projects.length} projets publics récupérés`);
+          return projects;
+        }
+      } catch (publicError) {
+        console.log("⚠️ Endpoint public non disponible, essai standard...");
+      }
+      
+      // FALLBACK: Endpoint standard (peut nécessiter auth)
+      const response = await api.get("/projects/");
+      
+      let projects = [];
+      if (Array.isArray(response.data)) {
+        projects = response.data;
+      } else if (response.data?.results) {
+        projects = response.data.results;
+      } else {
+        projects = response.data || [];
+      }
+      
+      console.log(`✅ ${projects.length} projets récupérés`);
+      return projects;
+      
     } catch (error) {
-      console.error('❌ Erreur /projects/:', error.response?.data);
-      return this.getMockProjects();
+      console.error("❌ Erreur lors de la récupération des projets:", error);
+      
+      // Si erreur 401 (non authentifié), retourner tableau vide
+      if (error.response?.status === 401) {
+        console.log("🔐 Utilisateur non authentifié - retour vide");
+        return [];
+      }
+      
+      // Retourner un tableau vide au lieu de throw
+      return [];
     }
   },
 
   // Récupérer les projets de l'utilisateur connecté
   async getUserProjects() {
     try {
-      const response = await api.get('/projects/my-projects/', {
-        withCredentials: true,
-      });
-      console.log('✅ Projets utilisateur récupérés:', response.data.length);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur my-projects:', error.response?.data);
+      console.log("📥 Récupération des projets utilisateur...");
       
+      // VÉRIFIER D'ABORD SI L'UTILISATEUR EST CONNECTÉ
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const token = localStorage.getItem("access_token");
+      
+      if (!user || !token) {
+        console.log("⚠️ Utilisateur non connecté - retour vide");
+        return [];
+      }
+      
+      console.log(`👤 Utilisateur connecté: ${user.username}`);
+      
+      const endpoints = [
+        "/my-projects/",
+        "/projects/?my=true",
+        "/projects/?author=me"
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`🔍 Essai endpoint: ${endpoint}`);
+          const response = await api.get(endpoint);
+          
+          if (response.data) {
+            let projects = [];
+            
+            // Gérer différents formats de réponse
+            if (Array.isArray(response.data)) {
+              projects = response.data;
+            } else if (response.data.results) {
+              projects = response.data.results;
+            } else if (response.data.data) {
+              projects = response.data.data;
+            } else if (typeof response.data === 'object') {
+              // Vérifier si c'est une réponse d'erreur
+              if (response.data.detail || response.data.error) {
+                console.log(`⚠️ Réponse d'erreur de ${endpoint}:`, response.data);
+                continue;
+              }
+              projects = [response.data];
+            }
+            
+            // Filtrer par auteur si nécessaire (pour /projects/)
+            if (endpoint === "/projects/") {
+              const filteredProjects = projects.filter(project => {
+                const authorId = project.author?.id || project.author_id || project.author;
+                return authorId === user.id;
+              });
+              if (filteredProjects.length > 0) {
+                projects = filteredProjects;
+              }
+            }
+            
+            if (projects.length > 0) {
+              console.log(`🎯 ${projects.length} projet(s) trouvé(s) via ${endpoint}`);
+              return projects;
+            }
+          }
+        } catch (endpointError) {
+          console.log(`⚠️ Endpoint ${endpoint} non disponible:`, endpointError.message);
+          continue;
+        }
+      }
+      
+      console.log("📭 Aucun projet trouvé, retour tableau vide");
+      return [];
+      
+    } catch (error) {
+      console.error("❌ Erreur récupération projets utilisateur:", error);
+      
+      // Gestion spécifique des erreurs 401
       if (error.response?.status === 401) {
-        console.log('🔐 Non authentifié - redirection vers login');
+        console.log("🔐 Session expirée, déconnexion...");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
       }
       
-      try {
-        console.log('🔄 Fallback: utilisation de getAllProjects');
-        return await this.getAllProjects();
-      } catch (fallbackError) {
-        console.error('❌ Tous les fallbacks ont échoué');
-        return this.getMockProjects();
-      }
+      return [];
     }
   },
 
-  async getProjectById(id) {
-    try {
-      const response = await api.get(`/projects/${id}/`);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur getProjectById:', error);
-      return this.getMockProject(id);
-    }
-  },
-
+  // ==================== CRÉATION ET GESTION ====================
+  
   async createProject(projectData) {
     try {
-      console.log('🎯 Données envoyées à l\'API:', projectData);
+      console.log("🛠️ CRÉATION PROJET:", projectData);
       
-      const response = await api.post('/projects/', projectData, {
-        withCredentials: true,
+      // Validation
+      if (!projectData.title?.trim()) {
+        throw new Error("Le titre du projet est requis");
+      }
+      
+      if (!projectData.technologies?.trim()) {
+        throw new Error("Les technologies sont requises");
+      }
+      
+      // Vérifier l'authentification
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (!user) {
+        throw new Error("Vous devez être connecté pour créer un projet");
+      }
+      
+      // Préparer les données
+      const formData = new FormData();
+      formData.append("title", projectData.title.trim());
+      formData.append("description", projectData.description?.trim() || "");
+      formData.append("technologies", projectData.technologies.trim());
+      formData.append("status", projectData.status || "draft");
+      formData.append("author", user.id);
+      
+      // Champs optionnels
+      if (projectData.cohort?.trim()) {
+        formData.append("cohort", projectData.cohort.trim());
+      }
+      
+      if (projectData.tags?.trim()) {
+        formData.append("tags", projectData.tags.trim());
+      }
+      
+      if (projectData.github_url?.trim()) {
+        formData.append("github_url", projectData.github_url.trim());
+      }
+      
+      if (projectData.demo_url?.trim()) {
+        formData.append("demo_url", projectData.demo_url.trim());
+      }
+      
+      if (projectData.image && projectData.image instanceof File) {
+        formData.append("image", projectData.image);
+      }
+      
+      if (projectData.zip_file && projectData.zip_file instanceof File) {
+        formData.append("zip_file", projectData.zip_file);
+      }
+      
+      console.log("🚀 Envoi vers /projects/...");
+      const response = await api.post("/projects/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
       
-      console.log('✅ Projet créé avec succès:', response.data);
-      
-      // ⭐⭐ CORRECTION : Gestion robuste de l'ID
-      if (response.data && response.data.id) {
-        console.log('🆔 ID du projet créé:', response.data.id);
-        return response.data;
-      } else {
-        console.warn('⚠️ Aucun ID dans la réponse:', response.data);
-        // Essaie de trouver l'ID dans différentes propriétés possibles
-        const projectId = response.data.id || response.data.pk || response.data.project_id;
-        if (projectId) {
-          console.log('🆔 ID trouvé dans autre propriété:', projectId);
-          return { ...response.data, id: projectId };
-        }
-        // Si toujours pas d'ID, crée un ID temporaire
-        const tempId = Date.now();
-        console.log('🆔 ID temporaire généré:', tempId);
-        return { ...response.data, id: tempId };
-      }
+      console.log("✅ PROJET CRÉÉ AVEC SUCCÈS:", response.data);
+      return {
+        success: true,
+        data: response.data,
+        message: "Projet créé avec succès"
+      };
       
     } catch (error) {
-      console.error('❌ ERREUR DÉTAILLÉE création projet:');
+      console.error("❌ ERREUR LORS DE LA CRÉATION:", error);
       
-      if (error.response) {
-        console.log('📊 Status:', error.response.status);
-        console.log('📋 Données erreur:', error.response.data);
+      let errorMessage = "Erreur lors de la création du projet";
+      let errorDetails = {};
+      
+      if (error.response?.data) {
+        const errors = error.response.data;
         
-        if (error.response.data) {
-          console.log('🚨 ERREURS DE VALIDATION:');
-          for (const [field, errors] of Object.entries(error.response.data)) {
-            console.log(`   ${field}:`, errors);
+        if (typeof errors === 'object') {
+          // Erreurs de validation Django
+          if (errors.author) {
+            errorMessage = "Erreur avec l'auteur: " + (errors.author[0] || "Auteur invalide");
+            errorDetails.author = errors.author;
           }
+          if (errors.title) {
+            errorMessage = "Titre: " + errors.title[0];
+            errorDetails.title = errors.title;
+          }
+          if (errors.technologies) {
+            errorMessage = "Technologies: " + errors.technologies[0];
+            errorDetails.technologies = errors.technologies;
+          }
+          if (errors.detail) {
+            errorMessage = errors.detail;
+          }
+        } else if (typeof errors === 'string') {
+          errorMessage = errors;
         }
-      } else if (error.request) {
-        console.log('🌐 Pas de réponse du serveur:', error.request);
-      } else {
-        console.log('⚡ Erreur config:', error.message);
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
-      throw error;
+      return {
+        success: false,
+        error: errorMessage,
+        details: errorDetails,
+        message: errorMessage
+      };
+    }
+  },
+
+  // ==================== OPÉRATIONS SUR PROJET ====================
+  
+  async getProjectDetails(id) {
+    try {
+      console.log(`🔍 DÉTAILS PROJET ID ${id}...`);
+      
+      // Essayer d'abord l'endpoint public
+      try {
+        const publicResponse = await api.get(`/projects/${id}/`);
+        console.log("✅ Détails projet récupérés");
+        return {
+          success: true,
+          data: publicResponse.data
+        };
+      } catch (publicError) {
+        console.log("⚠️ Endpoint public échoué, essai standard...");
+      }
+      
+      // Fallback
+      const response = await api.get(`/projects/${id}/`);
+      return {
+        success: true,
+        data: response.data
+      };
+      
+    } catch (error) {
+      console.error(`❌ Erreur détails projet ${id}:`, error);
+      
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          error: "Projet non trouvé",
+          message: "Ce projet n'existe pas ou a été supprimé"
+        };
+      }
+      
+      return {
+        success: false,
+        error: error.message || "Erreur lors du chargement des détails",
+        message: "Impossible de charger les détails du projet"
+      };
     }
   },
 
   async updateProject(id, projectData) {
     try {
-      console.log('🎯 DEBUG - Mise à jour projet:', id, projectData);
+      console.log(`✏️ MISE À JOUR PROJET ${id}...`);
       
-      const response = await api.patch(`/projects/${id}/`, projectData, {
-        withCredentials: true,
-      });
+      const response = await api.patch(`/projects/${id}/`, projectData);
       
-      console.log('✅ DEBUG - Projet mis à jour:', response.data);
-      return response.data;
-      
-    } catch (error) {
-      console.error('❌ DEBUG - Erreur mise à jour projet:');
-      
-      if (error.response) {
-        console.log('📊 Status:', error.response.status);
-        console.log('📋 Données erreur:', error.response.data);
-      }
-      
-      throw error;
-    }
-  },
-
-  async uploadProjectFile(projectId, file) {
-    try {
-      console.log('📤 DEBUG - Upload fichier pour projet:', projectId);
-      
-      // ⭐⭐ CORRECTION : Validation de l'ID
-      if (!projectId || projectId === 'undefined') {
-        throw new Error(`ID de projet invalide: ${projectId}`);
-      }
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await api.post(`/projects/${projectId}/upload/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        withCredentials: true,
-      });
-      
-      console.log('✅ DEBUG - Fichier uploadé:', response.data);
-      return response.data;
+      return {
+        success: true,
+        data: response.data,
+        message: "Projet mis à jour avec succès"
+      };
       
     } catch (error) {
-      console.error('❌ DEBUG - Erreur upload fichier:');
-      console.error('📋 Détails:', error.response?.data);
-      throw error;
+      console.error(`❌ Erreur mise à jour projet ${id}:`, error);
+      
+      let errorMessage = "Erreur lors de la mise à jour";
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      return {
+        success: false,
+        error: errorMessage,
+        message: errorMessage
+      };
     }
   },
 
   async deleteProject(id) {
     try {
-      const response = await api.delete(`/projects/${id}/`, {
-        withCredentials: true,
-      });
-      return response.data;
+      console.log(`🗑️ SUPPRESSION PROJET ${id}...`);
+      
+      await api.delete(`/projects/${id}/`);
+      
+      return {
+        success: true,
+        message: "Projet supprimé avec succès"
+      };
+      
     } catch (error) {
-      console.error('❌ Erreur suppression projet:', error);
-      return { success: true, message: 'Projet supprimé (mock)' };
+      console.error(`❌ Erreur suppression projet ${id}:`, error);
+      
+      if (error.response?.status === 403) {
+        return {
+          success: false,
+          error: "Permission refusée",
+          message: "Vous n'avez pas la permission de supprimer ce projet"
+        };
+      }
+      
+      return {
+        success: false,
+        error: error.message,
+        message: "Erreur lors de la suppression"
+      };
     }
   },
 
-  // ==================== NOUVELLES MÉTHODES POUR ADMIN DASHBOARD ====================
+  async downloadProject(id) {
+    try {
+      console.log(`📥 TÉLÉCHARGEMENT PROJET ${id}...`);
+      
+      const response = await api.get(`/projects/${id}/download/`, {
+        responseType: 'blob'
+      });
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `projet-${id}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      return {
+        success: true,
+        message: "Téléchargement démarré"
+      };
+      
+    } catch (error) {
+      console.error(`❌ Erreur téléchargement projet ${id}:`, error);
+      return {
+        success: false,
+        error: "Erreur lors du téléchargement",
+        message: "Impossible de télécharger le projet"
+      };
+    }
+  },
+
+  // ==================== UTILITAIRES ====================
   
-  // Récupérer les statistiques des projets pour l'admin
+  async isProjectOwner(projectId) {
+    try {
+      const project = await this.getProjectDetails(projectId);
+      if (!project.success) return false;
+      
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) return false;
+      
+      const projectAuthorId = project.data.author?.id || project.data.author_id || project.data.author;
+      return projectAuthorId === user.id;
+      
+    } catch (error) {
+      console.error("❌ Erreur vérification propriétaire:", error);
+      return false;
+    }
+  },
+
   async getProjectStats() {
     try {
-      const response = await api.get('/projects/stats/');
-      console.log('✅ Statistiques projets récupérées:', response.data);
-      return response.data;
+      const response = await api.get("/projects-stats/");
+      return {
+        success: true,
+        data: response.data
+      };
     } catch (error) {
-      console.error('❌ Erreur stats projets:', error.response?.data);
-      // Fallback avec des données mockées
-      return this.getMockProjectStats();
+      console.error("❌ Erreur stats projets:", error);
+      return {
+        success: false,
+        data: {},
+        error: error.message
+      };
     }
   },
 
-  // Récupérer le nombre total de projets
-  async getTotalProjects() {
+  // ==================== MÉTHODES DE DEBUG ====================
+  
+  async testConnection() {
     try {
-      const response = await api.get('/projects/count/');
-      return response.data;
+      const response = await api.get("/auth-test/");
+      console.log("✅ Test connexion réussi:", response.data);
+      return {
+        connected: true,
+        data: response.data,
+        user: JSON.parse(localStorage.getItem("user"))
+      };
     } catch (error) {
-      console.error('❌ Erreur count projets:', error);
-      return { total: 543, count: 543 }; // Fallback mock
+      console.error("❌ Test connexion échoué:", error);
+      return {
+        connected: false,
+        error: error.message,
+        user: JSON.parse(localStorage.getItem("user"))
+      };
     }
   },
 
-  // Récupérer le nombre total de téléchargements
-  async getTotalDownloads() {
+  // ==================== MÉTHODES ADMIN ====================
+  
+  async getAdminStats() {
     try {
-      const response = await api.get('/projects/downloads/count/');
-      return response.data;
+      const response = await api.get("/admin/stats/");
+      return {
+        success: true,
+        data: response.data
+      };
     } catch (error) {
-      console.error('❌ Erreur count téléchargements:', error);
-      return { total: 2891, count: 2891 }; // Fallback mock
+      console.error("❌ Erreur stats admin:", error);
+      
+      // Données mockées pour fallback
+      return {
+        success: false,
+        data: this.getMockAdminStats(),
+        isMock: true,
+        error: error.message
+      };
     }
   },
 
-  // Récupérer les projets en attente de modération
-  async getPendingProjects() {
-    try {
-      const response = await api.get('/projects/?status=pending');
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur projets en attente:', error);
-      return []; // Fallback tableau vide
-    }
-  },
-
-  // Récupérer l'activité récente
-  async getRecentActivity() {
-    try {
-      const response = await api.get('/activity/recent/');
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur activité récente:', error);
-      return this.getMockRecentActivity();
-    }
-  },
-
-  // Récupérer les projets les plus téléchargés
-  async getTopDownloadedProjects(limit = 5) {
-    try {
-      const response = await api.get(`/projects/top-downloaded/?limit=${limit}`);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur projets populaires:', error);
-      return this.getMockTopProjects();
-    }
-  },
-
-  // Récupérer les projets par statut (pour admin)
-  async getProjectsByStatus(status) {
-    try {
-      const response = await api.get(`/projects/?status=${status}`);
-      return response.data;
-    } catch (error) {
-      console.error(`❌ Erreur projets ${status}:`, error);
-      return this.getMockProjects().filter(project => project.status === status);
-    }
-  },
-
-  // Modérer un projet (approuver/rejeter)
-  async moderateProject(projectId, action, reason = '') {
-    try {
-      const response = await api.post(`/projects/${projectId}/moderate/`, {
-        action: action, // 'approve' ou 'reject'
-        reason: reason
-      });
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur modération projet:', error);
-      throw error;
-    }
-  },
-
-  // ==================== MÉTHODES MOCKÉES POUR FALLBACK ====================
-
-  getMockProjects() {
-    console.log('🔄 Utilisation des données mockées');
-    return [
-      {
-        id: 1,
-        title: "Portfolio en React",
-        status: "published",
-        technologies: "React, Tailwind CSS, Node.js",
-        description: "Un portfolio personnel développé avec React",
-        cohort: "DWWM - Mars 2024",
-        tags: "portfolio, web, react",
-        created_at: "2024-01-15T10:00:00Z",
-        author: 1,
-        author_name: "Utilisateur Demo",
-        download_count: 5,
-        view_count: 25,
-        file_url: "/files/portfolio-react.zip",
-        thumbnail_url: "/thumbnails/portfolio-react.jpg"
-      },
-      {
-        id: 2,
-        title: "API E-commerce",
-        status: "draft", 
-        technologies: "Django, PostgreSQL, REST",
-        description: "API backend pour un site e-commerce",
-        cohort: "CDA - Janvier 2024",
-        tags: "api, ecommerce, backend",
-        created_at: "2024-01-10T14:30:00Z",
-        author: 1,
-        author_name: "Utilisateur Demo",
-        download_count: 3,
-        view_count: 18,
-        file_url: "/files/api-ecommerce.zip",
-        thumbnail_url: "/thumbnails/api-ecommerce.jpg"
-      },
-      {
-        id: 3,
-        title: "Application Mobile de Gestion de Tâches",
-        status: "pending",
-        technologies: "React Native, Firebase, Redux",
-        description: "Application mobile de gestion de tâches avec synchronisation en temps réel",
-        cohort: "DWWM - Avril 2024",
-        tags: "mobile, react-native, firebase, tasks",
-        created_at: "2024-01-20T09:15:00Z",
-        author: 2,
-        author_name: "Marie Martin",
-        download_count: 0,
-        view_count: 12,
-        file_url: "/files/task-mobile-app.zip",
-        thumbnail_url: "/thumbnails/task-app.jpg"
-      },
-      {
-        id: 4,
-        title: "Site Vitrine pour Restaurant",
-        status: "published",
-        technologies: "HTML, CSS, JavaScript, PHP",
-        description: "Site vitrine responsive pour un restaurant avec système de réservation",
-        cohort: "DWWM - Février 2024",
-        tags: "restaurant, responsive, php, reservation",
-        created_at: "2024-01-18T16:45:00Z",
-        author: 3,
-        author_name: "Pierre Lambert",
-        download_count: 8,
-        view_count: 32,
-        file_url: "/files/restaurant-site.zip",
-        thumbnail_url: "/thumbnails/restaurant-site.jpg"
-      }
-    ];
-  },
-
-  getMockProject(id, projectData = {}) {
+  getMockAdminStats() {
     return {
-      id: id,
-      title: projectData.title || "Projet de démonstration",
-      status: projectData.status || "published",
-      technologies: projectData.technologies || "React, Django",
-      description: projectData.description || "Ceci est un projet de démonstration",
-      cohort: projectData.cohort || "DWWM - Mars 2024",
-      tags: projectData.tags || "portfolio, web",
-      created_at: new Date().toISOString(),
-      author: 1,
-      author_name: "Utilisateur Demo",
-      download_count: 0,
-      view_count: 0,
-      file_url: projectData.file_url || "/files/demo-project.zip",
-      thumbnail_url: projectData.thumbnail_url || "/thumbnails/demo-project.jpg",
-      ...projectData
-    };
-  },
-
-  getMockProjectStats() {
-    console.log('🔄 Utilisation des stats mockées');
-    return {
-      total_projects: 543,
-      total_downloads: 2891,
-      projects_by_status: {
-        published: 520,
-        pending: 23,
-        draft: 15,
-        rejected: 5
+      stats: {
+        total_users: 1247,
+        total_projects: 543,
+        total_downloads: 2891,
+        pending_projects: 23,
+        approved_projects: 320,
+        draft_projects: 200,
+        active_users: 1100,
+        inactive_users: 147,
+        staff_users: 15
       },
-      downloads_by_month: [
-        { month: 'Jan', downloads: 245 },
-        { month: 'Fév', downloads: 312 },
-        { month: 'Mar', downloads: 289 },
-        { month: 'Avr', downloads: 356 },
-        { month: 'Mai', downloads: 421 },
-        { month: 'Juin', downloads: 389 }
+      recent_users: [
+        {
+          id: 1,
+          username: 'admin',
+          email: 'admin@simplon.com',
+          first_name: 'Admin',
+          last_name: 'System'
+        }
       ],
-      projects_by_technology: {
-        'React': 156,
-        'Django': 89,
-        'Vue.js': 67,
-        'Laravel': 54,
-        'Node.js': 43,
-        'Flask': 32,
-        'Autres': 102
-      }
+      recent_projects: [
+        {
+          id: 1,
+          title: 'Application E-commerce',
+          author: { username: 'simplon_2025001' },
+          status: 'published'
+        }
+      ]
     };
-  },
-
-  getMockRecentActivity() {
-    return [
-      {
-        id: 1,
-        user: 'Jean Dupont',
-        action: 'a déposé un projet',
-        project: 'Site E-commerce React',
-        time: 'Il y a 5 min',
-        type: 'project',
-        avatar: '/avatars/user1.jpg'
-      },
-      {
-        id: 2,
-        user: 'Marie Martin', 
-        action: 's\'est inscrite',
-        time: 'Il y a 15 min',
-        type: 'user',
-        avatar: '/avatars/user2.jpg'
-      },
-      {
-        id: 3,
-        user: 'Admin System',
-        action: 'a approuvé un projet',
-        project: 'App TaskMaster',
-        time: 'Il y a 1 heure',
-        type: 'moderation',
-        avatar: '/avatars/admin.jpg'
-      },
-      {
-        id: 4,
-        user: 'Pierre Lambert',
-        action: 'a téléchargé',
-        project: 'API REST Django',
-        time: 'Il y a 2 heures',
-        type: 'download',
-        avatar: '/avatars/user3.jpg'
-      },
-      {
-        id: 5,
-        user: 'Sophie Chen',
-        action: 'a mis à jour son projet',
-        project: 'Portfolio Creative',
-        time: 'Il y a 3 heures',
-        type: 'update',
-        avatar: '/avatars/user4.jpg'
-      },
-      {
-        id: 6,
-        user: 'Thomas Bernard',
-        action: 'a commenté',
-        project: 'Site E-commerce React',
-        time: 'Il y a 4 heures',
-        type: 'comment',
-        avatar: '/avatars/user5.jpg'
-      }
-    ];
-  },
-
-  getMockTopProjects() {
-    return [
-      {
-        id: 1,
-        title: "Portfolio React Modern",
-        download_count: 156,
-        author_name: "Jean Dupont",
-        technologies: "React, Tailwind, Framer Motion",
-        description: "Portfolio moderne avec animations fluides et design responsive",
-        status: "published",
-        created_at: "2024-01-10T10:00:00Z"
-      },
-      {
-        id: 2,
-        title: "API E-commerce Django",
-        download_count: 134,
-        author_name: "Marie Martin",
-        technologies: "Django, Django REST, PostgreSQL",
-        description: "API complète pour site e-commerce avec gestion des commandes",
-        status: "published",
-        created_at: "2024-01-08T14:30:00Z"
-      },
-      {
-        id: 3,
-        title: "App Mobile React Native",
-        download_count: 98,
-        author_name: "Pierre Lambert",
-        technologies: "React Native, Expo, Firebase",
-        description: "Application mobile de gestion de tâches avec authentification",
-        status: "published",
-        created_at: "2024-01-05T09:15:00Z"
-      },
-      {
-        id: 4,
-        title: "Dashboard Admin Vue.js",
-        download_count: 87,
-        author_name: "Sophie Chen",
-        technologies: "Vue.js, Vuex, Chart.js",
-        description: "Tableau de bord administratif avec graphiques et statistiques",
-        status: "published",
-        created_at: "2024-01-03T16:20:00Z"
-      },
-      {
-        id: 5,
-        title: "CMS Laravel",
-        download_count: 76,
-        author_name: "Thomas Bernard",
-        technologies: "Laravel, MySQL, Blade",
-        description: "Système de gestion de contenu avec interface d'administration",
-        status: "published",
-        created_at: "2024-01-01T11:45:00Z"
-      }
-    ];
-  },
-
-  // ==================== MÉTHODES UTILITAIRES ====================
-
-  // Formater les données de projet pour l'affichage
-  formatProjectForDisplay(project) {
-    return {
-      ...project,
-      formatted_date: new Date(project.created_at).toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      short_description: project.description.length > 100 
-        ? project.description.substring(0, 100) + '...' 
-        : project.description,
-      technologies_array: project.technologies ? project.technologies.split(',').map(tech => tech.trim()) : [],
-      tags_array: project.tags ? project.tags.split(',').map(tag => tag.trim()) : []
-    };
-  },
-
-  // Valider les données d'un projet avant création/mise à jour
-  validateProjectData(projectData) {
-    const errors = [];
-
-    if (!projectData.title || projectData.title.trim().length < 3) {
-      errors.push('Le titre doit contenir au moins 3 caractères');
-    }
-
-    if (!projectData.description || projectData.description.trim().length < 10) {
-      errors.push('La description doit contenir au moins 10 caractères');
-    }
-
-    if (!projectData.technologies || projectData.technologies.trim().length === 0) {
-      errors.push('Les technologies sont requises');
-    }
-
-    if (!projectData.cohort || projectData.cohort.trim().length === 0) {
-      errors.push('La cohorte est requise');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors: errors
-    };
-  },
-
-  // Rechercher des projets
-  async searchProjects(query, filters = {}) {
-    try {
-      const params = new URLSearchParams();
-      params.append('search', query);
-      
-      if (filters.technologies) {
-        params.append('technologies', filters.technologies);
-      }
-      if (filters.cohort) {
-        params.append('cohort', filters.cohort);
-      }
-      if (filters.status) {
-        params.append('status', filters.status);
-      }
-
-      const response = await api.get(`/projects/search/?${params.toString()}`);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur recherche projets:', error);
-      // Fallback: recherche dans les projets mockés
-      const mockProjects = this.getMockProjects();
-      const filteredProjects = mockProjects.filter(project => 
-        project.title.toLowerCase().includes(query.toLowerCase()) ||
-        project.description.toLowerCase().includes(query.toLowerCase()) ||
-        project.technologies.toLowerCase().includes(query.toLowerCase()) ||
-        project.tags.toLowerCase().includes(query.toLowerCase())
-      );
-      return filteredProjects;
-    }
-  },
-
-  // Télécharger un projet
-  async downloadProject(projectId) {
-    try {
-      const response = await api.post(`/projects/${projectId}/download/`);
-      
-      // Incrémenter le compteur localement pour feedback immédiat
-      const projects = await this.getAllProjects();
-      const project = projects.find(p => p.id === projectId);
-      if (project) {
-        project.download_count = (project.download_count || 0) + 1;
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur téléchargement projet:', error);
-      
-      // Simuler le téléchargement en cas d'erreur
-      const projects = await this.getAllProjects();
-      const project = projects.find(p => p.id === projectId);
-      if (project) {
-        project.download_count = (project.download_count || 0) + 1;
-      }
-      
-      return { success: true, message: 'Téléchargement simulé (mode démo)' };
-    }
-  },
-
-  // Récupérer les projets similaires
-  async getSimilarProjects(projectId, limit = 4) {
-    try {
-      const response = await api.get(`/projects/${projectId}/similar/?limit=${limit}`);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur projets similaires:', error);
-      
-      // Fallback: trouver des projets similaires basés sur les tags
-      const currentProject = await this.getProjectById(projectId);
-      const allProjects = await this.getAllProjects();
-      
-      const similarProjects = allProjects
-        .filter(project => 
-          project.id !== projectId && 
-          project.status === 'published' &&
-          this.calculateSimilarity(currentProject, project) > 0.3
-        )
-        .slice(0, limit);
-      
-      return similarProjects;
-    }
-  },
-
-  // Calculer la similarité entre deux projets (pour fallback)
-  calculateSimilarity(project1, project2) {
-    let score = 0;
-    
-    // Similarité par technologies
-    const tech1 = project1.technologies?.toLowerCase().split(',').map(t => t.trim()) || [];
-    const tech2 = project2.technologies?.toLowerCase().split(',').map(t => t.trim()) || [];
-    const commonTech = tech1.filter(tech => tech2.includes(tech)).length;
-    score += commonTech / Math.max(tech1.length, tech2.length) * 0.4;
-    
-    // Similarité par tags
-    const tags1 = project1.tags?.toLowerCase().split(',').map(t => t.trim()) || [];
-    const tags2 = project2.tags?.toLowerCase().split(',').map(t => t.trim()) || [];
-    const commonTags = tags1.filter(tag => tags2.includes(tag)).length;
-    score += commonTags / Math.max(tags1.length, tags2.length) * 0.4;
-    
-    // Similarité par cohorte
-    if (project1.cohort === project2.cohort) {
-      score += 0.2;
-    }
-    
-    return score;
   }
 };
 
-export default projectService;
+export { projectService };
+

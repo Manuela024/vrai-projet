@@ -68,6 +68,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+
 const Home = () => {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
@@ -102,7 +103,7 @@ const Home = () => {
             <main className="flex-grow">
               {/* Hero Section intégrée directement */}
               <div className="@container">
-                <div className="flex flex-col gap-10 px-4 py-16 @[864px]:flex-row @[864px]:items-center">
+                <div className="flex  gap-10 px-4 py-16 @[864px]:flex-row @[864px]:items-center">
                   <div className="flex flex-col gap-6 text-left @[864px]:w-1/2">
                     <div className="flex flex-col gap-4">
                       <h1 className="text-4xl font-black leading-tight tracking-tighter @[480px]:text-5xl">
@@ -121,7 +122,7 @@ const Home = () => {
                   </div>
                   <div className="w-full @[864px]:w-1/2">
                     <div 
-                      className="bg-center bg-no-repeat aspect-video bg-cover rounded-xl"
+                      className="flex flex-col bg-center bg-no-repeat aspect-video bg-cover rounded-xl"
                       style={{ 
                         backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5gn_s7MnMEjAqOed9HXBakgtrfF69Ts5EyO8C_GtrO_utoIetn0OT7fG2AsVrXEHcGYlHEF15an6S0EXpRsZbc4dOVYEivws_857nIY3NI4ueCNyB70V95BhpvgFjZ1PrHVMXzLq6VoNLdoIAWLCndQ1PqyKkw9DuLcyhc7rRis-hqSZoA2qysiadY66jC39vTf0vOEBBJZG1kPA0Q9hYgmdKyzOgpvxoyESv8m5kEraot4wRpI-NF7lOyAbWf6rrqZYvpGWTnzE")'
                       }}

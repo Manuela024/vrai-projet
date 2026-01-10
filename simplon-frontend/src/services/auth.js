@@ -1,360 +1,283 @@
-// // src/services/auth.js
-// const API_URL = 'http://localhost:8000/api';
 
-// // ==================== SERVICE D'AUTHENTIFICATION PRINCIPAL ====================
-// const authService = {
-  
-//   // ==================== FLOW LIEN MAGIQUE ====================
-  
-//   async requestLoginLink(matricule, email) {
-//     try {
-//       const response = await fetch(`${API_URL}/auth/request-login/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ matricule, email }),
-//       });
 
-//       if (response.ok) {
-//         const data = await response.json();
-//         return { success: true, message: data.message, token: data.token };
-//       } else {
-//         const errorData = await response.json();
-//         return { success: false, message: errorData.message || 'Erreur lors de l\'envoi du lien' };
-//       }
-//     } catch (error) {
-//       console.error('Request login link error:', error);
-//       return { 
-//         success: false, 
-//         message: 'Erreur de connexion au serveur' 
-//       };
-//     }
+
+// // src/services/auth.js - VERSION AVEC DONNÉES RÉELLES
+// import axios from 'axios';
+
+// const API_BASE_URL = 'http://localhost:8000/api';
+
+// // DONNÉES RÉELLES DE L'UTILISATEUR (d'après Django)
+// const REAL_USER_DATA = {
+//   'simplon_2025001': {
+//     id: 18,
+//     username: 'simplon_2025001',
+//     email: 'alice.martin@simplon.com',
+//     first_name: 'Alice',
+//     last_name: 'Martin',
+//     is_staff: false,
+//     is_superuser: false,
+//     is_active: true,
+//     date_joined: '2025-11-18T15:16:01.229591Z',
+//     cohort: 'Simplon 2024',
+//     bio: ''
 //   },
-
-//   async setupPassword(token, matricule, email, username, password) {
-//     try {
-//       const response = await fetch(`${API_URL}/auth/setup-password/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ 
-//           token, 
-//           matricule, 
-//           email, 
-//           username, 
-//           password 
-//         }),
-//       });
-
-//       if (response.ok) {
-//         const data = await response.json();
-//         return { 
-//           success: true, 
-//           message: data.message, 
-//           username: data.username 
-//         };
-//       } else {
-//         const errorData = await response.json();
-//         return { 
-//           success: false, 
-//           message: errorData.message || 'Erreur lors de la création du compte' 
-//         };
-//       }
-//     } catch (error) {
-//       console.error('Setup password error:', error);
-//       return { 
-//         success: false, 
-//         message: 'Erreur de connexion au serveur' 
-//       };
-//     }
-//   },
-
-//   // ==================== CONNEXION DIRECTE ====================
-
-//   async directLogin(username, password) {
-//     try {
-//       const response = await fetch(`${API_URL}/auth/direct-login/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ username, password }),
-//       });
-
-//       if (response.ok) {
-//         const data = await response.json();
-        
-//         // Stocker les tokens
-//         localStorage.setItem('access_token', data.access);
-//         localStorage.setItem('refresh_token', data.refresh);
-//         localStorage.setItem('user', JSON.stringify(data.user));
-        
-//         return data;
-//       } else {
-//         const errorData = await response.json();
-//         throw new Error(errorData.error || 'Identifiants incorrects');
-//       }
-//     } catch (error) {
-//       console.error('Direct login error:', error);
-//       throw error;
-//     }
-//   },
-
-
-//   // auth.js - CORRECTION DE LA GESTION D'ERREUR
-// async quickLogin(matricule, password) {
-//   try {
-//     console.log('🔐 DEBUG - Tentative de connexion avec:', { matricule, password });
-    
-//     const requestData = {
-//       username: matricule,  // ⭐ IMPORTANT: Utiliser 'username' au lieu de 'matricule'
-//       password: password
-//     };
-    
-//     console.log('📤 DEBUG - Données envoyées:', requestData);
-    
-//     const response = await fetch(`${API_URL}/auth/quick-login/`, {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify(requestData),
-//     });
-
-//     console.log('📊 DEBUG - Status HTTP:', response.status);
-
-//     const data = await response.json();
-//     console.log('📋 DEBUG - Réponse serveur:', data);
-
-//     if (!response.ok) {
-//       console.error('❌ DEBUG - Erreur serveur:', data);
-      
-//       // ⭐ CORRECTION CRITIQUE : Créer un objet d'erreur structuré
-//       const error = new Error(data.error || data.message || 'Erreur de connexion');
-//       error.response = {
-//         status: response.status,
-//         data: data
-//       };
-//       throw error;
-//     }
-
-//     console.log('✅ DEBUG - Connexion réussie:', data);
-
-//     // Stocker les tokens
-//     if (data.access && data.refresh) {
-//       localStorage.setItem('access_token', data.access);
-//       localStorage.setItem('refresh_token', data.refresh);
-//       localStorage.setItem('user', JSON.stringify(data.user));
-//     }
-
-//     return data;
-//   } catch (error) {
-//     console.error('❌ DEBUG - ERREUR COMPLÈTE quick login:');
-    
-//     // ⭐ CORRECTION : Vérifier si error.message existe
-//     if (error.message) {
-//       console.error('⚡ Message:', error.message);
-//     } else {
-//       console.error('⚡ Message: Aucun message d\'erreur');
-//     }
-    
-//     console.error('🔢 Code:', error.code);
-//     console.error('📊 Status:', error.response?.status);
-//     console.error('📋 Données erreur:', error.response?.data);
-    
-//     // Relancer l'erreur pour que le composant puisse la gérer
-//     throw error;
+//   'admin': {
+//     id: 3,
+//     username: 'admin',
+//     email: 'admin@simplon.com',
+//     first_name: 'Admin',
+//     last_name: 'System',
+//     is_staff: true,
+//     is_superuser: true,
+//     is_active: true,
+//     date_joined: '2025-11-25T09:42:06.293564Z',
+//     cohort: 'Administration',
+//     bio: 'Administrateur système'
 //   }
-// },
+// };
 
-//   // ==================== CONNEXION JWT STANDARD ====================
-
-//   async login(username, password) {
+// const authService = {
+//   // ✅ LOGIN AVEC DONNÉES RÉELLES
+//   async login(matricule, password) {
+//     console.log('🔐 Login attempt for:', matricule);
+    
 //     try {
-//       const response = await fetch(`${API_URL}/auth/token/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ username, password }),
+//       // 1. Obtenir le token JWT
+//       const tokenResponse = await axios.post(`${API_BASE_URL}/token/`, {
+//         username: matricule,
+//         password: password
 //       });
-
-//       // ⭐ CORRECTION : Gestion des erreurs de connexion
-//       if (!response.ok && response.status === 0) {
-//         throw new Error('CONNECTION_REFUSED');
-//       }
-
-//       if (response.ok) {
-//         const data = await response.json();
-        
-//         localStorage.setItem('access_token', data.access);
-//         localStorage.setItem('refresh_token', data.refresh);
-        
-//         // Récupérer le profil utilisateur
-//         await this.getUserProfile();
-        
-//         return data;
-//       } else {
-//         const errorData = await response.json();
-//         throw new Error(errorData.detail || 'Identifiants incorrects');
-//       }
-//     } catch (error) {
-//       console.error('Login error:', error);
       
-//       // ⭐ CORRECTION : Message spécifique pour erreur de connexion
-//       if (error.message === 'CONNECTION_REFUSED' || error.message.includes('Failed to fetch')) {
-//         throw new Error('❌ Serveur Django non démarré. Vérifiez que le backend est en cours d\'exécution sur le port 8000.');
+//       const { access, refresh } = tokenResponse.data;
+      
+//       // Stocker les tokens
+//       localStorage.setItem('access_token', access);
+//       localStorage.setItem('refresh_token', refresh);
+      
+//       console.log('✅ Token received');
+      
+//       // 2. UTILISER LES DONNÉES RÉELLES
+//       let userData = null;
+      
+//       // Chercher dans nos données réelles
+//       if (REAL_USER_DATA[matricule]) {
+//         userData = REAL_USER_DATA[matricule];
+//         console.log('✅ Using real user data from mapping:', userData);
+//       } else {
+//         // Essayer l'API
+//         try {
+//           console.log('🔍 Trying to fetch from API...');
+          
+//           // Essayer par ID si on connaît le matricule
+//           if (matricule === 'simplon_2025001') {
+//             const response = await axios.get(`${API_BASE_URL}/users/18/`, {
+//               headers: {
+//                 'Authorization': `Bearer ${access}`,
+//                 'Content-Type': 'application/json',
+//               },
+//             });
+//             userData = response.data;
+//             console.log('✅ Got user from API by ID:', userData);
+//           } else {
+//             // Chercher par username
+//             const response = await axios.get(`${API_BASE_URL}/users/?username=${encodeURIComponent(matricule)}`, {
+//               headers: {
+//                 'Authorization': `Bearer ${access}`,
+//                 'Content-Type': 'application/json',
+//               },
+//             });
+            
+//             if (response.data.results && response.data.results.length > 0) {
+//               userData = response.data.results[0];
+//               console.log('✅ Got user from API search:', userData);
+//             }
+//           }
+//         } catch (apiError) {
+//           console.log('⚠️ API fetch failed:', apiError.message);
+//         }
+//       }
+      
+//       // 3. Créer l'objet utilisateur final
+//       const userToStore = userData ? {
+//         // Données réelles
+//         id: userData.id,
+//         username: userData.username || matricule,
+//         email: userData.email || `${matricule}@simplon.com`,
+//         first_name: userData.first_name || '',
+//         last_name: userData.last_name || '',
+//         is_staff: userData.is_staff || false,
+//         is_superuser: userData.is_superuser || false,
+//         is_active: userData.is_active !== undefined ? userData.is_active : true,
+//         date_joined: userData.date_joined || new Date().toISOString(),
+        
+//         // Champs personnalisés
+//         matricule: matricule,
+//         cohort: userData.cohort || 'Simplon 2024',
+//         bio: userData.bio || '',
+        
+//         // Champs calculés
+//         isAdmin: !!(userData.is_staff || userData.is_superuser),
+//         role: (userData.is_staff || userData.is_superuser) ? 'admin' : 'user',
+        
+//         // Marqueur
+//         _source: userData ? 'django_real' : 'default'
+//       } : {
+//         // Fallback si aucune donnée trouvée
+//         id: Date.now(),
+//         username: matricule,
+//         email: `${matricule}@simplon.com`,
+//         first_name: 'Utilisateur',
+//         last_name: 'Simplon',
+//         is_staff: false,
+//         is_superuser: false,
+//         is_active: true,
+//         date_joined: new Date().toISOString(),
+//         matricule: matricule,
+//         cohort: 'Simplon 2024',
+//         bio: '',
+//         isAdmin: matricule.includes('admin'),
+//         role: matricule.includes('admin') ? 'admin' : 'user',
+//         _source: 'fallback'
+//       };
+      
+//       console.log('✅ Storing user:', userToStore);
+//       localStorage.setItem('user', JSON.stringify(userToStore));
+      
+//       return { success: true, user: userToStore };
+      
+//     } catch (error) {
+//       console.error('❌ Login error:', error.message);
+      
+//       if (error.response?.status === 401) {
+//         throw new Error('Matricule ou mot de passe incorrect');
 //       }
       
 //       throw error;
 //     }
 //   },
 
-//   // ==================== MOT DE PASSE OUBLIÉ ====================
-
-//   async forgotPassword(email) {
+//   // ✅ QUICK LOGIN
+//   async quickLogin(matricule, password) {
+//     console.log('🚀 Quick login for:', matricule);
+    
 //     try {
-//       const response = await fetch(`${API_URL}/auth/forgot-password/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ email }),
-//       });
-
-//       // Gestion spécifique de l'erreur de connexion
-//       if (!response.ok && response.status === 0) {
-//         throw new Error('CONNECTION_REFUSED');
-//       }
-
-//       const data = await response.json();
-      
-//       if (response.ok) {
-//         return { 
-//           success: true, 
-//           message: data.message 
-//         };
-//       } else {
-//         return { 
-//           success: false, 
-//           message: data.message || 'Erreur lors de la demande de réinitialisation' 
-//         };
-//       }
+//       return await this.login(matricule, password);
 //     } catch (error) {
-//       console.error('Forgot password error:', error);
-      
-//       // Message spécifique pour erreur de connexion
-//       if (error.message === 'CONNECTION_REFUSED' || error.message.includes('Failed to fetch')) {
-//         return { 
-//           success: false, 
-//           message: '❌ Serveur indisponible. Vérifiez que le serveur Django est démarré sur le port 8000.' 
-//         };
-//       }
-      
-//       return { 
-//         success: false, 
-//         message: 'Erreur de connexion au serveur' 
-//       };
+//       console.log('🔄 Trying simulation...');
+//       return this.mockLogin(matricule, password);
 //     }
 //   },
 
-//   async resetPassword(token, email, new_password) {
-//     try {
-//       const response = await fetch(`${API_URL}/auth/reset-password/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ 
-//           token, 
-//           email, 
-//           new_password 
-//         }),
-//       });
-
-//       console.log('🔍 Reset password response status:', response.status);
-
-//       // Gestion spécifique des erreurs 500
-//       if (response.status === 500) {
-//         console.error('❌ Erreur 500 du serveur');
-//         return { 
-//           success: false, 
-//           message: 'Erreur serveur. Le système de réinitialisation est temporairement indisponible. Veuillez réessayer plus tard ou contacter l\'administrateur.' 
+//   // ✅ MOCK LOGIN (utilise aussi les vraies données si disponible)
+//   mockLogin(matricule, password) {
+//     return new Promise((resolve, reject) => {
+//       console.log('🎭 Simulation mode');
+      
+//       setTimeout(() => {
+//         // Vérifier les identifiants
+//         const validUsers = {
+//           'admin': ['admin123', 'password'],
+//           'simplon_2025001': ['simplon2024'],
+//           'simplon-2025001': ['simplon2024'],
+//           'user123': ['password123']
 //         };
-//       }
-
-//       let data;
-//       try {
-//         data = await response.json();
-//       } catch (jsonError) {
-//         console.error('❌ Erreur parsing JSON:', jsonError);
-//         // Si la réponse n'est pas du JSON valide (comme une page HTML d'erreur)
-//         if (response.status >= 400) {
-//           return { 
-//             success: false, 
-//             message: 'Erreur technique. Veuillez vérifier que votre lien de réinitialisation est encore valide.' 
-//           };
+        
+//         const validPasswords = validUsers[matricule];
+        
+//         if (!validPasswords || !validPasswords.includes(password)) {
+//           reject(new Error('Matricule ou mot de passe incorrect'));
+//           return;
 //         }
-//         throw jsonError;
-//       }
-      
-//       if (response.ok) {
-//         return { 
-//           success: true, 
-//           message: data.message 
+        
+//         // Utiliser les données réelles si disponibles
+//         let userData = null;
+//         if (REAL_USER_DATA[matricule]) {
+//           userData = REAL_USER_DATA[matricule];
+//           console.log('✅ Using real data even in simulation');
+//         }
+        
+//         const user = userData ? {
+//           // Données réelles
+//           ...userData,
+//           matricule: matricule,
+//           isAdmin: !!(userData.is_staff || userData.is_superuser),
+//           role: (userData.is_staff || userData.is_superuser) ? 'admin' : 'user',
+//           _source: 'django_simulation'
+//         } : {
+//           // Simulation
+//           id: Date.now(),
+//           username: matricule,
+//           email: `${matricule}@simplon.com`,
+//           first_name: 'Simulation',
+//           last_name: 'User',
+//           is_staff: false,
+//           is_superuser: false,
+//           is_active: true,
+//           date_joined: new Date().toISOString(),
+//           matricule: matricule,
+//           cohort: 'Simulation 2024',
+//           bio: '',
+//           isAdmin: false,
+//           role: 'user',
+//           _source: 'simulation'
 //         };
-//       } else {
-//         return { 
-//           success: false, 
-//           message: data.message || 'Erreur lors de la réinitialisation du mot de passe' 
-//         };
-//       }
-//     } catch (error) {
-//       console.error('❌ Reset password error:', error);
-      
-//       // Messages d'erreur plus spécifiques
-//       if (error.message && error.message.includes('Unexpected token')) {
-//         return { 
-//           success: false, 
-//           message: 'Erreur de communication avec le serveur. Veuillez réessayer.' 
-//         };
-//       }
-      
-//       return { 
-//         success: false, 
-//         message: 'Erreur de connexion au serveur. Vérifiez votre connexion internet.' 
-//       };
-//     }
+        
+//         localStorage.setItem('user', JSON.stringify(user));
+//         localStorage.setItem('access_token', 'mock_token_' + Date.now());
+//         localStorage.setItem('refresh_token', 'mock_refresh_' + Date.now());
+        
+//         console.log('✅ User created:', user);
+//         resolve({ success: true, user, isSimulation: true });
+        
+//       }, 500);
+//     });
 //   },
 
-//   // ==================== FONCTIONS UTILITAIRES ====================
+//   // ✅ IS AUTHENTICATED
+//   isAuthenticated() {
+//     const user = localStorage.getItem('user');
+//     const token = localStorage.getItem('access_token');
+//     return !!(user && token);
+//   },
 
-//   async getUserProfile() {
+//   // ✅ IS ADMIN
+//   isAdmin() {
 //     try {
-//       const token = this.getAccessToken();
-//       if (!token) return null;
-
-//       const response = await fetch(`${API_URL}/auth/user/`, {
-//         headers: {
-//           'Authorization': `Bearer ${token}`,
-//           'Content-Type': 'application/json',
-//         },
-//       });
-
-//       if (response.ok) {
-//         const userData = await response.json();
-//         localStorage.setItem('user', JSON.stringify(userData));
-//         return userData;
-//       }
-//       return null;
+//       const userStr = localStorage.getItem('user');
+//       if (!userStr) return false;
+      
+//       const user = JSON.parse(userStr);
+//       return !!(user.is_staff || user.is_superuser || user.isAdmin);
 //     } catch (error) {
-//       console.error('Error fetching user profile:', error);
+//       console.error('isAdmin error:', error);
+//       return false;
+//     }
+//   },
+
+//   // ✅ GET CURRENT USER
+//   getCurrentUser() {
+//     try {
+//       const userStr = localStorage.getItem('user');
+//       const user = userStr ? JSON.parse(userStr) : null;
+      
+//       // Debug: afficher les données
+//       if (user) {
+//         console.log('🔍 getCurrentUser - Data:', {
+//           first_name: user.first_name,
+//           last_name: user.last_name,
+//           email: user.email,
+//           source: user._source
+//         });
+//       }
+      
+//       return user;
+//     } catch (error) {
+//       console.error('getCurrentUser error:', error);
 //       return null;
 //     }
 //   },
 
+//   // ✅ LOGOUT
 //   logout() {
 //     localStorage.removeItem('access_token');
 //     localStorage.removeItem('refresh_token');
@@ -362,772 +285,1478 @@
 //     window.location.href = '/login';
 //   },
 
-//   getAccessToken() {
-//     return localStorage.getItem('access_token');
+//   // ✅ METTRE À JOUR LOCALEMENT
+//   updateProfile(updates) {
+//     try {
+//       const currentUser = this.getCurrentUser();
+//       if (!currentUser) return false;
+      
+//       const updatedUser = { ...currentUser, ...updates };
+//       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+//       console.log('✅ Profile updated:', updatedUser);
+//       return true;
+//     } catch (error) {
+//       console.error('❌ Error updating profile:', error);
+//       return false;
+//     }
 //   },
 
-//   getCurrentUser() {
-//     const userStr = localStorage.getItem('user');
-//     return userStr ? JSON.parse(userStr) : null;
+//   // ✅ FORCER LES DONNÉES RÉELLES
+//   forceRealData(matricule) {
+//     if (REAL_USER_DATA[matricule]) {
+//       const userData = REAL_USER_DATA[matricule];
+//       const user = {
+//         ...userData,
+//         matricule: matricule,
+//         isAdmin: !!(userData.is_staff || userData.is_superuser),
+//         role: (userData.is_staff || userData.is_superuser) ? 'admin' : 'user',
+//         _source: 'forced_real'
+//       };
+      
+//       localStorage.setItem('user', JSON.stringify(user));
+//       console.log('✅ Forced real data:', user);
+//       return user;
+//     }
+//     return null;
+//   }
+// };
+
+// export default authService;
+
+
+
+// // src/services/auth.js - VERSION SIMPLIFIÉE
+// const TOKEN_KEY = 'simplon_access_token';
+// const USER_KEY = 'simplon_user';
+
+// const authService = {
+//   // Login simplifié pour test
+//   async login(matricule, password) {
+//     console.log('🔐 Tentative de connexion:', matricule);
+    
+//     // Simulation
+//     return new Promise((resolve, reject) => {
+//       setTimeout(() => {
+//         // Test avec admin
+//         if (matricule === 'admin' && password === 'admin123') {
+//           const user = {
+//             id: 1,
+//             username: 'admin',
+//             email: 'admin@simplon.com',
+//             first_name: 'Admin',
+//             last_name: 'System',
+//             is_staff: true,
+//             is_superuser: true,
+//             isAdmin: true,
+//             role: 'admin'
+//           };
+          
+//           localStorage.setItem(USER_KEY, JSON.stringify(user));
+//           localStorage.setItem(TOKEN_KEY, 'mock_token_' + Date.now());
+          
+//           console.log('✅ Connexion admin réussie');
+//           resolve({ success: true, user });
+          
+//         } else if (matricule && password) {
+//           // Utilisateur normal
+//           const user = {
+//             id: Date.now(),
+//             username: matricule,
+//             email: `${matricule}@simplon.com`,
+//             first_name: 'Utilisateur',
+//             last_name: 'Test',
+//             is_staff: false,
+//             is_superuser: false,
+//             isAdmin: false,
+//             role: 'user'
+//           };
+          
+//           localStorage.setItem(USER_KEY, JSON.stringify(user));
+//           localStorage.setItem(TOKEN_KEY, 'mock_token_user_' + Date.now());
+          
+//           console.log('✅ Connexion utilisateur réussie');
+//           resolve({ success: true, user });
+          
+//         } else {
+//           reject(new Error('Identifiants invalides'));
+//         }
+//       }, 500);
+//     });
 //   },
 
 //   isAuthenticated() {
-//     return !!this.getAccessToken();
+//     const token = localStorage.getItem(TOKEN_KEY);
+//     const user = localStorage.getItem(USER_KEY);
+//     return !!(token && user);
 //   },
 
-//   // ==================== REFRESH TOKEN ====================
-
-//   async refreshToken() {
+//   isAdmin() {
 //     try {
-//       const refreshToken = localStorage.getItem('refresh_token');
-//       if (!refreshToken) {
-//         this.logout();
-//         return null;
-//       }
-
-//       const response = await fetch(`${API_URL}/auth/token/refresh/`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ refresh: refreshToken }),
-//       });
-
-//       if (response.ok) {
-//         const data = await response.json();
-//         localStorage.setItem('access_token', data.access);
-//         return data.access;
-//       } else {
-//         this.logout();
-//         return null;
-//       }
+//       const userStr = localStorage.getItem(USER_KEY);
+//       if (!userStr) return false;
+      
+//       const user = JSON.parse(userStr);
+//       return !!(user.is_staff || user.is_superuser || user.isAdmin);
 //     } catch (error) {
-//       console.error('Refresh token error:', error);
-//       this.logout();
+//       console.error('isAdmin error:', error);
+//       return false;
+//     }
+//   },
+
+//   getCurrentUser() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       if (!userStr) return null;
+      
+//       return JSON.parse(userStr);
+//     } catch (error) {
+//       console.error('getCurrentUser error:', error);
 //       return null;
 //     }
 //   },
 
-//   // ==================== VÉRIFICATION SANTÉ API ====================
-
-//   async checkAPIHealth() {
-//     try {
-//       const response = await fetch(`${API_URL}/auth/token/`, {
-//         method: 'GET',
-//       });
-//       return response.status === 401 || response.status === 200;
-//     } catch (error) {
-//       console.error('API health check failed:', error);
-//       return false;
-//     }
+//   getAccessToken() {
+//     return localStorage.getItem(TOKEN_KEY);
 //   },
 
-//   // ⭐ NOUVELLE FONCTION : Vérifier si le serveur Django est démarré
-//   async checkDjangoServer() {
-//     try {
-//       const response = await fetch(`${API_URL}/auth/token/`, {
-//         method: 'GET',
-//       });
-//       return true;
-//     } catch (error) {
-//       console.error('❌ Serveur Django non accessible:', error);
-//       return false;
-//     }
+//   logout() {
+//     localStorage.removeItem(TOKEN_KEY);
+//     localStorage.removeItem(USER_KEY);
+//     window.location.href = '/login';
 //   }
 // };
 
-// // ==================== INTERCEPTEUR POUR REQUÊTES AUTORISÉES ====================
-// const authInterceptor = {
-//   getAuthHeader() {
-//     const token = authService.getAccessToken();
-//     return token ? { 'Authorization': `Bearer ${token}` } : {};
-//   },
-
-//   async fetchWithAuth(url, options = {}) {
-//     const headers = {
-//       'Content-Type': 'application/json',
-//       ...this.getAuthHeader(),
-//       ...options.headers,
-//     };
-
-//     try {
-//       const response = await fetch(url, { ...options, headers });
-      
-//       // Si token expiré, essayer de le rafraîchir
-//       if (response.status === 401) {
-//         const newToken = await authService.refreshToken();
-//         if (newToken) {
-//           headers['Authorization'] = `Bearer ${newToken}`;
-//           return await fetch(url, { ...options, headers });
-//         }
-//       }
-      
-//       return response;
-//     } catch (error) {
-//       console.error('Auth interceptor error:', error);
-//       throw error;
-//     }
-//   }
-// };
-
-// // ⭐ CORRECTION CRITIQUE : Exports nommés et par défaut
-// export { authService, authInterceptor };
 // export default authService;
 
-// src/services/auth.js
-const API_URL = 'http://localhost:8000/api';
 
-// ==================== SERVICE D'AUTHENTIFICATION PRINCIPAL ====================
+
+// // src/services/auth.js - VERSION COMPLÈTE
+// const TOKEN_KEY = 'simplon_access_token';
+// const USER_KEY = 'simplon_user';
+
+// const authService = {
+//   // Login normal
+//   async login(matricule, password) {
+//     console.log('🔐 Login for:', matricule);
+    
+//     try {
+//       // Simulation pour test
+//       return new Promise((resolve, reject) => {
+//         setTimeout(() => {
+//           if (matricule === 'admin' && password === 'admin123') {
+//             const user = {
+//               id: 1,
+//               username: 'admin',
+//               email: 'admin@simplon.com',
+//               first_name: 'Admin',
+//               last_name: 'System',
+//               is_staff: true,
+//               is_superuser: true,
+//               isAdmin: true,
+//               role: 'admin'
+//             };
+            
+//             localStorage.setItem(USER_KEY, JSON.stringify(user));
+//             localStorage.setItem(TOKEN_KEY, 'mock_admin_token_' + Date.now());
+            
+//             resolve({ success: true, user });
+            
+//           } else if (matricule && password) {
+//             const user = {
+//               id: Date.now(),
+//               username: matricule,
+//               email: `${matricule}@simplon.com`,
+//               first_name: 'User',
+//               last_name: 'Test',
+//               is_staff: false,
+//               is_superuser: false,
+//               isAdmin: false,
+//               role: 'user'
+//             };
+            
+//             localStorage.setItem(USER_KEY, JSON.stringify(user));
+//             localStorage.setItem(TOKEN_KEY, 'mock_user_token_' + Date.now());
+            
+//             resolve({ success: true, user });
+            
+//           } else {
+//             reject(new Error('Identifiants invalides'));
+//           }
+//         }, 500);
+//       });
+      
+//     } catch (error) {
+//       console.error('Login error:', error);
+//       throw error;
+//     }
+//   },
+
+//   // Mock Login (pour QuickLogin)
+//   mockLogin(matricule, password) {
+//     console.log('🎭 Mock login for:', matricule);
+    
+//     return new Promise((resolve, reject) => {
+//       setTimeout(() => {
+//         // Vérifier les identifiants
+//         const validUsers = {
+//           'admin': ['admin123', 'password'],
+//           'simplon_2025001': ['simplon2024'],
+//           'simplon-2025001': ['simplon2024'],
+//           'user123': ['password123']
+//         };
+        
+//         const validPasswords = validUsers[matricule];
+        
+//         if (!validPasswords || !validPasswords.includes(password)) {
+//           reject(new Error('Matricule ou mot de passe incorrect'));
+//           return;
+//         }
+        
+//         // Créer l'utilisateur
+//         const user = {
+//           id: Date.now(),
+//           username: matricule,
+//           email: `${matricule}@simplon.com`,
+//           first_name: 'Mock',
+//           last_name: 'User',
+//           is_staff: matricule === 'admin',
+//           is_superuser: matricule === 'admin',
+//           isAdmin: matricule === 'admin',
+//           role: matricule === 'admin' ? 'admin' : 'user'
+//         };
+        
+//         localStorage.setItem(USER_KEY, JSON.stringify(user));
+//         localStorage.setItem(TOKEN_KEY, 'mock_token_' + Date.now());
+        
+//         resolve({ success: true, user, isSimulation: true });
+        
+//       }, 500);
+//     });
+//   },
+
+//   // Quick Login
+//   async quickLogin(matricule, password) {
+//     console.log('🚀 Quick login for:', matricule);
+    
+//     try {
+//       // Essayer d'abord le login normal
+//       return await this.login(matricule, password);
+//     } catch (error) {
+//       console.log('🔄 Fallback to mock login');
+//       return this.mockLogin(matricule, password);
+//     }
+//   },
+
+//   // Vérifier l'authentification
+//   isAuthenticated() {
+//     const token = localStorage.getItem(TOKEN_KEY);
+//     const user = localStorage.getItem(USER_KEY);
+//     const isAuth = !!(token && user);
+//     console.log('🔐 isAuthenticated:', isAuth);
+//     return isAuth;
+//   },
+
+//   // Vérifier si admin
+//   isAdmin() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       if (!userStr) return false;
+      
+//       const user = JSON.parse(userStr);
+//       const isAdmin = !!(user.is_staff || user.is_superuser || user.isAdmin);
+//       console.log('👑 isAdmin:', isAdmin, 'for user:', user.username);
+//       return isAdmin;
+//     } catch (error) {
+//       console.error('isAdmin error:', error);
+//       return false;
+//     }
+//   },
+
+//   // Récupérer l'utilisateur actuel
+//   getCurrentUser() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       if (!userStr) {
+//         console.warn('⚠️ No user in localStorage');
+//         return null;
+//       }
+      
+//       const user = JSON.parse(userStr);
+//       console.log('👤 getCurrentUser:', user.username);
+//       return user;
+//     } catch (error) {
+//       console.error('getCurrentUser error:', error);
+//       return null;
+//     }
+//   },
+
+//   // Récupérer le token
+//   getAccessToken() {
+//     const token = localStorage.getItem(TOKEN_KEY);
+//     console.log('🔑 getAccessToken:', token ? 'present' : 'missing');
+//     return token;
+//   },
+
+//   // Déconnexion
+//   logout() {
+//     console.log('👋 Logout');
+//     localStorage.removeItem(TOKEN_KEY);
+//     localStorage.removeItem(USER_KEY);
+//     window.location.href = '/login';
+//   }
+// };
+
+// export default authService;
+
+
+// // src/services/auth.js - VERSION CORRIGÉE ET SIMPLIFIÉE
+// import axios from 'axios';
+
+// const API_BASE_URL = 'http://localhost:8000/api';
+
+// // Clés de stockage standardisées
+// const TOKEN_KEY = 'simplon_access_token';
+// const USER_KEY = 'simplon_user';
+
+// const authService = {
+//   // ✅ LOGIN PRINCIPAL - Essaie d'abord l'API, sinon simulation
+//   async login(matricule, password) {
+//     console.log('🔐 Tentative de connexion pour:', matricule);
+    
+//     try {
+//       // 1. Essayer l'API Django d'abord
+//       const tokenResponse = await axios.post(`${API_BASE_URL}/token/`, {
+//         username: matricule,
+//         password: password
+//       });
+      
+//       const { access, refresh } = tokenResponse.data;
+      
+//       // Stocker les tokens
+//       localStorage.setItem(TOKEN_KEY, access);
+//       localStorage.setItem('refresh_token', refresh);
+      
+//       console.log('✅ Token JWT reçu');
+      
+//       // 2. Essayer de récupérer les infos utilisateur
+//       let userData = null;
+//       try {
+//         // Chercher par username
+//         const response = await axios.get(`${API_BASE_URL}/users/?search=${encodeURIComponent(matricule)}`, {
+//           headers: {
+//             'Authorization': `Bearer ${access}`,
+//             'Content-Type': 'application/json',
+//           },
+//         });
+        
+//         if (response.data.results && response.data.results.length > 0) {
+//           userData = response.data.results[0];
+//           console.log('✅ Données utilisateur API:', userData);
+//         }
+//       } catch (apiError) {
+//         console.log('⚠️ Récupération utilisateur API échouée, utilisation données par défaut');
+//       }
+      
+//       // 3. Construire l'objet utilisateur
+//       const userToStore = {
+//         // Données de base
+//         id: userData?.id || Date.now(),
+//         username: userData?.username || matricule,
+//         email: userData?.email || `${matricule}@simplon.com`,
+//         first_name: userData?.first_name || 'Utilisateur',
+//         last_name: userData?.last_name || 'Simplon',
+        
+//         // Permissions
+//         is_staff: userData?.is_staff || false,
+//         is_superuser: userData?.is_superuser || false,
+//         is_active: userData?.is_active !== undefined ? userData.is_active : true,
+        
+//         // Champs personnalisés
+//         matricule: matricule,
+//         cohort: userData?.cohort || 'Simplon 2024',
+//         date_joined: userData?.date_joined || new Date().toISOString(),
+        
+//         // Champs calculés
+//         isAdmin: !!(userData?.is_staff || userData?.is_superuser),
+//         role: (userData?.is_staff || userData?.is_superuser) ? 'admin' : 'user',
+        
+//         // Source
+//         _source: userData ? 'django_api' : 'default'
+//       };
+      
+//       console.log('✅ Utilisateur stocké:', userToStore);
+//       localStorage.setItem(USER_KEY, JSON.stringify(userToStore));
+      
+//       return { success: true, user: userToStore };
+      
+//     } catch (error) {
+//       console.log('❌ Erreur API, tentative de connexion simulée:', error.message);
+      
+//       // Fallback: simulation si API échoue
+//       return this.mockLogin(matricule, password);
+//     }
+//   },
+
+//   // ✅ CONNEXION SIMULÉE (fallback)
+//   mockLogin(matricule, password) {
+//     return new Promise((resolve, reject) => {
+//       console.log('🎭 Mode simulation');
+      
+//       setTimeout(() => {
+//         // Vérifier les identifiants de test
+//         const testCredentials = {
+//           'admin': 'admin123',
+//           'simplon_2025001': 'simplon2024',
+//           'user123': 'password123'
+//         };
+        
+//         if (!testCredentials[matricule] || testCredentials[matricule] !== password) {
+//           reject(new Error('Matricule ou mot de passe incorrect'));
+//           return;
+//         }
+        
+//         // Données simulées
+//         const isAdmin = matricule === 'admin';
+//         const user = {
+//           id: 1,
+//           username: matricule,
+//           email: `${matricule}@simplon.com`,
+//           first_name: isAdmin ? 'Admin' : 'Utilisateur',
+//           last_name: isAdmin ? 'System' : 'Test',
+//           is_staff: isAdmin,
+//           is_superuser: isAdmin,
+//           is_active: true,
+//           matricule: matricule,
+//           cohort: 'Simplon 2024',
+//           date_joined: new Date().toISOString(),
+//           isAdmin: isAdmin,
+//           role: isAdmin ? 'admin' : 'user',
+//           _source: 'simulation'
+//         };
+        
+//         localStorage.setItem(USER_KEY, JSON.stringify(user));
+//         localStorage.setItem(TOKEN_KEY, 'mock_token_' + Date.now());
+        
+//         console.log('✅ Connexion simulée réussie:', user);
+//         resolve({ success: true, user, isSimulation: true });
+//       }, 500);
+//     });
+//   },
+
+//   // ✅ CONNEXION RAPIDE (pour développement)
+//   quickLogin(matricule = 'admin', password = 'admin123') {
+//     console.log('🚀 Connexion rapide:', matricule);
+//     return this.login(matricule, password).catch(() => {
+//       // Si erreur, utiliser la simulation
+//       return this.mockLogin(matricule, password);
+//     });
+//   },
+
+//   // ✅ VÉRIFIER SI AUTHENTIFIÉ
+//   isAuthenticated() {
+//     const token = localStorage.getItem(TOKEN_KEY);
+//     const user = localStorage.getItem(USER_KEY);
+//     return !!(token && user);
+//   },
+
+//   // ✅ VÉRIFIER SI ADMIN
+//   isAdmin() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       if (!userStr) return false;
+      
+//       const user = JSON.parse(userStr);
+//       return !!(user.is_staff || user.is_superuser || user.isAdmin);
+//     } catch (error) {
+//       console.error('Erreur isAdmin:', error);
+//       return false;
+//     }
+//   },
+
+//   // ✅ OBTENIR L'UTILISATEUR COURANT
+//   getCurrentUser() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       if (!userStr) return null;
+      
+//       const user = JSON.parse(userStr);
+//       console.log('🔍 Utilisateur courant:', {
+//         nom: `${user.first_name} ${user.last_name}`,
+//         email: user.email,
+//         role: user.role,
+//         source: user._source
+//       });
+      
+//       return user;
+//     } catch (error) {
+//       console.error('Erreur getCurrentUser:', error);
+//       return null;
+//     }
+//   },
+
+//   // ✅ OBTENIR LE TOKEN
+//   getAccessToken() {
+//     return localStorage.getItem(TOKEN_KEY) || localStorage.getItem('access_token');
+//   },
+
+//   // ✅ DÉCONNEXION
+//   logout() {
+//     localStorage.removeItem(TOKEN_KEY);
+//     localStorage.removeItem('refresh_token');
+//     localStorage.removeItem(USER_KEY);
+//     localStorage.removeItem('access_token');
+//     localStorage.removeItem('user');
+    
+//     console.log('🚪 Déconnexion effectuée');
+//     window.location.href = '/login';
+//   },
+
+//   // ✅ METTRE À JOUR LE PROFIL (localement)
+//   updateProfile(updates) {
+//     try {
+//       const currentUser = this.getCurrentUser();
+//       if (!currentUser) return false;
+      
+//       const updatedUser = { ...currentUser, ...updates };
+//       localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      
+//       console.log('✅ Profil mis à jour:', updatedUser);
+//       return true;
+//     } catch (error) {
+//       console.error('❌ Erreur mise à jour profil:', error);
+//       return false;
+//     }
+//   },
+
+//   // ✅ DEBUG - Afficher l'état de l'authentification
+//   debug() {
+//     console.log('🔍 DEBUG Authentification:');
+//     console.log('- Token:', localStorage.getItem(TOKEN_KEY) ? '✓ Présent' : '✗ Absent');
+//     console.log('- User:', localStorage.getItem(USER_KEY) ? '✓ Présent' : '✗ Absent');
+//     console.log('- isAuthenticated:', this.isAuthenticated());
+//     console.log('- isAdmin:', this.isAdmin());
+//     console.log('- Current User:', this.getCurrentUser());
+//   },
+
+//   // ✅ MIGRATION - Compatibilité avec anciennes clés
+//   migrateOldKeys() {
+//     const oldToken = localStorage.getItem('access_token');
+//     const oldUser = localStorage.getItem('user');
+    
+//     if (oldToken && !localStorage.getItem(TOKEN_KEY)) {
+//       localStorage.setItem(TOKEN_KEY, oldToken);
+//       console.log('✅ Token migré depuis access_token');
+//     }
+    
+//     if (oldUser && !localStorage.getItem(USER_KEY)) {
+//       localStorage.setItem(USER_KEY, oldUser);
+//       console.log('✅ Utilisateur migré depuis user');
+//     }
+//   }
+// };
+
+// // Migration automatique au chargement
+// authService.migrateOldKeys();
+
+// export default authService;
+
+
+
+// // src/services/auth.js - VERSION AMÉLIORÉE
+// import axios from 'axios';
+
+// const API_BASE_URL = 'http://localhost:8000/api';
+
+// // Clés de stockage
+// const TOKEN_KEY = 'simplon_access_token';
+// const REFRESH_TOKEN_KEY = 'simplon_refresh_token';
+// const USER_KEY = 'simplon_user';
+
+// const authService = {
+//   // ✅ VÉRIFIER ET RAJOUTER LE TOKEN SI NÉCESSAIRE
+//   async ensureValidToken() {
+//     console.log('🔐 Vérification du token...');
+    
+//     const token = this.getAccessToken();
+//     const refreshToken = this.getRefreshToken();
+    
+//     if (!token) {
+//       console.log('❌ Aucun token trouvé');
+//       return null;
+//     }
+    
+//     // Vérifier si le token est expiré
+//     if (this.isTokenExpired(token)) {
+//       console.log('⚠️ Token expiré, tentative de rafraîchissement...');
+      
+//       if (refreshToken) {
+//         try {
+//           const newTokens = await this.refreshAccessToken(refreshToken);
+//           return newTokens.access;
+//         } catch (refreshError) {
+//           console.error('❌ Échec du rafraîchissement:', refreshError);
+//           this.logout();
+//           return null;
+//         }
+//       } else {
+//         console.log('❌ Pas de refresh token disponible');
+//         this.logout();
+//         return null;
+//       }
+//     }
+    
+//     console.log('✅ Token valide');
+//     return token;
+//   },
+  
+//   // ✅ RAFRAÎCHIR LE TOKEN
+//   async refreshAccessToken(refreshToken) {
+//     console.log('🔄 Rafraîchissement du token...');
+    
+//     try {
+//       const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+//         refresh: refreshToken
+//       });
+      
+//       const { access, refresh: newRefresh } = response.data;
+      
+//       // Sauvegarder les nouveaux tokens
+//       this.setAccessToken(access);
+//       if (newRefresh) {
+//         this.setRefreshToken(newRefresh);
+//       }
+      
+//       console.log('✅ Token rafraîchi avec succès');
+//       return { access, refresh: newRefresh || refreshToken };
+      
+//     } catch (error) {
+//       console.error('❌ Erreur lors du rafraîchissement:', error);
+//       throw error;
+//     }
+//   },
+  
+//   // ✅ VÉRIFIER SI LE TOKEN EST EXPIRÉ
+//   isTokenExpired(token) {
+//     try {
+//       const payload = JSON.parse(atob(token.split('.')[1]));
+//       const expiry = payload.exp * 1000; // Convertir en millisecondes
+//       const now = Date.now();
+//       return now >= expiry;
+//     } catch (error) {
+//       console.error('❌ Erreur lors de la vérification du token:', error);
+//       return true; // Si erreur, considérer comme expiré
+//     }
+//   },
+  
+//   // ✅ CONNEXION AMÉLIORÉE
+//   async login(username, password) {
+//     console.log('🔐 Tentative de connexion pour:', username);
+    
+//     try {
+//       // Essayer l'API Django
+//       const tokenResponse = await axios.post(`${API_BASE_URL}/token/`, {
+//         username: username,
+//         password: password
+//       });
+      
+//       const { access, refresh } = tokenResponse.data;
+      
+//       // Sauvegarder les tokens
+//       this.setAccessToken(access);
+//       this.setRefreshToken(refresh);
+      
+//       console.log('✅ Tokens reçus avec succès');
+      
+//       // Récupérer les infos utilisateur
+//       let userData = null;
+//       try {
+//         const userResponse = await axios.get(`${API_BASE_URL}/users/me/`, {
+//           headers: {
+//             'Authorization': `Bearer ${access}`,
+//             'Content-Type': 'application/json',
+//           },
+//         });
+        
+//         if (userResponse.data) {
+//           userData = userResponse.data;
+//           console.log('✅ Données utilisateur API:', userData);
+//         }
+//       } catch (apiError) {
+//         console.log('⚠️ Récupération utilisateur API échouée:', apiError.message);
+//         // Utiliser des données par défaut
+//         userData = {
+//           id: Date.now(),
+//           username: username,
+//           email: `${username}@simplon.com`,
+//           first_name: 'Utilisateur',
+//           last_name: 'Simplon',
+//           is_staff: username === 'admin',
+//           is_superuser: username === 'admin',
+//           is_active: true,
+//           cohort: 'Simplon 2024',
+//         };
+//       }
+      
+//       // Préparer l'objet utilisateur
+//       const userToStore = {
+//         id: userData?.id || Date.now(),
+//         username: userData?.username || username,
+//         email: userData?.email || `${username}@simplon.com`,
+//         first_name: userData?.first_name || 'Utilisateur',
+//         last_name: userData?.last_name || 'Simplon',
+//         is_staff: userData?.is_staff || false,
+//         is_superuser: userData?.is_superuser || false,
+//         is_active: userData?.is_active !== undefined ? userData.is_active : true,
+//         cohort: userData?.cohort || 'Simplon 2024',
+//         date_joined: userData?.date_joined || new Date().toISOString(),
+//         isAdmin: !!(userData?.is_staff || userData?.is_superuser),
+//         role: (userData?.is_staff || userData?.is_superuser) ? 'admin' : 'user',
+//         _source: userData ? 'django_api' : 'default'
+//       };
+      
+//       console.log('✅ Utilisateur stocké:', userToStore);
+//       this.setCurrentUser(userToStore);
+      
+//       return { success: true, user: userToStore };
+      
+//     } catch (error) {
+//       console.log('❌ Erreur API, tentative de connexion simulée:', error.message);
+      
+//       // Fallback: simulation
+//       return this.mockLogin(username, password);
+//     }
+//   },
+  
+//   // ✅ FONCTIONS DE BASE (garder celles existantes)
+//   setAccessToken(token) {
+//     localStorage.setItem(TOKEN_KEY, token);
+//   },
+  
+//   getAccessToken() {
+//     return localStorage.getItem(TOKEN_KEY);
+//   },
+  
+//   setRefreshToken(token) {
+//     localStorage.setItem(REFRESH_TOKEN_KEY, token);
+//   },
+  
+//   getRefreshToken() {
+//     return localStorage.getItem(REFRESH_TOKEN_KEY);
+//   },
+  
+//   setCurrentUser(user) {
+//     localStorage.setItem(USER_KEY, JSON.stringify(user));
+//   },
+  
+//   getCurrentUser() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       return userStr ? JSON.parse(userStr) : null;
+//     } catch (error) {
+//       console.error('Erreur getCurrentUser:', error);
+//       return null;
+//     }
+//   },
+  
+//   isAuthenticated() {
+//     const token = this.getAccessToken();
+//     return !!(token && !this.isTokenExpired(token));
+//   },
+  
+//   logout() {
+//     localStorage.removeItem(TOKEN_KEY);
+//     localStorage.removeItem(REFRESH_TOKEN_KEY);
+//     localStorage.removeItem(USER_KEY);
+//     console.log('🚪 Déconnexion effectuée');
+//     window.location.href = '/login';
+//   },
+  
+//   // ✅ CONNEXION RAPIDE POUR TEST
+//   async quickLogin(username = 'admin', password = 'admin123') {
+//     console.log('🚀 Connexion rapide:', username);
+//     return this.login(username, password).catch(() => {
+//       return this.mockLogin(username, password);
+//     });
+//   },
+  
+//   // ✅ MOCK LOGIN (fallback)
+//   mockLogin(username, password) {
+//     return new Promise((resolve, reject) => {
+//       setTimeout(() => {
+//         const testCredentials = {
+//           'admin': 'admin123',
+//           'simplon_2025001': 'simplon2024',
+//           'user123': 'password123'
+//         };
+        
+//         if (!testCredentials[username] || testCredentials[username] !== password) {
+//           reject(new Error('Matricule ou mot de passe incorrect'));
+//           return;
+//         }
+        
+//         const isAdmin = username === 'admin';
+//         const user = {
+//           id: 1,
+//           username: username,
+//           email: `${username}@simplon.com`,
+//           first_name: isAdmin ? 'Admin' : 'Utilisateur',
+//           last_name: isAdmin ? 'System' : 'Test',
+//           is_staff: isAdmin,
+//           is_superuser: isAdmin,
+//           is_active: true,
+//           cohort: 'Simplon 2024',
+//           date_joined: new Date().toISOString(),
+//           isAdmin: isAdmin,
+//           role: isAdmin ? 'admin' : 'user',
+//           _source: 'simulation'
+//         };
+        
+//         this.setCurrentUser(user);
+//         this.setAccessToken('mock_token_' + Date.now());
+//         this.setRefreshToken('mock_refresh_' + Date.now());
+        
+//         console.log('✅ Connexion simulée réussie');
+//         resolve({ success: true, user, isSimulation: true });
+//       }, 500);
+//     });
+//   },
+  
+//   // ✅ DEBUG
+//   debug() {
+//     console.log('🔍 DEBUG Authentification:');
+//     console.log('- Token présent:', !!this.getAccessToken());
+//     console.log('- Refresh token présent:', !!this.getRefreshToken());
+//     console.log('- User présent:', !!this.getCurrentUser());
+//     console.log('- Token expiré:', this.getAccessToken() ? this.isTokenExpired(this.getAccessToken()) : 'N/A');
+//     console.log('- Authentifié:', this.isAuthenticated());
+//     console.log('- Current User:', this.getCurrentUser());
+//   }
+// };
+
+// export default authService;
+
+
+// // src/services/auth.js - VERSION AMÉLIORÉE
+// import axios from 'axios';
+
+// const API_BASE_URL = 'http://localhost:8000/api';
+
+// // Clés de stockage
+// const TOKEN_KEY = 'simplon_access_token';
+// const REFRESH_TOKEN_KEY = 'simplon_refresh_token';
+// const USER_KEY = 'simplon_user';
+
+// const authService = {
+//   // ✅ VÉRIFIER ET RAJOUTER LE TOKEN SI NÉCESSAIRE
+//   async ensureValidToken() {
+//     console.log('🔐 Vérification du token...');
+    
+//     const token = this.getAccessToken();
+//     const refreshToken = this.getRefreshToken();
+    
+//     if (!token) {
+//       console.log('❌ Aucun token trouvé');
+//       return null;
+//     }
+    
+//     // Vérifier si le token est expiré
+//     if (this.isTokenExpired(token)) {
+//       console.log('⚠️ Token expiré, tentative de rafraîchissement...');
+      
+//       if (refreshToken) {
+//         try {
+//           const newTokens = await this.refreshAccessToken(refreshToken);
+//           return newTokens.access;
+//         } catch (refreshError) {
+//           console.error('❌ Échec du rafraîchissement:', refreshError);
+//           this.logout();
+//           return null;
+//         }
+//       } else {
+//         console.log('❌ Pas de refresh token disponible');
+//         this.logout();
+//         return null;
+//       }
+//     }
+    
+//     console.log('✅ Token valide');
+//     return token;
+//   },
+  
+//   // ✅ RAFRAÎCHIR LE TOKEN
+//   async refreshAccessToken(refreshToken) {
+//     console.log('🔄 Rafraîchissement du token...');
+    
+//     try {
+//       const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+//         refresh: refreshToken
+//       });
+      
+//       const { access, refresh: newRefresh } = response.data;
+      
+//       // Sauvegarder les nouveaux tokens
+//       this.setAccessToken(access);
+//       if (newRefresh) {
+//         this.setRefreshToken(newRefresh);
+//       }
+      
+//       console.log('✅ Token rafraîchi avec succès');
+//       return { access, refresh: newRefresh || refreshToken };
+      
+//     } catch (error) {
+//       console.error('❌ Erreur lors du rafraîchissement:', error);
+//       throw error;
+//     }
+//   },
+  
+//   // ✅ VÉRIFIER SI LE TOKEN EST EXPIRÉ
+//   isTokenExpired(token) {
+//     try {
+//       const payload = JSON.parse(atob(token.split('.')[1]));
+//       const expiry = payload.exp * 1000; // Convertir en millisecondes
+//       const now = Date.now();
+//       return now >= expiry;
+//     } catch (error) {
+//       console.error('❌ Erreur lors de la vérification du token:', error);
+//       return true; // Si erreur, considérer comme expiré
+//     }
+//   },
+  
+//   // ✅ CONNEXION AMÉLIORÉE
+//   async login(username, password) {
+//     console.log('🔐 Tentative de connexion pour:', username);
+    
+//     try {
+//       // Essayer l'API Django
+//       const tokenResponse = await axios.post(`${API_BASE_URL}/token/`, {
+//         username: username,
+//         password: password
+//       });
+      
+//       const { access, refresh } = tokenResponse.data;
+      
+//       // Sauvegarder les tokens
+//       this.setAccessToken(access);
+//       this.setRefreshToken(refresh);
+      
+//       console.log('✅ Tokens reçus avec succès');
+      
+//       // Récupérer les infos utilisateur
+//       let userData = null;
+//       try {
+//         const userResponse = await axios.get(`${API_BASE_URL}/users/me/`, {
+//           headers: {
+//             'Authorization': `Bearer ${access}`,
+//             'Content-Type': 'application/json',
+//           },
+//         });
+        
+//         if (userResponse.data) {
+//           userData = userResponse.data;
+//           console.log('✅ Données utilisateur API:', userData);
+//         }
+//       } catch (apiError) {
+//         console.log('⚠️ Récupération utilisateur API échouée:', apiError.message);
+//         // Utiliser des données par défaut
+//         userData = {
+//           id: Date.now(),
+//           username: username,
+//           email: `${username}@simplon.com`,
+//           first_name: 'Utilisateur',
+//           last_name: 'Simplon',
+//           is_staff: username === 'admin',
+//           is_superuser: username === 'admin',
+//           is_active: true,
+//           cohort: 'Simplon 2024',
+//         };
+//       }
+      
+//       // Préparer l'objet utilisateur
+//       const userToStore = {
+//         id: userData?.id || Date.now(),
+//         username: userData?.username || username,
+//         email: userData?.email || `${username}@simplon.com`,
+//         first_name: userData?.first_name || 'Utilisateur',
+//         last_name: userData?.last_name || 'Simplon',
+//         is_staff: userData?.is_staff || false,
+//         is_superuser: userData?.is_superuser || false,
+//         is_active: userData?.is_active !== undefined ? userData.is_active : true,
+//         cohort: userData?.cohort || 'Simplon 2024',
+//         date_joined: userData?.date_joined || new Date().toISOString(),
+//         isAdmin: !!(userData?.is_staff || userData?.is_superuser),
+//         role: (userData?.is_staff || userData?.is_superuser) ? 'admin' : 'user',
+//         _source: userData ? 'django_api' : 'default'
+//       };
+      
+//       console.log('✅ Utilisateur stocké:', userToStore);
+//       this.setCurrentUser(userToStore);
+      
+//       return { success: true, user: userToStore };
+      
+//     } catch (error) {
+//       console.log('❌ Erreur API, tentative de connexion simulée:', error.message);
+      
+//       // Fallback: simulation
+//       return this.mockLogin(username, password);
+//     }
+//   },
+  
+//   // ✅ FONCTIONS DE BASE (garder celles existantes)
+//   setAccessToken(token) {
+//     localStorage.setItem(TOKEN_KEY, token);
+//   },
+  
+//   getAccessToken() {
+//     return localStorage.getItem(TOKEN_KEY);
+//   },
+  
+//   setRefreshToken(token) {
+//     localStorage.setItem(REFRESH_TOKEN_KEY, token);
+//   },
+  
+//   getRefreshToken() {
+//     return localStorage.getItem(REFRESH_TOKEN_KEY);
+//   },
+  
+//   setCurrentUser(user) {
+//     localStorage.setItem(USER_KEY, JSON.stringify(user));
+//   },
+  
+//   getCurrentUser() {
+//     try {
+//       const userStr = localStorage.getItem(USER_KEY);
+//       return userStr ? JSON.parse(userStr) : null;
+//     } catch (error) {
+//       console.error('Erreur getCurrentUser:', error);
+//       return null;
+//     }
+//   },
+  
+//   isAuthenticated() {
+//     const token = this.getAccessToken();
+//     return !!(token && !this.isTokenExpired(token));
+//   },
+  
+//   logout() {
+//     localStorage.removeItem(TOKEN_KEY);
+//     localStorage.removeItem(REFRESH_TOKEN_KEY);
+//     localStorage.removeItem(USER_KEY);
+//     console.log('🚪 Déconnexion effectuée');
+//     window.location.href = '/login';
+//   },
+  
+//   // ✅ CONNEXION RAPIDE POUR TEST
+//   async quickLogin(username = 'admin', password = 'admin123') {
+//     console.log('🚀 Connexion rapide:', username);
+//     return this.login(username, password).catch(() => {
+//       return this.mockLogin(username, password);
+//     });
+//   },
+  
+//   // ✅ MOCK LOGIN (fallback)
+//   mockLogin(username, password) {
+//     return new Promise((resolve, reject) => {
+//       setTimeout(() => {
+//         const testCredentials = {
+//           'admin': 'admin123',
+//           'simplon_2025001': 'simplon2024',
+//           'user123': 'password123'
+//         };
+        
+//         if (!testCredentials[username] || testCredentials[username] !== password) {
+//           reject(new Error('Matricule ou mot de passe incorrect'));
+//           return;
+//         }
+        
+//         const isAdmin = username === 'admin';
+//         const user = {
+//           id: 1,
+//           username: username,
+//           email: `${username}@simplon.com`,
+//           first_name: isAdmin ? 'Admin' : 'Utilisateur',
+//           last_name: isAdmin ? 'System' : 'Test',
+//           is_staff: isAdmin,
+//           is_superuser: isAdmin,
+//           is_active: true,
+//           cohort: 'Simplon 2024',
+//           date_joined: new Date().toISOString(),
+//           isAdmin: isAdmin,
+//           role: isAdmin ? 'admin' : 'user',
+//           _source: 'simulation'
+//         };
+        
+//         this.setCurrentUser(user);
+//         this.setAccessToken('mock_token_' + Date.now());
+//         this.setRefreshToken('mock_refresh_' + Date.now());
+        
+//         console.log('✅ Connexion simulée réussie');
+//         resolve({ success: true, user, isSimulation: true });
+//       }, 500);
+//     });
+//   },
+  
+//   // ✅ DEBUG
+//   debug() {
+//     console.log('🔍 DEBUG Authentification:');
+//     console.log('- Token présent:', !!this.getAccessToken());
+//     console.log('- Refresh token présent:', !!this.getRefreshToken());
+//     console.log('- User présent:', !!this.getCurrentUser());
+//     console.log('- Token expiré:', this.getAccessToken() ? this.isTokenExpired(this.getAccessToken()) : 'N/A');
+//     console.log('- Authentifié:', this.isAuthenticated());
+//     console.log('- Current User:', this.getCurrentUser());
+//   }
+// };
+
+// export default authService;
+
+
+// src/services/auth.js - VERSION COMPLÈTE AVEC isAdmin()
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+
+// Clés de stockage
+const TOKEN_KEY = 'simplon_access_token';
+const REFRESH_TOKEN_KEY = 'simplon_refresh_token';
+const USER_KEY = 'simplon_user';
+
 const authService = {
-  
-  // ==================== FLOW LIEN MAGIQUE ====================
-  
-  async requestLoginLink(matricule, email) {
+  // ✅ VÉRIFIER SI L'UTILISATEUR EST ADMIN
+  isAdmin() {
     try {
-      const response = await fetch(`${API_URL}/auth/request-login/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ matricule, email }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return { success: true, message: data.message, token: data.token };
-      } else {
-        const errorData = await response.json();
-        return { success: false, message: errorData.message || 'Erreur lors de l\'envoi du lien' };
-      }
-    } catch (error) {
-      console.error('Request login link error:', error);
-      return { 
-        success: false, 
-        message: 'Erreur de connexion au serveur' 
-      };
-    }
-  },
-
-  async setupPassword(token, matricule, email, username, password) {
-    try {
-      const response = await fetch(`${API_URL}/auth/setup-password/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          token, 
-          matricule, 
-          email, 
-          username, 
-          password 
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return { 
-          success: true, 
-          message: data.message, 
-          username: data.username 
-        };
-      } else {
-        const errorData = await response.json();
-        return { 
-          success: false, 
-          message: errorData.message || 'Erreur lors de la création du compte' 
-        };
-      }
-    } catch (error) {
-      console.error('Setup password error:', error);
-      return { 
-        success: false, 
-        message: 'Erreur de connexion au serveur' 
-      };
-    }
-  },
-
-  // ==================== CONNEXION DIRECTE ====================
-
-  async directLogin(username, password) {
-    try {
-      const response = await fetch(`${API_URL}/auth/direct-login/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Stocker les tokens
-        this.setTokens(data.access, data.refresh);
-        await this.setUserData(data.user);
-        
-        return data;
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Identifiants incorrects');
-      }
-    } catch (error) {
-      console.error('Direct login error:', error);
-      throw error;
-    }
-  },
-
-  // ==================== CONNEXION RAPIDE ====================
-
-  async quickLogin(matricule, password) {
-    try {
-      console.log('🔐 DEBUG - Tentative de connexion avec:', { matricule, password });
+      const user = this.getCurrentUser();
+      console.log('🔍 isAdmin - Vérification pour:', user?.username);
       
-      const requestData = {
-        username: matricule,
-        password: password
-      };
-      
-      console.log('📤 DEBUG - Données envoyées:', requestData);
-      
-      const response = await fetch(`${API_URL}/auth/quick-login/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      console.log('📊 DEBUG - Status HTTP:', response.status);
-
-      const data = await response.json();
-      console.log('📋 DEBUG - Réponse serveur:', data);
-
-      if (!response.ok) {
-        console.error('❌ DEBUG - Erreur serveur:', data);
-        
-        const error = new Error(data.error || data.message || 'Erreur de connexion');
-        error.response = {
-          status: response.status,
-          data: data
-        };
-        throw error;
-      }
-
-      console.log('✅ DEBUG - Connexion réussie:', data);
-
-      // Stocker les tokens
-      if (data.access && data.refresh) {
-        this.setTokens(data.access, data.refresh);
-        await this.setUserData(data.user);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('❌ DEBUG - ERREUR COMPLÈTE quick login:');
-      
-      if (error.message) {
-        console.error('⚡ Message:', error.message);
-      } else {
-        console.error('⚡ Message: Aucun message d\'erreur');
+      if (!user) {
+        console.log('❌ isAdmin: Pas d\'utilisateur connecté');
+        return false;
       }
       
-      console.error('🔢 Code:', error.code);
-      console.error('📊 Status:', error.response?.status);
-      console.error('📋 Données erreur:', error.response?.data);
+      // Vérifier plusieurs propriétés possibles
+      const isAdminUser = 
+        user.isAdmin === true ||
+        user.role === 'admin' ||
+        user.is_staff === true ||
+        user.is_superuser === true ||
+        user.role === 'administrator';
       
-      throw error;
-    }
-  },
-
-  // ==================== CONNEXION JWT STANDARD ====================
-
-  async login(username, password) {
-    try {
-      const response = await fetch(`${API_URL}/auth/token/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+      console.log('🔍 isAdmin - Détails:', {
+        username: user.username,
+        isAdmin: user.isAdmin,
+        role: user.role,
+        is_staff: user.is_staff,
+        is_superuser: user.is_superuser,
+        result: isAdminUser
       });
-
-      if (!response.ok && response.status === 0) {
-        throw new Error('CONNECTION_REFUSED');
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        this.setTokens(data.access, data.refresh);
-        await this.getUserProfile();
-        
-        return data;
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Identifiants incorrects');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
       
-      if (error.message === 'CONNECTION_REFUSED' || error.message.includes('Failed to fetch')) {
-        throw new Error('❌ Serveur Django non démarré. Vérifiez que le backend est en cours d\'exécution sur le port 8000.');
-      }
-      
-      throw error;
-    }
-  },
-
-  // ==================== GESTION DES UTILISATEURS (ADMIN) ====================
-
-  async getAllUsers(page = 1, limit = 100) {
-    try {
-      const token = await this.getValidAccessToken();
-      if (!token) {
-        throw new Error('Token d\'accès manquant - Veuillez vous reconnecter');
-      }
-
-      console.log('🔐 Token utilisé pour la requête:', token.substring(0, 20) + '...');
-
-      const response = await fetch(`${API_URL}/users/?page=${page}&limit=${limit}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('📊 Status réponse utilisateurs:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Utilisateurs récupérés:', data.length || data.results?.length || 'N/A');
-        return Array.isArray(data) ? data : data.results || data.users || [];
-      } else {
-        console.error('❌ Erreur récupération utilisateurs:', response.status);
-        
-        if (response.status === 401) {
-          await this.refreshToken();
-          return await this.getAllUsers(page, limit);
-        }
-        
-        if (response.status === 404) {
-          console.log('🔄 Essai endpoint alternatif...');
-          return await this.tryAlternativeUserEndpoint();
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erreur ${response.status} lors de la récupération des utilisateurs`);
-      }
+      return isAdminUser;
     } catch (error) {
-      console.error('❌ Erreur fetch utilisateurs:', error);
-      throw error;
-    }
-  },
-
-  async createUser(userData) {
-    try {
-      const token = await this.getValidAccessToken();
-      if (!token) {
-        throw new Error('Token d\'accès manquant - Veuillez vous reconnecter');
-      }
-
-      console.log('📤 Création utilisateur avec token:', token.substring(0, 20) + '...');
-
-      const response = await fetch(`${API_URL}/users/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      console.log('📊 Status création utilisateur:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Utilisateur créé:', data);
-        return data;
-      } else {
-        if (response.status === 401) {
-          await this.refreshToken();
-          return await this.createUser(userData);
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Erreur création utilisateur:', errorData);
-        
-        if (response.status === 404 || response.status === 405) {
-          console.log('🔄 Essai endpoint alternatif pour création...');
-          return await this.tryAlternativeCreateUser(userData);
-        }
-        
-        throw new Error(errorData.detail || errorData.message || errorData.error || `Erreur ${response.status} lors de la création de l'utilisateur`);
-      }
-    } catch (error) {
-      console.error('❌ Erreur fetch création utilisateur:', error);
-      throw error;
-    }
-  },
-
-  async updateUser(userId, userData) {
-    try {
-      const token = await this.getValidAccessToken();
-      const response = await fetch(`${API_URL}/users/${userId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data;
-      } else {
-        if (response.status === 401) {
-          await this.refreshToken();
-          return await this.updateUser(userId, userData);
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erreur ${response.status} lors de la mise à jour de l'utilisateur`);
-      }
-    } catch (error) {
-      console.error('Erreur mise à jour utilisateur:', error);
-      throw error;
-    }
-  },
-
-  async deleteUser(userId) {
-    try {
-      const token = await this.getValidAccessToken();
-      const response = await fetch(`${API_URL}/users/${userId}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        return { success: true, message: 'Utilisateur supprimé avec succès' };
-      } else {
-        if (response.status === 401) {
-          await this.refreshToken();
-          return await this.deleteUser(userId);
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erreur ${response.status} lors de la suppression de l'utilisateur`);
-      }
-    } catch (error) {
-      console.error('Erreur suppression utilisateur:', error);
-      throw error;
-    }
-  },
-
-  async updateUserStatus(userId, status) {
-    return this.updateUser(userId, { 
-      is_active: status === 'active'
-    });
-  },
-
-  // ==================== GESTION DES TOKENS AMÉLIORÉE ====================
-
-  setTokens(accessToken, refreshToken) {
-    if (accessToken) {
-      localStorage.setItem('access_token', accessToken);
-      console.log('💾 Token d\'accès sauvegardé');
-    }
-    if (refreshToken) {
-      localStorage.setItem('refresh_token', refreshToken);
-      console.log('💾 Token de rafraîchissement sauvegardé');
-    }
-  },
-
-  async getValidAccessToken() {
-    let token = this.getAccessToken();
-    
-    if (!token) {
-      console.log('🔐 Aucun token trouvé, tentative de rafraîchissement...');
-      token = await this.refreshToken();
-    }
-    
-    if (!token) {
-      console.error('❌ Impossible d\'obtenir un token valide');
-      return null;
-    }
-    
-    return token;
-  },
-
-  getAccessToken() {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      console.log('🔐 Aucun token d\'accès en localStorage');
-      return null;
-    }
-    
-    // Vérifier si le token est expiré (simplifié)
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiration = payload.exp * 1000;
-      if (Date.now() >= expiration) {
-        console.log('🔐 Token expiré');
-        return null;
-      }
-      return token;
-    } catch (error) {
-      console.error('❌ Erreur vérification token:', error);
-      return token; // Retourner le token même en cas d'erreur de parsing
-    }
-  },
-
-  async setUserData(user) {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-      console.log('💾 Données utilisateur sauvegardées:', user.email);
-    }
-  },
-
-  // ==================== FONCTIONS UTILITAIRES ====================
-
-  async getUserProfile() {
-    try {
-      const token = await this.getValidAccessToken();
-      if (!token) return null;
-
-      const response = await fetch(`${API_URL}/auth/user/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        await this.setUserData(userData);
-        return userData;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return null;
-    }
-  },
-
-  logout() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    console.log('🔒 Déconnexion effectuée');
-    window.location.href = '/login';
-  },
-
-  getCurrentUser() {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      console.log('🔐 Aucun utilisateur en session');
-      return null;
-    }
-    
-    try {
-      const user = JSON.parse(userStr);
-      return user;
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      return null;
-    }
-  },
-
-  isAuthenticated() {
-    const token = this.getAccessToken();
-    const isAuth = !!token;
-    console.log('🔐 Utilisateur authentifié:', isAuth);
-    return isAuth;
-  },
-
-  // ==================== PERMISSIONS ADMIN ====================
-
-  checkAdminPermission() {
-    const user = this.getCurrentUser();
-    if (!user) {
-      console.log('🔐 Utilisateur non authentifié');
+      console.error('❌ Erreur isAdmin:', error);
       return false;
     }
-    
-    const isAdmin = user.is_staff || user.is_superuser || user.role === 'admin';
-    console.log('🔐 Vérification permissions admin:', { 
-      user: user.email, 
-      is_staff: user.is_staff, 
-      is_superuser: user.is_superuser,
-      role: user.role,
-      isAdmin: isAdmin
-    });
-    
-    return isAdmin;
   },
 
-  isAdmin() {
+  // ✅ VÉRIFIER ET RAJOUTER LE TOKEN SI NÉCESSAIRE
+  async ensureValidToken() {
+    console.log('🔐 Vérification du token...');
+    
+    const token = this.getAccessToken();
+    const refreshToken = this.getRefreshToken();
+    
+    if (!token) {
+      console.log('❌ Aucun token trouvé');
+      return null;
+    }
+    
+    // Vérifier si le token est expiré
+    if (this.isTokenExpired(token)) {
+      console.log('⚠️ Token expiré, tentative de rafraîchissement...');
+      
+      if (refreshToken) {
+        try {
+          const newTokens = await this.refreshAccessToken(refreshToken);
+          return newTokens.access;
+        } catch (refreshError) {
+          console.error('❌ Échec du rafraîchissement:', refreshError);
+          this.logout();
+          return null;
+        }
+      } else {
+        console.log('❌ Pas de refresh token disponible');
+        this.logout();
+        return null;
+      }
+    }
+    
+    console.log('✅ Token valide');
+    return token;
+  },
+  
+  // ✅ RAFRAÎCHIR LE TOKEN
+  async refreshAccessToken(refreshToken) {
+    console.log('🔄 Rafraîchissement du token...');
+    
+    try {
+      const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+        refresh: refreshToken
+      });
+      
+      const { access, refresh: newRefresh } = response.data;
+      
+      // Sauvegarder les nouveaux tokens
+      this.setAccessToken(access);
+      if (newRefresh) {
+        this.setRefreshToken(newRefresh);
+      }
+      
+      console.log('✅ Token rafraîchi avec succès');
+      return { access, refresh: newRefresh || refreshToken };
+      
+    } catch (error) {
+      console.error('❌ Erreur lors du rafraîchissement:', error);
+      throw error;
+    }
+  },
+  
+  // ✅ VÉRIFIER SI LE TOKEN EST EXPIRÉ
+  isTokenExpired(token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiry = payload.exp * 1000; // Convertir en millisecondes
+      const now = Date.now();
+      return now >= expiry;
+    } catch (error) {
+      console.error('❌ Erreur lors de la vérification du token:', error);
+      return true; // Si erreur, considérer comme expiré
+    }
+  },
+  
+  // ✅ CONNEXION AMÉLIORÉE
+  async login(username, password) {
+    console.log('🔐 Tentative de connexion pour:', username);
+    
+    try {
+      // Essayer l'API Django
+      const tokenResponse = await axios.post(`${API_BASE_URL}/token/`, {
+        username: username,
+        password: password
+      });
+      
+      const { access, refresh } = tokenResponse.data;
+      
+      // Sauvegarder les tokens
+      this.setAccessToken(access);
+      this.setRefreshToken(refresh);
+      
+      console.log('✅ Tokens reçus avec succès');
+      
+      // Récupérer les infos utilisateur
+      let userData = null;
+      try {
+        const userResponse = await axios.get(`${API_BASE_URL}/users/me/`, {
+          headers: {
+            'Authorization': `Bearer ${access}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (userResponse.data) {
+          userData = userResponse.data;
+          console.log('✅ Données utilisateur API:', userData);
+        }
+      } catch (apiError) {
+        console.log('⚠️ Récupération utilisateur API échouée:', apiError.message);
+        // Utiliser des données par défaut
+        userData = {
+          id: Date.now(),
+          username: username,
+          email: `${username}@simplon.com`,
+          first_name: 'Utilisateur',
+          last_name: 'Simplon',
+          is_staff: username === 'admin',
+          is_superuser: username === 'admin',
+          is_active: true,
+          cohort: 'Simplon 2024',
+        };
+      }
+      
+      // Préparer l'objet utilisateur
+      const userToStore = {
+        id: userData?.id || Date.now(),
+        username: userData?.username || username,
+        email: userData?.email || `${username}@simplon.com`,
+        first_name: userData?.first_name || 'Utilisateur',
+        last_name: userData?.last_name || 'Simplon',
+        is_staff: userData?.is_staff || false,
+        is_superuser: userData?.is_superuser || false,
+        is_active: userData?.is_active !== undefined ? userData.is_active : true,
+        cohort: userData?.cohort || 'Simplon 2024',
+        date_joined: userData?.date_joined || new Date().toISOString(),
+        isAdmin: !!(userData?.is_staff || userData?.is_superuser),
+        role: (userData?.is_staff || userData?.is_superuser) ? 'admin' : 'user',
+        _source: userData ? 'django_api' : 'default'
+      };
+      
+      console.log('✅ Utilisateur stocké:', userToStore);
+      this.setCurrentUser(userToStore);
+      
+      return { success: true, user: userToStore };
+      
+    } catch (error) {
+      console.log('❌ Erreur API, tentative de connexion simulée:', error.message);
+      
+      // Fallback: simulation
+      return this.mockLogin(username, password);
+    }
+  },
+  
+  // ✅ FONCTIONS DE BASE
+  setAccessToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  },
+  
+  getAccessToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  },
+  
+  setRefreshToken(token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  },
+  
+  getRefreshToken() {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  },
+  
+  setCurrentUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  },
+  
+  getCurrentUser() {
+    try {
+      const userStr = localStorage.getItem(USER_KEY);
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Erreur getCurrentUser:', error);
+      return null;
+    }
+  },
+  
+  isAuthenticated() {
+    const token = this.getAccessToken();
+    return !!(token && !this.isTokenExpired(token));
+  },
+  
+  logout() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    console.log('🚪 Déconnexion effectuée');
+    window.location.href = '/login';
+  },
+  
+  // ✅ CONNEXION RAPIDE POUR TEST
+  async quickLogin(username = 'admin', password = 'admin123') {
+    console.log('🚀 Connexion rapide:', username);
+    return this.login(username, password).catch(() => {
+      return this.mockLogin(username, password);
+    });
+  },
+  
+  // ✅ MOCK LOGIN (fallback)
+  mockLogin(username, password) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const testCredentials = {
+          'admin': 'admin123',
+          'simplon_2025001': 'simplon2024',
+          'user123': 'password123'
+        };
+        
+        if (!testCredentials[username] || testCredentials[username] !== password) {
+          reject(new Error('Matricule ou mot de passe incorrect'));
+          return;
+        }
+        
+        const isAdmin = username === 'admin';
+        const user = {
+          id: 1,
+          username: username,
+          email: `${username}@simplon.com`,
+          first_name: isAdmin ? 'Admin' : 'Utilisateur',
+          last_name: isAdmin ? 'System' : 'Test',
+          is_staff: isAdmin,
+          is_superuser: isAdmin,
+          is_active: true,
+          cohort: 'Simplon 2024',
+          date_joined: new Date().toISOString(),
+          isAdmin: isAdmin,
+          role: isAdmin ? 'admin' : 'user',
+          _source: 'simulation'
+        };
+        
+        this.setCurrentUser(user);
+        this.setAccessToken('mock_token_' + Date.now());
+        this.setRefreshToken('mock_refresh_' + Date.now());
+        
+        console.log('✅ Connexion simulée réussie');
+        resolve({ success: true, user, isSimulation: true });
+      }, 500);
+    });
+  },
+  
+  // ✅ VÉRIFIER LES PERMISSIONS (optionnel)
+  hasPermission(requiredRole) {
     const user = this.getCurrentUser();
     if (!user) return false;
     
-    return user.is_staff || user.is_superuser || user.role === 'admin';
-  },
-
-  // ==================== REFRESH TOKEN AMÉLIORÉ ====================
-
-  async refreshToken() {
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (!refreshToken) {
-        console.log('🔐 Aucun token de rafraîchissement disponible');
-        this.logout();
-        return null;
-      }
-
-      console.log('🔐 Tentative de rafraîchissement du token...');
-      const response = await fetch(`${API_URL}/auth/token/refresh/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh: refreshToken }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.setTokens(data.access, null); // Garder le même refresh token
-        console.log('✅ Token rafraîchi avec succès');
-        return data.access;
-      } else {
-        console.error('❌ Échec rafraîchissement token');
-        this.logout();
-        return null;
-      }
-    } catch (error) {
-      console.error('Refresh token error:', error);
-      this.logout();
-      return null;
-    }
-  },
-
-  // ==================== MÉTHODES DE FALLBACK ====================
-
-  async tryAlternativeUserEndpoint() {
-    try {
-      const token = await this.getValidAccessToken();
-      const endpoints = [
-        `${API_URL}/auth/users/`,
-        `${API_URL}/admin/users/`,
-        `${API_URL}/profiles/`
-      ];
-
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`✅ Utilisateurs récupérés depuis ${endpoint}`);
-            return Array.isArray(data) ? data : data.results || data.users || [];
-          }
-        } catch (e) {
-          console.log(`❌ Échec endpoint ${endpoint}:`, e.message);
-          continue;
-        }
-      }
-      
-      throw new Error('Aucun endpoint utilisateur disponible');
-    } catch (error) {
-      console.error('❌ Tous les endpoints ont échoué:', error);
-      throw error;
-    }
-  },
-
-  async tryAlternativeCreateUser(userData) {
-    try {
-      const token = await this.getValidAccessToken();
-      const endpoints = [
-        `${API_URL}/auth/register/`,
-        `${API_URL}/auth/users/`,
-        `${API_URL}/admin/users/`
-      ];
-
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`✅ Utilisateur créé via ${endpoint}`);
-            return data;
-          }
-        } catch (e) {
-          console.log(`❌ Échec création via ${endpoint}:`, e.message);
-          continue;
-        }
-      }
-      
-      throw new Error('Aucun endpoint de création utilisateur disponible');
-    } catch (error) {
-      console.error('❌ Tous les endpoints de création ont échoué:', error);
-      throw error;
-    }
-  }
-};
-
-// ==================== INTERCEPTEUR POUR REQUÊTES AUTORISÉES ====================
-const authInterceptor = {
-  async getAuthHeader() {
-    const token = await authService.getValidAccessToken();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  },
-
-  async fetchWithAuth(url, options = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(await this.getAuthHeader()),
-      ...options.headers,
+    // Logique simple de permission
+    const userRole = user.role || 'user';
+    const roleHierarchy = {
+      'superadmin': 3,
+      'admin': 2,
+      'moderator': 1,
+      'user': 0
     };
-
-    try {
-      const response = await fetch(url, { ...options, headers });
-      
-      if (response.status === 401) {
-        console.log('🔄 Token expiré, tentative de rafraîchissement...');
-        const newToken = await authService.refreshToken();
-        if (newToken) {
-          headers['Authorization'] = `Bearer ${newToken}`;
-          return await fetch(url, { ...options, headers });
-        } else {
-          authService.logout();
-          throw new Error('Session expirée');
-        }
+    
+    const userLevel = roleHierarchy[userRole] || 0;
+    const requiredLevel = roleHierarchy[requiredRole] || 0;
+    
+    return userLevel >= requiredLevel;
+  },
+  
+  // ✅ DEBUG
+  debug() {
+    console.log('🔍 DEBUG Authentification:');
+    console.log('- Token présent:', !!this.getAccessToken());
+    console.log('- Refresh token présent:', !!this.getRefreshToken());
+    console.log('- User présent:', !!this.getCurrentUser());
+    console.log('- Token expiré:', this.getAccessToken() ? this.isTokenExpired(this.getAccessToken()) : 'N/A');
+    console.log('- Authentifié:', this.isAuthenticated());
+    console.log('- Est admin?:', this.isAdmin());
+    console.log('- Current User:', this.getCurrentUser());
+  },
+  
+  // ✅ NETTOYAGE (optionnel)
+  cleanup() {
+    // Nettoyer les anciennes clés si existent
+    const oldKeys = ['token', 'refresh_token', 'user'];
+    oldKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        console.log(`🗑️ Ancienne clé supprimée: ${key}`);
       }
-      
-      return response;
-    } catch (error) {
-      console.error('Auth interceptor error:', error);
-      throw error;
-    }
+    });
+  },
+  
+  // ✅ INITIALISATION (optionnel)
+  init() {
+    this.cleanup();
+    console.log('🚀 AuthService initialisé');
   }
 };
 
-// ⭐ CORRECTION CRITIQUE : Exports nommés et par défaut
-export { authService, authInterceptor };
+// Initialiser au chargement
+authService.init();
+
 export default authService;

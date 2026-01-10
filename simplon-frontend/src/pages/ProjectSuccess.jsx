@@ -116,7 +116,8 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useProjects } from '../context/ProjectContext';
-import { authService } from '../services/auth';
+// import authService from '../services/auth';
+import authService from '../services/auth'; // ⭐ CHANGEMENT ICI
 
 const ProjectSuccess = () => {
   const location = useLocation();

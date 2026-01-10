@@ -1,6 +1,6 @@
 // import React, { useState, useEffect } from 'react';
 // import { useNavigate, useSearchParams } from 'react-router-dom';
-// import { authService } from '../services/auth';
+// import authService from '../services/auth';
 
 // const SetupPassword = () => {
 //   const [username, setUsername] = useState('');
@@ -366,7 +366,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { authService } from '../services/auth';
+import authService from '../services/auth'; // ⭐ CHANGEMENT ICI
 
 const SetupPassword = () => {
   const [username, setUsername] = useState('');
@@ -767,5 +767,6 @@ const SetupPassword = () => {
 };
 
 export default SetupPassword;
+
 
 
