@@ -913,7 +913,276 @@
 // export default App;
 
 
-// src/App.jsx - VERSION COMPLÈTE AVEC ProjectProvider
+// // src/App.jsx - VERSION COMPLÈTE AVEC ProjectProvider
+// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import { AuthProvider } from './context/AuthContext';
+// import { ProjectProvider } from './context/ProjectContext';
+// import ProtectedRoute from './components/ProtectedRoute';
+// import AdminLayout from './components/admin/AdminLayout';
+// import AdminDashboard from './components/admin/AdminDashboard';
+// import UserManagement from './components/admin/UserManagement';
+// import ProjectManagement from './components/admin/ProjectManagement';
+// import SubmitProject from './components/admin/SubmitProject';
+// import Explore from './components/admin/Explore';
+// import Analytics from './components/admin/Analytics';
+// import Profile from './components/admin/Profile';
+// import Settings from './components/admin/Settings';
+// import Home from './pages/Home';
+// import Dashboard from './pages/Dashboard';
+// import QuickLogin from './pages/QuickLogin';
+// import Login from './pages/Login';
+// import ProjectSuccess from './components/admin/ProjectSuccess';
+// import ProjectDetail from './components/admin/ProjectDetail';
+
+// import './App.css';
+
+// function App() {
+//   return (
+//     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+//       <AuthProvider>
+//         <ProjectProvider>
+//           <Routes>
+//             {/* Routes publiques */}
+//             <Route path="/" element={<Home />} />
+//             <Route path="/login" element={<Login />} />
+//             <Route path="/quick-login" element={<QuickLogin />} />
+            
+//             {/* Route protégée utilisateur */}
+//             <Route path="/dashboard" element={
+//               <ProtectedRoute>
+//                 <Dashboard />
+//               </ProtectedRoute>
+//             } />
+            
+//             {/* Routes admin - NESTÉES dans AdminLayout */}
+//             <Route path="/admin" element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <AdminLayout />
+//               </ProtectedRoute>
+//             }>
+//               <Route index element={<AdminDashboard />} />
+//               <Route path="submit-project" element={<SubmitProject />} />
+//               <Route path="explore" element={<Explore />} />
+//               <Route path="users" element={<UserManagement />} />
+//               <Route path="projects" element={<ProjectManagement />} />
+//               <Route path="analytics" element={<Analytics />} />
+//               <Route path="profile" element={<Profile />} />
+//               <Route path="settings" element={<Settings />} />
+              
+//               {/* Route pour la page de succès */}
+//               <Route path="projects/success" element={<ProjectSuccess />} />
+              
+//               <Route path="*" element={<Navigate to="/admin" replace />} />
+//             </Route>
+            
+// <Route path="/admin/projects/:id" element={<ProjectDetail />} />
+//             {/* Route 404 */}
+//             <Route path="*" element={
+//               <div className="flex items-center justify-center h-screen">
+//                 <div className="text-center">
+//                   <h1 className="text-4xl font-bold text-[#001F3F] mb-4">404</h1>
+//                   <p className="text-gray-600">Page non trouvée</p>
+//                   <a href="/" className="mt-4 inline-block text-[#E30613] hover:underline">
+//                     Retour à l'accueil
+//                   </a>
+//                 </div>
+//               </div>
+//             } />
+//           </Routes>
+//         </ProjectProvider>
+//       </AuthProvider>
+//     </Router>
+//   );
+// }
+
+// export default App;
+
+
+// // src/App.jsx - VERSION CORRIGÉE AVEC LES BONS NOMS
+// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import { AuthProvider } from './context/AuthContext';
+// import { ProjectProvider } from './context/ProjectContext';
+// import ProtectedRoute from './components/ProtectedRoute';
+// import AdminLayout from './components/admin/AdminLayout';
+// import AdminDashboard from './components/admin/AdminDashboard';
+// import UserManagement from './components/admin/UserManagement';
+// import ProjectManagement from './components/admin/ProjectManagement';
+// import SubmitProject from './components/admin/SubmitProject';
+// import Explore from './components/admin/Explore';
+// import Analytics from './components/admin/Analytics';
+// import Profile from './components/admin/Profile';
+// import Settings from './components/admin/Settings';
+// import Home from './pages/Home';
+// import Dashboard from './pages/Dashboard';
+// import QuickLogin from './pages/QuickLogin';
+// import Activation from './pages/Activation'; // ✅ RENOMMEZ Login.jsx en Activation.jsx
+// import UniversalLogin from './pages/UniversalLogin'; // ✅ NOUVELLE PAGE DE CONNEXION
+// import ProjectSuccess from './components/admin/ProjectSuccess';
+// import ProjectDetail from './components/admin/ProjectDetail';
+
+// import './App.css';
+
+// function App() {
+//   return (
+//     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+//       <AuthProvider>
+//         <ProjectProvider>
+//           <Routes>
+//             {/* ============ ROUTES PUBLIQUES ============ */}
+            
+//             {/* Page d'accueil */}
+//             <Route path="/" element={<Home />} />
+            
+//             {/* ✅ CONNEXION QUOTIDIENNE (après activation) */}
+//             <Route path="/login" element={<UniversalLogin />} />
+            
+//             {/* ✅ ACTIVATION DE COMPTE (premier accès) */}
+//             <Route path="/activation" element={<Activation />} />
+            
+//             {/* Ancienne page (gardée pour compatibilité) */}
+//             <Route path="/quick-login" element={<QuickLogin />} />
+            
+//             {/* ============ ROUTES PROTÉGÉES ============ */}
+            
+//             {/* Dashboard utilisateur (apprenant) */}
+//             <Route path="/dashboard" element={
+//               <ProtectedRoute>
+//                 <Dashboard />
+//               </ProtectedRoute>
+//             } />
+            
+//             {/* Routes admin */}
+//             <Route path="/admin" element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <AdminLayout />
+//               </ProtectedRoute>
+//             }>
+//               <Route index element={<AdminDashboard />} />
+//               <Route path="submit-project" element={<SubmitProject />} />
+//               <Route path="explore" element={<Explore />} />
+//               <Route path="users" element={<UserManagement />} />
+//               <Route path="projects" element={<ProjectManagement />} />
+//               <Route path="analytics" element={<Analytics />} />
+//               <Route path="profile" element={<Profile />} />
+//               <Route path="settings" element={<Settings />} />
+              
+//               <Route path="projects/success" element={<ProjectSuccess />} />
+              
+//               <Route path="*" element={<Navigate to="/admin" replace />} />
+//             </Route>
+            
+//             <Route path="/admin/projects/:id" element={<ProjectDetail />} />
+            
+//             {/* ============ ROUTE 404 ============ */}
+//             <Route path="*" element={
+//               <div className="flex items-center justify-center h-screen">
+//                 <div className="text-center">
+//                   <h1 className="text-4xl font-bold text-[#001F3F] mb-4">404</h1>
+//                   <p className="text-gray-600">Page non trouvée</p>
+//                   <a href="/" className="mt-4 inline-block text-[#E30613] hover:underline">
+//                     Retour à l'accueil
+//                   </a>
+//                 </div>
+//               </div>
+//             } />
+//           </Routes>
+//         </ProjectProvider>
+//       </AuthProvider>
+//     </Router>
+//   );
+// }
+
+// export default App;
+
+
+// // src/App.jsx - VERSION SIMPLE ET FONCTIONNELLE
+// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import { AuthProvider } from './context/AuthContext';
+// import ProtectedRoute from './components/ProtectedRoute';
+// import AdminLayout from './components/admin/AdminLayout';
+// import AdminDashboard from './components/admin/AdminDashboard';
+// import UserManagement from './components/admin/UserManagement';
+// import ProjectManagement from './components/admin/ProjectManagement';
+// import SubmitProject from './components/admin/SubmitProject';
+// import Explore from './components/admin/Explore';
+// import Analytics from './components/admin/Analytics';
+// import Profile from './components/admin/Profile';
+// import Settings from './components/admin/Settings';
+// import Home from './pages/Home';
+// import Dashboard from './pages/Dashboard';
+// import QuickLogin from './pages/QuickLogin';
+// import Activation from './pages/Activation';        // ✅ RENOMMÉ
+// import UniversalLogin from './pages/UniversalLogin'; // ✅ NOUVELLE PAGE
+// import ProjectSuccess from './components/admin/ProjectSuccess';
+
+// function App() {
+//   return (
+//     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+//       <AuthProvider>
+//         <Routes>
+//           {/* ============ ROUTES PUBLIQUES ============ */}
+          
+//           {/* Page d'accueil */}
+//           <Route path="/" element={<Home />} />
+          
+//           {/* ✅ CONNEXION QUOTIDIENNE */}
+//           <Route path="/login" element={<UniversalLogin />} />
+          
+//           {/* ✅ ACTIVATION DE COMPTE */}
+//           <Route path="/activation" element={<Activation />} />
+          
+//           {/* Ancienne page (backup) */}
+//           <Route path="/quick-login" element={<QuickLogin />} />
+          
+//           {/* ============ ROUTES PROTÉGÉES ============ */}
+          
+//           {/* Dashboard utilisateur */}
+//           <Route path="/dashboard" element={
+//             <ProtectedRoute>
+//               <Dashboard />
+//             </ProtectedRoute>
+//           } />
+          
+//           {/* Routes admin */}
+//           <Route path="/admin" element={
+//             <ProtectedRoute requireAdmin={true}>
+//               <AdminLayout />
+//             </ProtectedRoute>
+//           }>
+//             <Route index element={<AdminDashboard />} />
+//             <Route path="submit-project" element={<SubmitProject />} />
+//             <Route path="explore" element={<Explore />} />
+//             <Route path="users" element={<UserManagement />} />
+//             <Route path="projects" element={<ProjectManagement />} />
+//             <Route path="analytics" element={<Analytics />} />
+//             <Route path="profile" element={<Profile />} />
+//             <Route path="settings" element={<Settings />} />
+//             <Route path="projects/success" element={<ProjectSuccess />} />
+//             <Route path="*" element={<Navigate to="/admin" replace />} />
+//           </Route>
+          
+//           {/* ============ ROUTE 404 ============ */}
+//           <Route path="*" element={
+//             <div className="flex items-center justify-center h-screen">
+//               <div className="text-center">
+//                 <h1 className="text-4xl font-bold text-[#001F3F] mb-4">404</h1>
+//                 <p className="text-gray-600">Page non trouvée</p>
+//                 <a href="/" className="mt-4 inline-block text-[#E30613] hover:underline">
+//                   Retour à l'accueil
+//                 </a>
+//               </div>
+//             </div>
+//           } />
+//         </Routes>
+//       </AuthProvider>
+//     </Router>
+//   );
+// }
+
+// export default App;
+
+
+// src/App.jsx - VERSION COMPLÈTE CORRECTE
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
@@ -941,25 +1210,38 @@ function App() {
       <AuthProvider>
         <ProjectProvider>
           <Routes>
-            {/* Routes publiques */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/quick-login" element={<QuickLogin />} />
+            {/* ==================== ROUTES PUBLIQUES ==================== */}
             
-            {/* Route protégée utilisateur */}
+            {/* Page d'accueil */}
+            <Route path="/" element={<Home />} />
+            
+            {/* ✅ PAGE DE CONNEXION QUOTIDIENNE (QuickLogin.jsx) */}
+            <Route path="/login" element={<QuickLogin />} />
+            
+            {/* ✅ PAGE D'ACTIVATION (Login.jsx - matricule + email) */}
+            <Route path="/activation" element={<Login />} />
+            
+            {/* ==================== ROUTES PROTÉGÉES ==================== */}
+            
+            {/* Dashboard utilisateur (apprenant) */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             } />
             
-            {/* Routes admin - NESTÉES dans AdminLayout */}
+            {/* ==================== ROUTES ADMIN ==================== */}
+            
+            {/* Layout admin avec routes imbriquées */}
             <Route path="/admin" element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminLayout />
               </ProtectedRoute>
             }>
+              {/* Dashboard admin - page par défaut */}
               <Route index element={<AdminDashboard />} />
+              
+              {/* Gestion des projets */}
               <Route path="submit-project" element={<SubmitProject />} />
               <Route path="explore" element={<Explore />} />
               <Route path="users" element={<UserManagement />} />
@@ -971,11 +1253,18 @@ function App() {
               {/* Route pour la page de succès */}
               <Route path="projects/success" element={<ProjectSuccess />} />
               
+              {/* Route par défaut pour /admin/* non trouvé */}
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             
-<Route path="/admin/projects/:id" element={<ProjectDetail />} />
-            {/* Route 404 */}
+            {/* Page de détail de projet (route séparée) */}
+            <Route path="/admin/projects/:id" element={
+              <ProtectedRoute requireAdmin={true}>
+                <ProjectDetail />
+              </ProtectedRoute>
+            } />
+            
+            {/* ==================== ROUTE 404 ==================== */}
             <Route path="*" element={
               <div className="flex items-center justify-center h-screen">
                 <div className="text-center">

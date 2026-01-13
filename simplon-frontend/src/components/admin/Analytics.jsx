@@ -758,7 +758,8 @@
 
 // src/components/admin/Analytics.jsx - VERSION COMPLÈTE
 import React, { useState, useEffect } from 'react';
-import { djangoApiService } from '../../services/api';
+// import { djangoApiService } from '../../services/api';
+import api from '../../services/api';
 import {
   Users, Code, CheckCircle, Folder,
   Database, RefreshCw, Server, Download,

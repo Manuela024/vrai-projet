@@ -546,35 +546,159 @@
 #     print(f"📢 Notification envoyée à {user.username}: {title}")
 #     return notification
 
-# users/models.py - MODÈLES ÉTENDUS
-from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone
-import uuid
+# # users/models.py - MODÈLES ÉTENDUS
+# from django.db import models
+# from django.contrib.auth.models import User
+# from django.utils import timezone
+# import uuid
+
+# # class MatriculeAutorise(models.Model):
+# #     """Matricules autorisés pour l'inscription"""
+# #     matricule = models.CharField(max_length=20, unique=True)
+# #     est_actif = models.BooleanField(default=True)
+# #     date_creation = models.DateTimeField(auto_now_add=True)
+# #     date_activation = models.DateTimeField(null=True, blank=True)
+    
+# #     def __str__(self):
+# #         return f"{self.matricule} ({'Actif' if self.est_actif else 'Inactif'})"
+
+
+# # users/models.py - AJOUTEZ CES MÉTHODES À LA CLASSE MatriculeAutorise
 
 # class MatriculeAutorise(models.Model):
-#     """Matricules autorisés pour l'inscription"""
 #     matricule = models.CharField(max_length=20, unique=True)
 #     est_actif = models.BooleanField(default=True)
 #     date_creation = models.DateTimeField(auto_now_add=True)
 #     date_activation = models.DateTimeField(null=True, blank=True)
+#     activation_token = models.CharField(max_length=100, null=True, blank=True)  # AJOUT
+#     token_expiration = models.DateTimeField(null=True, blank=True)  # AJOUT
     
 #     def __str__(self):
 #         return f"{self.matricule} ({'Actif' if self.est_actif else 'Inactif'})"
+    
+#     def is_token_expired(self):
+#         """Vérifie si le token est expiré"""
+#         if not self.token_expiration:
+#             return True
+#         return timezone.now() > self.token_expiration
+    
+#     def get_remaining_time(self):
+#         """Retourne le temps restant avant expiration en secondes"""
+#         if not self.token_expiration:
+#             return 0
+#         remaining = self.token_expiration - timezone.now()
+#         return max(0, int(remaining.total_seconds()))
+    
+# class UserProfile(models.Model):
+#     """Profil utilisateur étendu"""
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='userprofile')
+#     bio = models.TextField(max_length=500, blank=True, null=True)
+#     phone = models.CharField(max_length=20, blank=True, null=True)
+#     location = models.CharField(max_length=100, blank=True, null=True)
+#     company = models.CharField(max_length=100, blank=True, null=True)
+#     position = models.CharField(max_length=100, blank=True, null=True)
+#     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+#     website = models.URLField(blank=True, null=True)
+#     github = models.CharField(max_length=100, blank=True, null=True)
+#     linkedin = models.CharField(max_length=100, blank=True, null=True)
+#     twitter = models.CharField(max_length=100, blank=True, null=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+    
+#     def __str__(self):
+#         return f"Profil de {self.user.username}"
+    
+#     class Meta:
+#         verbose_name = "Profil utilisateur"
+#         verbose_name_plural = "Profils utilisateurs"
+
+# class ProfileUpdateHistory(models.Model):
+#     """Historique des modifications de profil"""
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='update_history')
+#     updated_at = models.DateTimeField(auto_now_add=True)
+#     changes = models.JSONField()  # Stocke les modifications
+#     ip_address = models.GenericIPAddressField(null=True, blank=True)
+#     user_agent = models.TextField(blank=True, null=True)
+    
+#     def __str__(self):
+#         return f"{self.user.username} - {self.updated_at.strftime('%Y-%m-%d %H:%M')}"
+    
+#     class Meta:
+#         verbose_name = "Historique modification"
+#         verbose_name_plural = "Historiques modifications"
+#         ordering = ['-updated_at']
+
+# class Notification(models.Model):
+#     """Notifications utilisateur"""
+#     NOTIFICATION_TYPES = [
+#         ('profile_update', 'Mise à jour profil'),
+#         ('project_update', 'Mise à jour projet'),
+#         ('system', 'Système'),
+#         ('message', 'Message'),
+#         ('alert', 'Alerte'),
+#     ]
+    
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+#     message = models.TextField()
+#     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='system')
+#     is_read = models.BooleanField(default=False)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     metadata = models.JSONField(null=True, blank=True)  # Données supplémentaires
+    
+#     def __str__(self):
+#         return f"{self.user.username} - {self.message[:50]}..."
+    
+#     class Meta:
+#         verbose_name = "Notification"
+#         verbose_name_plural = "Notifications"
+#         ordering = ['-created_at']
+    
+#     def mark_as_read(self):
+#         self.is_read = True
+#         self.save()
+    
+#     @classmethod
+#     def create_notification(cls, user, message, notification_type='system', metadata=None):
+#         return cls.objects.create(
+#             user=user,
+#             message=message,
+#             notification_type=notification_type,
+#             metadata=metadata or {}
+#         )
 
 
-# users/models.py - AJOUTEZ CES MÉTHODES À LA CLASSE MatriculeAutorise
+# users/models.py
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+import secrets
 
 class MatriculeAutorise(models.Model):
-    matricule = models.CharField(max_length=20, unique=True)
-    est_actif = models.BooleanField(default=True)
-    date_creation = models.DateTimeField(auto_now_add=True)
-    date_activation = models.DateTimeField(null=True, blank=True)
-    activation_token = models.CharField(max_length=100, null=True, blank=True)  # AJOUT
-    token_expiration = models.DateTimeField(null=True, blank=True)  # AJOUT
+    """
+    Modèle pour stocker les matricules autorisés à s'inscrire
+    """
+    matricule = models.CharField(max_length=50, unique=True, verbose_name="Matricule")
+    est_actif = models.BooleanField(default=True, verbose_name="Actif")
+    date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
+    date_activation = models.DateTimeField(null=True, blank=True, verbose_name="Date d'activation")
+    activation_token = models.CharField(max_length=100, null=True, blank=True, verbose_name="Token d'activation")
+    token_expiration = models.DateTimeField(null=True, blank=True, verbose_name="Expiration du token")
+    
+    class Meta:
+        verbose_name = "Matricule autorisé"
+        verbose_name_plural = "Matricules autorisés"
     
     def __str__(self):
-        return f"{self.matricule} ({'Actif' if self.est_actif else 'Inactif'})"
+        return f"{self.matricule} - {'Actif' if self.est_actif else 'Inactif'}"
+    
+    def generate_activation_token(self, minutes=5):
+        """Génère un token d'activation valable X minutes"""
+        token = secrets.token_urlsafe(32)
+        self.activation_token = token
+        self.token_expiration = timezone.now() + timezone.timedelta(minutes=minutes)
+        self.save()
+        return token
     
     def is_token_expired(self):
         """Vérifie si le token est expiré"""
@@ -583,88 +707,105 @@ class MatriculeAutorise(models.Model):
         return timezone.now() > self.token_expiration
     
     def get_remaining_time(self):
-        """Retourne le temps restant avant expiration en secondes"""
+        """Retourne le temps restant en secondes"""
         if not self.token_expiration:
             return 0
         remaining = self.token_expiration - timezone.now()
         return max(0, int(remaining.total_seconds()))
-    
+
 class UserProfile(models.Model):
-    """Profil utilisateur étendu"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='userprofile')
-    bio = models.TextField(max_length=500, blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
-    location = models.CharField(max_length=100, blank=True, null=True)
-    company = models.CharField(max_length=100, blank=True, null=True)
-    position = models.CharField(max_length=100, blank=True, null=True)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
-    website = models.URLField(blank=True, null=True)
-    github = models.CharField(max_length=100, blank=True, null=True)
-    linkedin = models.CharField(max_length=100, blank=True, null=True)
-    twitter = models.CharField(max_length=100, blank=True, null=True)
+    """
+    Modèle étendu pour les informations supplémentaires des utilisateurs
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='extended_profile')
+    bio = models.TextField(blank=True, null=True, verbose_name="Biographie")
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Téléphone")
+    location = models.CharField(max_length=100, blank=True, null=True, verbose_name="Localisation")
+    company = models.CharField(max_length=100, blank=True, null=True, verbose_name="Entreprise")
+    position = models.CharField(max_length=100, blank=True, null=True, verbose_name="Poste")
+    
+    # Champs pour Simplon
+    cohort = models.CharField(max_length=100, blank=True, null=True, verbose_name="Promotion Simplon")
+    specialite = models.CharField(max_length=100, blank=True, null=True, verbose_name="Spécialité")
+    date_entree = models.DateField(blank=True, null=True, verbose_name="Date d'entrée")
+    date_sortie = models.DateField(blank=True, null=True, verbose_name="Date de sortie")
+    
+    # Liens sociaux
+    website = models.URLField(blank=True, null=True, verbose_name="Site web personnel")
+    github = models.URLField(blank=True, null=True, verbose_name="GitHub")
+    linkedin = models.URLField(blank=True, null=True, verbose_name="LinkedIn")
+    twitter = models.URLField(blank=True, null=True, verbose_name="Twitter/X")
+    
+    # Photo de profil
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        blank=True,
+        null=True,
+        verbose_name="Photo de profil"
+    )
+    
+    # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Profil utilisateur étendu"
+        verbose_name_plural = "Profils utilisateurs étendus"
     
     def __str__(self):
         return f"Profil de {self.user.username}"
     
-    class Meta:
-        verbose_name = "Profil utilisateur"
-        verbose_name_plural = "Profils utilisateurs"
+    def get_avatar_url(self):
+        """Retourne l'URL complète de l'avatar"""
+        if self.avatar:
+            return self.avatar.url
+        return None
 
 class ProfileUpdateHistory(models.Model):
-    """Historique des modifications de profil"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    """
+    Historique des modifications de profil
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='update_history')
     updated_at = models.DateTimeField(auto_now_add=True)
-    changes = models.JSONField()  # Stocke les modifications
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
-    user_agent = models.TextField(blank=True, null=True)
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.updated_at.strftime('%Y-%m-%d %H:%M')}"
+    changes = models.JSONField(verbose_name="Modifications")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="Adresse IP")
+    user_agent = models.TextField(blank=True, null=True, verbose_name="User Agent")
     
     class Meta:
-        verbose_name = "Historique modification"
-        verbose_name_plural = "Historiques modifications"
+        verbose_name = "Historique de modification"
+        verbose_name_plural = "Historiques de modification"
         ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"Historique {self.user.username} - {self.updated_at.strftime('%Y-%m-%d %H:%M')}"
 
 class Notification(models.Model):
-    """Notifications utilisateur"""
+    """
+    Modèle pour les notifications utilisateur
+    """
     NOTIFICATION_TYPES = [
-        ('profile_update', 'Mise à jour profil'),
-        ('project_update', 'Mise à jour projet'),
         ('system', 'Système'),
+        ('profile_update', 'Mise à jour profil'),
+        ('project', 'Projet'),
         ('message', 'Message'),
-        ('alert', 'Alerte'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    message = models.TextField()
+    message = models.TextField(verbose_name="Message")
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='system')
-    is_read = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False, verbose_name="Lu")
+    metadata = models.JSONField(blank=True, null=True, verbose_name="Métadonnées")
     created_at = models.DateTimeField(auto_now_add=True)
-    metadata = models.JSONField(null=True, blank=True)  # Données supplémentaires
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.message[:50]}..."
     
     class Meta:
         verbose_name = "Notification"
         verbose_name_plural = "Notifications"
         ordering = ['-created_at']
     
+    def __str__(self):
+        return f"Notification pour {self.user.username}: {self.message[:50]}"
+    
     def mark_as_read(self):
+        """Marquer la notification comme lue"""
         self.is_read = True
         self.save()
-    
-    @classmethod
-    def create_notification(cls, user, message, notification_type='system', metadata=None):
-        return cls.objects.create(
-            user=user,
-            message=message,
-            notification_type=notification_type,
-            metadata=metadata or {}
-        )
-
-

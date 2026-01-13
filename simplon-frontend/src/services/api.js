@@ -1019,347 +1019,929 @@
 //   }, 1500);
 // }
 
-// src/services/api.js - VERSION CORRIGÉE
+// // src/services/api.js - VERSION CORRIGÉE
+// import axios from 'axios';
+
+// // Configuration Django
+// const API_BASE_URL = 'http://localhost:8000';
+// const DEBUG = true;
+
+// console.log(`🔧 API Django connectée: ${API_BASE_URL}`);
+
+// // Instance axios simple pour Django
+// const api = axios.create({
+//   baseURL: API_BASE_URL,
+//   timeout: 10000,
+//   headers: {
+//     'Content-Type': 'application/json',
+//     'Accept': 'application/json',
+//   }
+// });
+
+// // Fonction pour tester directement l'API
+// export const testDjangoApi = async () => {
+//   console.log('🧪 Test direct API Django...');
+  
+//   try {
+//     // Test 1: Endpoint des projets
+//     const projectsResponse = await fetch('http://localhost:8000/api/projects/projects/');
+//     const projectsData = await projectsResponse.json();
+    
+//     // Test 2: Endpoint utilisateurs (essayer différents formats)
+//     let usersData = null;
+//     let usersCount = 0;
+    
+//     try {
+//       const usersResponse = await fetch('http://localhost:8000/api/users/');
+//       usersData = await usersResponse.json();
+//       console.log('👤 Format réponse users:', usersData);
+      
+//       // Différents formats possibles
+//       if (usersData.users && Array.isArray(usersData.users)) {
+//         usersCount = usersData.users.length;
+//       } else if (Array.isArray(usersData)) {
+//         usersCount = usersData.length;
+//       } else if (usersData.results && Array.isArray(usersData.results)) {
+//         usersCount = usersData.results.length;
+//       } else if (usersData.count) {
+//         usersCount = usersData.count;
+//       }
+//     } catch (usersError) {
+//       console.warn('⚠️ Erreur users API:', usersError.message);
+//     }
+    
+//     console.log('✅ Test API Django:');
+//     console.log(`   - Projets: ${projectsData.count || projectsData.projects?.length || 0}`);
+//     console.log(`   - Utilisateurs: ${usersCount}`);
+    
+//     return {
+//       success: true,
+//       projects: projectsData,
+//       users: usersData,
+//       usersCount: usersCount
+//     };
+//   } catch (error) {
+//     console.error('❌ Test API Django échoué:', error);
+//     return {
+//       success: false,
+//       error: error.message
+//     };
+//   }
+// };
+
+// // Vérifier la santé de l'API
+// export const checkApiHealth = async () => {
+//   try {
+//     const response = await axios.get(`${API_BASE_URL}/api/projects/projects/`, {
+//       timeout: 5000
+//     });
+    
+//     return {
+//       status: 'online',
+//       data: response.data,
+//       message: 'Django API disponible',
+//       projectsCount: response.data.count || response.data.projects?.length || 0,
+//       timestamp: response.data.timestamp || new Date().toISOString()
+//     };
+//   } catch (error) {
+//     return {
+//       status: 'offline',
+//       error: error.message,
+//       message: 'Impossible de se connecter à Django',
+//       suggestion: 'Vérifiez que le serveur Django est démarré (python manage.py runserver)'
+//     };
+//   }
+// };
+
+// // Récupérer les projets
+// export const getProjects = async () => {
+//   try {
+//     const response = await axios.get(`${API_BASE_URL}/api/projects/projects/`, {
+//       timeout: 8000
+//     });
+    
+//     // Votre format: {status: "success", count: 10, projects: [...]}
+//     if (response.data.status === 'success' && response.data.projects) {
+//       console.log(`✅ ${response.data.count} projets récupérés depuis Django`);
+//       return response.data.projects;
+//     }
+    
+//     // Fallback
+//     if (Array.isArray(response.data)) {
+//       return response.data;
+//     }
+    
+//     console.warn('⚠️ Format inattendu, tentative d\'extraction...');
+//     return [];
+    
+//   } catch (error) {
+//     console.error('❌ Erreur récupération projets:', error.message);
+    
+//     // Fallback de développement
+//     if (DEBUG) {
+//       console.log('🔧 Mode développement: données factices');
+//       return Array.from({ length: 10 }, (_, i) => ({
+//         id: i + 1,
+//         title: `Projet ${i + 1}`,
+//         description: `Description du projet ${i + 1}`,
+//         technologies: ['React', 'Django', 'PostgreSQL'][i % 3],
+//         status: ['approved', 'pending', 'draft'][i % 3],
+//         author_name: `Utilisateur ${i + 1}`,
+//         views: Math.floor(Math.random() * 100),
+//         likes: Math.floor(Math.random() * 50),
+//         created_at: new Date(Date.now() - i * 86400000).toISOString()
+//       }));
+//     }
+    
+//     throw error;
+//   }
+// };
+
+// // Récupérer les utilisateurs - VERSION AMÉLIORÉE
+// export const getUsers = async () => {
+//   try {
+//     console.log('👥 Tentative de récupération utilisateurs...');
+    
+//     // Essayer différents endpoints possibles
+//     const endpoints = [
+//       '/api/users/',
+//       '/api/users/users/',
+//       '/api/auth/users/',
+//       '/api/users/all/'
+//     ];
+    
+//     for (const endpoint of endpoints) {
+//       try {
+//         console.log(`   Essai endpoint: ${endpoint}`);
+//         const response = await axios.get(`${API_BASE_URL}${endpoint}`, {
+//           timeout: 5000
+//         });
+        
+//         console.log(`   ✅ Réponse de ${endpoint}:`, Object.keys(response.data));
+        
+//         // Essayer d'extraire les utilisateurs de différents formats
+//         let usersArray = null;
+        
+//         if (response.data.users && Array.isArray(response.data.users)) {
+//           usersArray = response.data.users;
+//           console.log(`   👥 Format: users array (${usersArray.length} utilisateurs)`);
+//         } else if (Array.isArray(response.data)) {
+//           usersArray = response.data;
+//           console.log(`   👥 Format: direct array (${usersArray.length} utilisateurs)`);
+//         } else if (response.data.results && Array.isArray(response.data.results)) {
+//           usersArray = response.data.results;
+//           console.log(`   👥 Format: results array (${usersArray.length} utilisateurs)`);
+//         } else if (response.data.count && response.data.results) {
+//           usersArray = response.data.results;
+//           console.log(`   👥 Format: count + results (${usersArray.length} utilisateurs)`);
+//         }
+        
+//         if (usersArray && usersArray.length > 0) {
+//           console.log(`   ✅ ${usersArray.length} utilisateurs récupérés depuis ${endpoint}`);
+          
+//           // S'assurer que chaque utilisateur a un champ is_active
+//           const processedUsers = usersArray.map(user => ({
+//             ...user,
+//             is_active: user.is_active !== undefined ? user.is_active : true,
+//             username: user.username || user.email?.split('@')[0] || `user_${user.id}`
+//           }));
+          
+//           return processedUsers;
+//         }
+//       } catch (endpointError) {
+//         console.log(`   ❌ ${endpoint}: ${endpointError.message}`);
+//         continue;
+//       }
+//     }
+    
+//     // Si aucun endpoint ne fonctionne, essayer d'extraire des projets
+//     console.log('🔍 Aucun endpoint users trouvé, extraction depuis les projets...');
+//     try {
+//       const projects = await getProjects();
+//       const authors = projects
+//         .map(p => p.author)
+//         .filter(Boolean)
+//         .filter((author, index, self) => 
+//           self.findIndex(a => a.id === author.id) === index
+//         );
+      
+//       if (authors.length > 0) {
+//         console.log(`   👥 ${authors.length} auteurs extraits des projets`);
+//         return authors.map(author => ({
+//           ...author,
+//           is_active: true,
+//           username: author.username || author.email?.split('@')[0] || `user_${author.id}`
+//         }));
+//       }
+//     } catch (projectError) {
+//       console.log('   ❌ Impossible d\'extraire depuis les projets');
+//     }
+    
+//     console.warn('⚠️ Aucun utilisateur trouvé, retourne tableau vide');
+//     return [];
+    
+//   } catch (error) {
+//     console.error('❌ Erreur récupération utilisateurs:', error.message);
+    
+//     // Fallback de développement - 13 utilisateurs comme vous l'avez dit
+//     if (DEBUG) {
+//       console.log('🔧 Mode développement: 13 utilisateurs factices');
+//       return Array.from({ length: 13 }, (_, i) => ({
+//         id: i + 1,
+//         username: `user${i + 1}`,
+//         email: `user${i + 1}@simplon.com`,
+//         first_name: `Prénom ${i + 1}`,
+//         last_name: `Nom ${i + 1}`,
+//         is_active: true,
+//         is_staff: i === 0,
+//         date_joined: new Date(Date.now() - i * 86400000).toISOString()
+//       }));
+//     }
+    
+//     return [];
+//   }
+// };
+
+// // Explorer les endpoints Django
+// export const exploreDjangoEndpoints = async () => {
+//   const endpoints = [
+//     { name: 'Status API', url: '/api/projects/' },
+//     { name: 'Projects List', url: '/api/projects/projects/' },
+//     { name: 'Users API', url: '/api/users/' },
+//     { name: 'Users List', url: '/api/users/users/' },
+//     { name: 'Token Auth', url: '/api/token/' },
+//     { name: 'Admin', url: '/admin/' }
+//   ];
+  
+//   const results = [];
+  
+//   for (const endpoint of endpoints) {
+//     try {
+//       const response = await axios.get(`${API_BASE_URL}${endpoint.url}`, {
+//         timeout: 3000,
+//         validateStatus: (status) => status < 500 // Accepter les 404
+//       });
+      
+//       results.push({
+//         ...endpoint,
+//         status: 'available',
+//         code: response.status,
+//         data: response.data
+//       });
+//     } catch (error) {
+//       results.push({
+//         ...endpoint,
+//         status: 'unavailable',
+//         code: error.response?.status || 0,
+//         error: error.message
+//       });
+//     }
+//   }
+  
+//   return results;
+// };
+
+// // Service principal
+// export const djangoApiService = {
+//   // Santé
+//   checkHealth: checkApiHealth,
+  
+//   // Données
+//   getProjects,
+//   getUsers,
+  
+//   // Utilitaires
+//   exploreEndpoints: exploreDjangoEndpoints,
+//   testConnection: testDjangoApi,
+  
+//   // Statistiques rapides
+//   async getStats() {
+//     try {
+//       const [projects, users] = await Promise.all([
+//         getProjects(),
+//         getUsers()
+//       ]);
+      
+//       return {
+//         projectsCount: projects.length,
+//         usersCount: users.length,
+//         activeUsers: users.filter(u => u.is_active === true).length,
+//         technologies: [...new Set(projects.flatMap(p => 
+//           p.technologies?.split(',').map(t => t.trim()).filter(Boolean) || []
+//         ))],
+//         timestamp: new Date().toISOString()
+//       };
+//     } catch (error) {
+//       throw error;
+//     }
+//   }
+// };
+
+// // Export par défaut pour compatibilité
+// const defaultExport = {
+//   checkApiHealth,
+//   getProjects,
+//   getUsers,
+//   exploreDjangoEndpoints,
+//   testDjangoApi,
+//   djangoApiService,
+//   API_BASE_URL
+// };
+
+// export default defaultExport;
+
+// // Tester au démarrage
+// if (typeof window !== 'undefined') {
+//   window.djangoApiTest = testDjangoApi;
+  
+//   setTimeout(() => {
+//     console.log('🔍 Test automatique API Django...');
+//     testDjangoApi().then(result => {
+//       if (result.success) {
+//         console.log('🎉 Django API prête !');
+//       }
+//     });
+//   }, 1500);
+// }
+
+
+// // src/services/api.js - VERSION AMÉLIORÉE
+// import axios from 'axios';
+// import authService from './auth';
+
+// const API_BASE_URL = 'http://localhost:8000';
+// const DEBUG = true;
+
+// console.log(`🔧 API Django: ${API_BASE_URL}`);
+
+// // Configuration axios
+// const api = axios.create({
+//   baseURL: API_BASE_URL,
+//   timeout: 10000,
+//   headers: {
+//     'Content-Type': 'application/json',
+//   }
+// });
+
+// // ✅ TEST DE CONNEXION AMÉLIORÉ
+// export const testDjangoApi = async () => {
+//   console.log('🧪 Test de connexion à Django...');
+  
+//   const endpointsToTest = [
+//     { name: 'API Root', url: '/api/' },
+//     { name: 'JWT Token', url: '/api/token/' },
+//     { name: 'Users', url: '/api/users/' },
+//     { name: 'Projects', url: '/api/projects/projects/' },
+//     { name: 'Admin', url: '/admin/' }
+//   ];
+  
+//   const results = [];
+  
+//   for (const endpoint of endpointsToTest) {
+//     try {
+//       const response = await api.get(endpoint.url, {
+//         timeout: 3000,
+//         validateStatus: (status) => true // Accepter tous les codes
+//       });
+      
+//       results.push({
+//         ...endpoint,
+//         status: 'success',
+//         code: response.status,
+//         data: response.data ? 'OK' : 'Empty'
+//       });
+//     } catch (error) {
+//       results.push({
+//         ...endpoint,
+//         status: 'error',
+//         code: error.response?.status || 0,
+//         error: error.message
+//       });
+//     }
+//   }
+  
+//   // Analyser les résultats
+//   const availableEndpoints = results.filter(r => r.code < 400);
+//   const isApiAvailable = availableEndpoints.length > 0;
+  
+//   console.log('📊 Résultats des tests:');
+//   results.forEach(r => {
+//     console.log(`   ${r.status === 'success' ? '✅' : '❌'} ${r.name}: ${r.code} ${r.url}`);
+//   });
+  
+//   return {
+//     success: isApiAvailable,
+//     available: isApiAvailable,
+//     results,
+//     message: isApiAvailable ? 
+//       `API disponible (${availableEndpoints.length}/${endpointsToTest.length} endpoints)` :
+//       'API Django non accessible'
+//   };
+// };
+
+// // ✅ SERVICES API
+// export const apiService = {
+//   // ✅ PROFIL UTILISATEUR
+//   getProfile: async () => {
+//     try {
+//       const token = authService.getAccessToken();
+//       if (!token) {
+//         throw new Error('Non authentifié');
+//       }
+      
+//       const response = await api.get('/api/users/profile/', {
+//         headers: { Authorization: `Bearer ${token}` }
+//       });
+//       return response.data;
+//     } catch (error) {
+//       console.error('❌ Erreur getProfile:', error.message);
+      
+//       // Fallback vers les données locales
+//       const localUser = localStorage.getItem('simplon_user');
+//       if (localUser) {
+//         console.log('📁 Utilisation des données locales');
+//         return JSON.parse(localUser);
+//       }
+      
+//       throw error;
+//     }
+//   },
+  
+//   updateProfile: async (data) => {
+//     try {
+//       const token = authService.getAccessToken();
+//       if (!token) {
+//         throw new Error('Non authentifié');
+//       }
+      
+//       const response = await api.patch('/api/users/profile/', data, {
+//         headers: { Authorization: `Bearer ${token}` }
+//       });
+//       return response.data;
+//     } catch (error) {
+//       console.error('❌ Erreur updateProfile:', error.message);
+//       throw error;
+//     }
+//   },
+  
+//   uploadAvatar: async (file) => {
+//     try {
+//       const token = authService.getAccessToken();
+//       if (!token) {
+//         throw new Error('Non authentifié');
+//       }
+      
+//       const formData = new FormData();
+//       formData.append('avatar', file);
+      
+//       const response = await api.post('/api/users/profile/avatar/', formData, {
+//         headers: {
+//           'Authorization': `Bearer ${token}`,
+//           'Content-Type': 'multipart/form-data'
+//         }
+//       });
+//       return response.data;
+//     } catch (error) {
+//       console.error('❌ Erreur uploadAvatar:', error.message);
+//       throw error;
+//     }
+//   },
+  
+//   // ✅ PROJETS
+//   getProjects: async () => {
+//     try {
+//       // Essayer avec token d'abord
+//       const token = authService.getAccessToken();
+//       const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      
+//       const response = await api.get('/api/projects/projects/', { headers });
+      
+//       // Gérer différents formats de réponse
+//       if (response.data.projects && Array.isArray(response.data.projects)) {
+//         return response.data.projects;
+//       } else if (response.data.results && Array.isArray(response.data.results)) {
+//         return response.data.results;
+//       } else if (Array.isArray(response.data)) {
+//         return response.data;
+//       }
+      
+//       return [];
+//     } catch (error) {
+//       console.error('❌ Erreur getProjects:', error.message);
+      
+//       // Fallback de développement
+//       if (DEBUG) {
+//         console.log('🔧 Mode développement: projets factices');
+//         return Array.from({ length: 12 }, (_, i) => ({
+//           id: i + 1,
+//           title: `Projet ${i + 1}`,
+//           description: `Description du projet ${i + 1}. Un projet innovant qui utilise les dernières technologies.`,
+//           author: {
+//             id: i + 1,
+//             username: `user${i + 1}`,
+//             first_name: `Prénom ${i + 1}`,
+//             last_name: `Nom ${i + 1}`
+//           },
+//           status: ['approved', 'pending', 'draft'][i % 3],
+//           views: Math.floor(Math.random() * 1000),
+//           downloads: Math.floor(Math.random() * 100),
+//           created_at: new Date(Date.now() - i * 86400000).toISOString()
+//         }));
+//       }
+      
+//       return [];
+//     }
+//   },
+  
+//   getUserProjects: async () => {
+//     try {
+//       const token = authService.getAccessToken();
+//       if (!token) {
+//         return [];
+//       }
+      
+//       const response = await api.get('/api/projects/user-projects/', {
+//         headers: { Authorization: `Bearer ${token}` }
+//       });
+      
+//       if (response.data.results && Array.isArray(response.data.results)) {
+//         return response.data.results;
+//       } else if (Array.isArray(response.data)) {
+//         return response.data;
+//       }
+      
+//       return [];
+//     } catch (error) {
+//       console.error('❌ Erreur getUserProjects:', error.message);
+//       return [];
+//     }
+//   },
+  
+//   // ✅ UTILISATEURS
+//   getUsers: async () => {
+//     try {
+//       const token = authService.getAccessToken();
+//       const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      
+//       const response = await api.get('/api/users/', { headers });
+      
+//       let users = [];
+      
+//       if (response.data.results && Array.isArray(response.data.results)) {
+//         users = response.data.results;
+//       } else if (response.data.users && Array.isArray(response.data.users)) {
+//         users = response.data.users;
+//       } else if (Array.isArray(response.data)) {
+//         users = response.data;
+//       }
+      
+//       return users;
+//     } catch (error) {
+//       console.error('❌ Erreur getUsers:', error.message);
+      
+//       // Fallback de développement
+//       if (DEBUG) {
+//         console.log('🔧 Mode développement: utilisateurs factices');
+//         return Array.from({ length: 13 }, (_, i) => ({
+//           id: i + 1,
+//           username: `user${i + 1}`,
+//           email: `user${i + 1}@simplon.com`,
+//           first_name: `Prénom ${i + 1}`,
+//           last_name: `Nom ${i + 1}`,
+//           is_active: true,
+//           is_staff: i === 0,
+//           is_superuser: i === 0,
+//           cohort: `Simplon ${2023 + (i % 3)}`,
+//           date_joined: new Date(Date.now() - i * 86400000).toISOString()
+//         }));
+//       }
+      
+//       return [];
+//     }
+//   },
+  
+//   // ✅ STATISTIQUES
+//   getStats: async () => {
+//     try {
+//       const [projects, users] = await Promise.all([
+//         apiService.getProjects().catch(() => []),
+//         apiService.getUsers().catch(() => [])
+//       ]);
+      
+//       return {
+//         projectsCount: projects.length,
+//         usersCount: users.length,
+//         activeUsers: users.filter(u => u.is_active === true).length,
+//         recentProjects: projects
+//           .filter(p => p.created_at)
+//           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+//           .slice(0, 5),
+//         timestamp: new Date().toISOString()
+//       };
+//     } catch (error) {
+//       console.error('❌ Erreur getStats:', error.message);
+//       return {
+//         projectsCount: 0,
+//         usersCount: 0,
+//         activeUsers: 0,
+//         recentProjects: [],
+//         timestamp: new Date().toISOString()
+//       };
+//     }
+//   },
+  
+//   // ✅ AUTHENTIFICATION
+//   login: async (username, password) => {
+//     try {
+//       const response = await api.post('/api/token/', {
+//         username,
+//         password
+//       });
+//       return response.data;
+//     } catch (error) {
+//       console.error('❌ Erreur login:', error.message);
+//       throw error;
+//     }
+//   },
+  
+//   refreshToken: async (refreshToken) => {
+//     try {
+//       const response = await api.post('/api/token/refresh/', {
+//         refresh: refreshToken
+//       });
+//       return response.data;
+//     } catch (error) {
+//       console.error('❌ Erreur refreshToken:', error.message);
+//       throw error;
+//     }
+//   }
+// };
+
+// // ✅ ALIAS pour compatibilité
+// export const djangoApiService = apiService;
+
+// // ✅ FONCTIONS EXPORTÉES INDIVIDUELLEMENT
+// export const getProjects = apiService.getProjects;
+// export const getUsers = apiService.getUsers;
+// export const checkApiHealth = testDjangoApi;
+// export const exploreDjangoEndpoints = testDjangoApi;
+
+// // ✅ EXPORT PAR DÉFAUT
+// const defaultExport = {
+//   // Service principal
+//   ...apiService,
+  
+//   // Pour compatibilité
+//   djangoApiService: apiService,
+//   apiService,
+  
+//   // Fonctions utilitaires
+//   testConnection: testDjangoApi,
+//   testDjangoApi,
+//   checkApiHealth: testDjangoApi,
+  
+//   // Configuration
+//   API_BASE_URL,
+  
+//   // Instance axios (pour les composants qui en ont besoin)
+//   axios: api
+// };
+
+// export default defaultExport;
+
+// // ✅ TEST AU DÉMARRAGE
+// if (typeof window !== 'undefined') {
+//   window.apiService = apiService;
+//   window.testDjangoApi = testDjangoApi;
+  
+//   setTimeout(() => {
+//     console.log('🔍 Test automatique de connexion...');
+//     testDjangoApi().then(result => {
+//       if (result.success) {
+//         console.log(`🎉 ${result.message}`);
+//       } else {
+//         console.log(`⚠️ ${result.message}`);
+//         console.log('💡 Vérifiez que Django est démarré:');
+//         console.log('   1. Ouvrez un terminal dans votre dossier Django');
+//         console.log('   2. Tapez: python manage.py runserver');
+//         console.log('   3. Vérifiez que http://localhost:8000 est accessible');
+//       }
+//     });
+//   }, 2000);
+// }
+
+// src/services/api.js - VERSION FINALE FONCTIONNELLE
 import axios from 'axios';
 
-// Configuration Django
+// Configuration simple
 const API_BASE_URL = 'http://localhost:8000';
-const DEBUG = true;
 
-console.log(`🔧 API Django connectée: ${API_BASE_URL}`);
+console.log(`🔧 API Django: ${API_BASE_URL}`);
 
-// Instance axios simple pour Django
+// Instance axios de base
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  }
 });
 
-// Fonction pour tester directement l'API
-export const testDjangoApi = async () => {
-  console.log('🧪 Test direct API Django...');
+// ✅ FONCTION SIMPLE POUR RÉCUPÉRER LES DONNÉES
+export const fetchRealProjects = async () => {
+  console.log('📡 Tentative de récupération des projets...');
   
   try {
-    // Test 1: Endpoint des projets
-    const projectsResponse = await fetch('http://localhost:8000/api/projects/projects/');
-    const projectsData = await projectsResponse.json();
-    
-    // Test 2: Endpoint utilisateurs (essayer différents formats)
-    let usersData = null;
-    let usersCount = 0;
-    
-    try {
-      const usersResponse = await fetch('http://localhost:8000/api/users/');
-      usersData = await usersResponse.json();
-      console.log('👤 Format réponse users:', usersData);
-      
-      // Différents formats possibles
-      if (usersData.users && Array.isArray(usersData.users)) {
-        usersCount = usersData.users.length;
-      } else if (Array.isArray(usersData)) {
-        usersCount = usersData.length;
-      } else if (usersData.results && Array.isArray(usersData.results)) {
-        usersCount = usersData.results.length;
-      } else if (usersData.count) {
-        usersCount = usersData.count;
-      }
-    } catch (usersError) {
-      console.warn('⚠️ Erreur users API:', usersError.message);
-    }
-    
-    console.log('✅ Test API Django:');
-    console.log(`   - Projets: ${projectsData.count || projectsData.projects?.length || 0}`);
-    console.log(`   - Utilisateurs: ${usersCount}`);
-    
-    return {
-      success: true,
-      projects: projectsData,
-      users: usersData,
-      usersCount: usersCount
-    };
-  } catch (error) {
-    console.error('❌ Test API Django échoué:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
-
-// Vérifier la santé de l'API
-export const checkApiHealth = async () => {
-  try {
+    // Test simple de l'endpoint
     const response = await axios.get(`${API_BASE_URL}/api/projects/projects/`, {
       timeout: 5000
     });
     
-    return {
-      status: 'online',
-      data: response.data,
-      message: 'Django API disponible',
-      projectsCount: response.data.count || response.data.projects?.length || 0,
-      timestamp: response.data.timestamp || new Date().toISOString()
-    };
-  } catch (error) {
-    return {
-      status: 'offline',
-      error: error.message,
-      message: 'Impossible de se connecter à Django',
-      suggestion: 'Vérifiez que le serveur Django est démarré (python manage.py runserver)'
-    };
-  }
-};
-
-// Récupérer les projets
-export const getProjects = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/api/projects/projects/`, {
-      timeout: 8000
+    console.log('✅ Réponse API:', {
+      status: response.status,
+      dataKeys: Object.keys(response.data)
     });
     
-    // Votre format: {status: "success", count: 10, projects: [...]}
-    if (response.data.status === 'success' && response.data.projects) {
-      console.log(`✅ ${response.data.count} projets récupérés depuis Django`);
-      return response.data.projects;
+    // Extraire les projets selon le format
+    let projects = [];
+    
+    if (response.data.projects && Array.isArray(response.data.projects)) {
+      projects = response.data.projects;
+      console.log(`✅ ${projects.length} projets trouvés dans .projects`);
+    } else if (Array.isArray(response.data)) {
+      projects = response.data;
+      console.log(`✅ ${projects.length} projets trouvés (tableau direct)`);
+    } else if (response.data.results && Array.isArray(response.data.results)) {
+      projects = response.data.results;
+      console.log(`✅ ${projects.length} projets trouvés dans .results`);
+    } else {
+      console.log('⚠️ Format de données inattendu:', response.data);
+      return [];
     }
     
-    // Fallback
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    console.warn('⚠️ Format inattendu, tentative d\'extraction...');
-    return [];
+    return projects;
     
   } catch (error) {
-    console.error('❌ Erreur récupération projets:', error.message);
+    console.error('❌ Erreur API projets:', {
+      message: error.message,
+      status: error.response?.status,
+      url: error.config?.url
+    });
     
-    // Fallback de développement
-    if (DEBUG) {
-      console.log('🔧 Mode développement: données factices');
-      return Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        title: `Projet ${i + 1}`,
-        description: `Description du projet ${i + 1}`,
-        technologies: ['React', 'Django', 'PostgreSQL'][i % 3],
-        status: ['approved', 'pending', 'draft'][i % 3],
-        author_name: `Utilisateur ${i + 1}`,
-        views: Math.floor(Math.random() * 100),
-        likes: Math.floor(Math.random() * 50),
-        created_at: new Date(Date.now() - i * 86400000).toISOString()
-      }));
-    }
-    
-    throw error;
+    // PAS de mode démo ici !
+    throw new Error(`API Django inaccessible: ${error.message}`);
   }
 };
 
-// Récupérer les utilisateurs - VERSION AMÉLIORÉE
-export const getUsers = async () => {
+// ✅ FONCTION SIMPLE POUR RÉCUPÉRER LES UTILISATEURS
+export const fetchRealUsers = async () => {
+  console.log('📡 Tentative de récupération des utilisateurs...');
+  
   try {
-    console.log('👥 Tentative de récupération utilisateurs...');
+    const response = await axios.get(`${API_BASE_URL}/api/users/`, {
+      timeout: 5000
+    });
     
-    // Essayer différents endpoints possibles
+    console.log('✅ Réponse Users API:', {
+      status: response.status,
+      dataKeys: Object.keys(response.data)
+    });
+    
+    let users = [];
+    
+    if (response.data.users && Array.isArray(response.data.users)) {
+      users = response.data.users;
+    } else if (Array.isArray(response.data)) {
+      users = response.data;
+    } else if (response.data.results && Array.isArray(response.data.results)) {
+      users = response.data.results;
+    }
+    
+    console.log(`✅ ${users.length} utilisateurs trouvés`);
+    return users;
+    
+  } catch (error) {
+    console.error('❌ Erreur API users:', error.message);
+    throw new Error(`API Users inaccessible: ${error.message}`);
+  }
+};
+
+// ✅ SERVICE PRINCIPAL (NO MODE DÉMO!)
+export const realApiService = {
+  // Santé de l'API
+  async checkHealth() {
+    try {
+      await axios.get(`${API_BASE_URL}/api/projects/projects/`, { timeout: 3000 });
+      return { healthy: true, message: '✅ API Django disponible' };
+    } catch (error) {
+      return { 
+        healthy: false, 
+        message: '❌ API Django injoignable',
+        error: error.message 
+      };
+    }
+  },
+  
+  // Récupérer tout (vraiment)
+  async fetchAllData() {
+    console.log('🚀 Récupération de TOUTES les données réelles...');
+    
+    try {
+      const [projects, users] = await Promise.all([
+        fetchRealProjects(),
+        fetchRealUsers().catch(() => []) // Users optionnel
+      ]);
+      
+      console.log(`🎉 Données réelles récupérées: ${projects.length} projets, ${users.length} utilisateurs`);
+      
+      return {
+        success: true,
+        projects: projects,
+        users: users,
+        stats: {
+          totalProjects: projects.length,
+          published: projects.filter(p => p.status === 'published').length,
+          pending: projects.filter(p => p.status === 'pending').length,
+          totalUsers: users.length
+        }
+      };
+      
+    } catch (error) {
+      console.error('💥 Échec récupération données réelles:', error);
+      return {
+        success: false,
+        error: error.message,
+        projects: [],
+        users: []
+      };
+    }
+  },
+  
+  // Tester tous les endpoints
+  async testAllEndpoints() {
     const endpoints = [
-      '/api/users/',
-      '/api/users/users/',
-      '/api/auth/users/',
-      '/api/users/all/'
+      { name: 'Projects', url: '/api/projects/projects/' },
+      { name: 'Users', url: '/api/users/' },
+      { name: 'Token', url: '/api/token/' },
+      { name: 'Admin', url: '/admin/' }
     ];
+    
+    const results = [];
     
     for (const endpoint of endpoints) {
       try {
-        console.log(`   Essai endpoint: ${endpoint}`);
-        const response = await axios.get(`${API_BASE_URL}${endpoint}`, {
-          timeout: 5000
+        const response = await axios.get(`${API_BASE_URL}${endpoint.url}`, {
+          timeout: 3000,
+          validateStatus: () => true // Accepter tous les codes
         });
         
-        console.log(`   ✅ Réponse de ${endpoint}:`, Object.keys(response.data));
-        
-        // Essayer d'extraire les utilisateurs de différents formats
-        let usersArray = null;
-        
-        if (response.data.users && Array.isArray(response.data.users)) {
-          usersArray = response.data.users;
-          console.log(`   👥 Format: users array (${usersArray.length} utilisateurs)`);
-        } else if (Array.isArray(response.data)) {
-          usersArray = response.data;
-          console.log(`   👥 Format: direct array (${usersArray.length} utilisateurs)`);
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          usersArray = response.data.results;
-          console.log(`   👥 Format: results array (${usersArray.length} utilisateurs)`);
-        } else if (response.data.count && response.data.results) {
-          usersArray = response.data.results;
-          console.log(`   👥 Format: count + results (${usersArray.length} utilisateurs)`);
-        }
-        
-        if (usersArray && usersArray.length > 0) {
-          console.log(`   ✅ ${usersArray.length} utilisateurs récupérés depuis ${endpoint}`);
-          
-          // S'assurer que chaque utilisateur a un champ is_active
-          const processedUsers = usersArray.map(user => ({
-            ...user,
-            is_active: user.is_active !== undefined ? user.is_active : true,
-            username: user.username || user.email?.split('@')[0] || `user_${user.id}`
-          }));
-          
-          return processedUsers;
-        }
-      } catch (endpointError) {
-        console.log(`   ❌ ${endpoint}: ${endpointError.message}`);
-        continue;
+        results.push({
+          ...endpoint,
+          status: 'success',
+          code: response.status,
+          data: response.data ? 'Données présentes' : 'Aucune donnée'
+        });
+      } catch (error) {
+        results.push({
+          ...endpoint,
+          status: 'error',
+          code: error.response?.status || 0,
+          error: error.message
+        });
       }
     }
     
-    // Si aucun endpoint ne fonctionne, essayer d'extraire des projets
-    console.log('🔍 Aucun endpoint users trouvé, extraction depuis les projets...');
-    try {
-      const projects = await getProjects();
-      const authors = projects
-        .map(p => p.author)
-        .filter(Boolean)
-        .filter((author, index, self) => 
-          self.findIndex(a => a.id === author.id) === index
-        );
-      
-      if (authors.length > 0) {
-        console.log(`   👥 ${authors.length} auteurs extraits des projets`);
-        return authors.map(author => ({
-          ...author,
-          is_active: true,
-          username: author.username || author.email?.split('@')[0] || `user_${author.id}`
-        }));
-      }
-    } catch (projectError) {
-      console.log('   ❌ Impossible d\'extraire depuis les projets');
-    }
-    
-    console.warn('⚠️ Aucun utilisateur trouvé, retourne tableau vide');
-    return [];
-    
-  } catch (error) {
-    console.error('❌ Erreur récupération utilisateurs:', error.message);
-    
-    // Fallback de développement - 13 utilisateurs comme vous l'avez dit
-    if (DEBUG) {
-      console.log('🔧 Mode développement: 13 utilisateurs factices');
-      return Array.from({ length: 13 }, (_, i) => ({
-        id: i + 1,
-        username: `user${i + 1}`,
-        email: `user${i + 1}@simplon.com`,
-        first_name: `Prénom ${i + 1}`,
-        last_name: `Nom ${i + 1}`,
-        is_active: true,
-        is_staff: i === 0,
-        date_joined: new Date(Date.now() - i * 86400000).toISOString()
-      }));
-    }
-    
-    return [];
-  }
+    return results;
+  },
+  
+  // Méthodes de base pour compatibilité
+  get: (url, config) => api.get(url, config),
+  post: (url, data, config) => api.post(url, data, config),
+  put: (url, data, config) => api.put(url, data, config),
+  patch: (url, data, config) => api.patch(url, data, config),
+  delete: (url, config) => api.delete(url, config)
 };
 
-// Explorer les endpoints Django
-export const exploreDjangoEndpoints = async () => {
-  const endpoints = [
-    { name: 'Status API', url: '/api/projects/' },
-    { name: 'Projects List', url: '/api/projects/projects/' },
-    { name: 'Users API', url: '/api/users/' },
-    { name: 'Users List', url: '/api/users/users/' },
-    { name: 'Token Auth', url: '/api/token/' },
-    { name: 'Admin', url: '/admin/' }
-  ];
+// ✅ EXPORT PAR DÉFAUT - CRITIQUE POUR VOS IMPORTS EXISTANTS
+export default {
+  // Méthodes de base axios
+  get: realApiService.get,
+  post: realApiService.post,
+  put: realApiService.put,
+  patch: realApiService.patch,
+  delete: realApiService.delete,
   
-  const results = [];
+  // Services
+  realApiService,
   
-  for (const endpoint of endpoints) {
-    try {
-      const response = await axios.get(`${API_BASE_URL}${endpoint.url}`, {
-        timeout: 3000,
-        validateStatus: (status) => status < 500 // Accepter les 404
-      });
-      
-      results.push({
-        ...endpoint,
-        status: 'available',
-        code: response.status,
-        data: response.data
-      });
-    } catch (error) {
-      results.push({
-        ...endpoint,
-        status: 'unavailable',
-        code: error.response?.status || 0,
-        error: error.message
-      });
-    }
-  }
+  // Fonctions utilitaires
+  fetchRealProjects,
+  fetchRealUsers,
   
-  return results;
+  // Alias pour compatibilité
+  apiService: realApiService,
+  djangoApiService: realApiService,
+  
+  // Vérification santé
+  checkHealth: realApiService.checkHealth,
+  
+  // Instance axios directe
+  axios: api
 };
-
-// Service principal
-export const djangoApiService = {
-  // Santé
-  checkHealth: checkApiHealth,
-  
-  // Données
-  getProjects,
-  getUsers,
-  
-  // Utilitaires
-  exploreEndpoints: exploreDjangoEndpoints,
-  testConnection: testDjangoApi,
-  
-  // Statistiques rapides
-  async getStats() {
-    try {
-      const [projects, users] = await Promise.all([
-        getProjects(),
-        getUsers()
-      ]);
-      
-      return {
-        projectsCount: projects.length,
-        usersCount: users.length,
-        activeUsers: users.filter(u => u.is_active === true).length,
-        technologies: [...new Set(projects.flatMap(p => 
-          p.technologies?.split(',').map(t => t.trim()).filter(Boolean) || []
-        ))],
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-};
-
-// Export par défaut pour compatibilité
-const defaultExport = {
-  checkApiHealth,
-  getProjects,
-  getUsers,
-  exploreDjangoEndpoints,
-  testDjangoApi,
-  djangoApiService,
-  API_BASE_URL
-};
-
-export default defaultExport;
-
-// Tester au démarrage
-if (typeof window !== 'undefined') {
-  window.djangoApiTest = testDjangoApi;
-  
-  setTimeout(() => {
-    console.log('🔍 Test automatique API Django...');
-    testDjangoApi().then(result => {
-      if (result.success) {
-        console.log('🎉 Django API prête !');
-      }
-    });
-  }, 1500);
-}

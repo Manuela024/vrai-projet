@@ -1,30 +1,36 @@
 
-// // src/pages/admin/AdminDashboard.jsx - VERSION AVEC DONNÉES RÉELLES
+// // src/components/admin/AdminDashboard.jsx - VERSION SANS SIDEBAR
 // import React, { useState, useEffect } from 'react';
 // import { useNavigate } from "react-router-dom";
-// import MetricCard from "./MetricCard";
+// import { 
+//   LayoutDashboard, FolderPlus, Compass, Users, 
+//   Kanban, BarChart3, User, Settings,
+//   Filter, Search, UserPlus, Upload,
+//   ArrowRight, PlusCircle
+// } from 'lucide-react';
 // import api from "../../services/api";
 // import authService from "../../services/auth";
 
 // const AdminDashboard = () => {
+//   const navigate = useNavigate();
+//   const [loading, setLoading] = useState(true);
+//   const [showAddMatriculesModal, setShowAddMatriculesModal] = useState(false);
+//   const [matriculeInput, setMatriculeInput] = useState('');
+//   const [selectedMatricules, setSelectedMatricules] = useState([]);
+
+//   // Données
 //   const [stats, setStats] = useState({
-//     totalUsers: 0,
 //     totalProjects: 0,
-//     totalDownloads: 0,
-//     pendingModeration: 0,
-//     approvedProjects: 0,
+//     published: 0,
+//     pending: 0,
+//     totalUsers: 0,
 //     activeUsers: 0,
-//     inactiveUsers: 0,
-//     draftProjects: 0
+//     myProjects: 0
 //   });
 
+//   const [myProjects, setMyProjects] = useState([]);
 //   const [recentActivity, setRecentActivity] = useState([]);
-//   const [recentUsers, setRecentUsers] = useState([]);
-//   const [recentProjects, setRecentProjects] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [isRealData, setIsRealData] = useState(false);
-//   const navigate = useNavigate();
+//   const [currentUser, setCurrentUser] = useState(null);
 
 //   useEffect(() => {
 //     fetchDashboardData();
@@ -33,1197 +39,459 @@
 //   const fetchDashboardData = async () => {
 //     try {
 //       setLoading(true);
-//       setError(null);
-//       setIsRealData(false);
-
-//       console.log('📊 Tentative de chargement des données réelles...');
-
-//       // 1. Vérifier que l'utilisateur est admin
 //       const user = authService.getCurrentUser();
+//       setCurrentUser(user);
+      
 //       if (!user || !(user.is_staff || user.is_superuser)) {
-//         console.warn('⚠️ Utilisateur non-admin détecté');
 //         navigate('/dashboard');
 //         return;
 //       }
 
-//       console.log('✅ Utilisateur admin confirmé:', user.username);
-
-//       // 2. ESSAYER D'ABORD L'ENDPOINT DASHBOARD
 //       try {
-//         console.log('🔄 Tentative endpoint dashboard...');
-//         const dashboardResponse = await api.get('/api/users/admin/dashboard-stats/');
-//         const dashboardData = dashboardResponse.data;
+//         // Récupérer les projets de l'admin
+//         const projectsRes = await api.get(`/api/projects/?author=${user.id}&limit=6&ordering=-created_at`);
+//         const projectsData = projectsRes.data.results || projectsRes.data;
+//         setMyProjects(projectsData);
+
+//         // Récupérer tous les projets pour les stats
+//         const allProjectsRes = await api.get('/api/projects/?limit=100');
+//         const allProjectsData = allProjectsRes.data.results || allProjectsRes.data;
         
-//         if (dashboardData.success) {
-//           console.log('✅ Données dashboard récupérées avec succès');
-          
-//           // Mettre à jour les stats principales
-//           setStats({
-//             totalUsers: dashboardData.stats.total_users || 0,
-//             totalProjects: dashboardData.stats.total_projects || 0,
-//             totalDownloads: dashboardData.stats.total_downloads || 0,
-//             pendingModeration: dashboardData.stats.pending_projects || 0,
-//             approvedProjects: dashboardData.stats.approved_projects || 0,
-//             activeUsers: dashboardData.stats.active_users || 0,
-//             inactiveUsers: dashboardData.stats.inactive_users || 0,
-//             draftProjects: dashboardData.stats.draft_projects || 0
-//           });
-          
-//           // Mettre à jour les utilisateurs récents
-//           if (dashboardData.recent_users) {
-//             setRecentUsers(dashboardData.recent_users);
-//           }
-          
-//           // Mettre à jour les projets récents
-//           if (dashboardData.recent_projects) {
-//             setRecentProjects(dashboardData.recent_projects);
-//           }
-          
-//           setIsRealData(true);
-//           console.log('🎉 Toutes les données réelles chargées!');
-          
-//         } else {
-//           throw new Error('Endpoint dashboard ne retourne pas success=true');
-//         }
-        
-//       } catch (dashboardError) {
-//         console.log('❌ Endpoint dashboard échoué:', dashboardError.message);
-        
-//         // 3. FALLBACK: Récupérer les données séparément
-//         console.log('🔄 Fallback: récupération séparée des données...');
-//         await fetchSeparateData();
+//         // Calculer les stats
+//         const published = allProjectsData.filter(p => p.status === 'published').length;
+//         const pending = allProjectsData.filter(p => p.status === 'pending').length;
+
+//         // Récupérer les utilisateurs
+//         const usersRes = await api.get('/api/users/?limit=100');
+//         const usersData = usersRes.data.results || usersRes.data;
+//         const activeUsers = usersData.filter(u => u.is_active).length;
+
+//         setStats({
+//           totalProjects: allProjectsData.length,
+//           published,
+//           pending,
+//           totalUsers: usersData.length,
+//           activeUsers,
+//           myProjects: projectsData.length
+//         });
+
+//         // Générer l'activité récente
+//         generateRecentActivity(allProjectsData);
+
+//       } catch (error) {
+//         console.log('Mode démo activé');
+//         loadDemoData();
 //       }
-      
-//       // 4. Toujours générer l'activité récente (simulée pour l'instant)
-//       generateRecentActivity();
-      
-//     } catch (err) {
-//       console.error('❌ Erreur critique:', err);
-//       setError('Erreur lors du chargement des données.');
-      
-//       // Données de secours
-//       setStats(getMockStats());
-//       setRecentUsers(getMockUsers());
-//       setRecentProjects(getMockProjects());
-//       generateRecentActivity();
-      
+
+//     } catch (error) {
+//       console.error('Erreur:', error);
+//       loadDemoData();
 //     } finally {
 //       setLoading(false);
 //     }
 //   };
 
-//   const fetchSeparateData = async () => {
-//     try {
-//       console.log('🔄 Récupération des données séparées...');
-      
-//       // Récupérer les stats utilisateurs
-//       try {
-//         const usersStatsResponse = await api.get('/api/users/admin/users/stats/');
-//         const usersStats = usersStatsResponse.data;
-        
-//         setStats(prev => ({
-//           ...prev,
-//           totalUsers: usersStats.total_users || 0,
-//           activeUsers: usersStats.active_users || 0,
-//           inactiveUsers: usersStats.inactive_users || 0
-//         }));
-        
-//         console.log('✅ Stats utilisateurs récupérées');
-//       } catch (userError) {
-//         console.log('⚠️ Erreur stats utilisateurs:', userError.message);
-//       }
-      
-//       // Récupérer les utilisateurs récents
-//       try {
-//         const recentUsersResponse = await api.get('/api/users/admin/users/recent/');
-//         if (recentUsersResponse.data.results) {
-//           setRecentUsers(recentUsersResponse.data.results.slice(0, 5));
-//         } else {
-//           setRecentUsers(recentUsersResponse.data.slice(0, 5));
-//         }
-//         console.log('✅ Utilisateurs récents récupérés');
-//       } catch (recentUsersError) {
-//         console.log('⚠️ Erreur utilisateurs récents:', recentUsersError.message);
-//         setRecentUsers(getMockUsers());
-//       }
-      
-//       // Récupérer les projets (supposons que vous avez un endpoint similaire)
-//       try {
-//         const projectsResponse = await api.get('/api/projects/');
-//         if (projectsResponse.data.results) {
-//           setRecentProjects(projectsResponse.data.results.slice(0, 5));
-//           setStats(prev => ({
-//             ...prev,
-//             totalProjects: projectsResponse.data.count || projectsResponse.data.results.length
-//           }));
-//         } else if (Array.isArray(projectsResponse.data)) {
-//           setRecentProjects(projectsResponse.data.slice(0, 5));
-//           setStats(prev => ({
-//             ...prev,
-//             totalProjects: projectsResponse.data.length
-//           }));
-//         }
-//         console.log('✅ Projets récupérés');
-//       } catch (projectsError) {
-//         console.log('⚠️ Erreur projets:', projectsError.message);
-//         setRecentProjects(getMockProjects());
-//       }
-      
-//       setIsRealData(true);
-      
-//     } catch (separateError) {
-//       console.error('❌ Erreur récupération séparée:', separateError);
-//       throw separateError;
-//     }
-//   };
-
-//   const generateRecentActivity = () => {
-//     // Générer des activités basées sur les données réelles
-//     const activity = [];
+//   const loadDemoData = () => {
+//     const user = authService.getCurrentUser() || { 
+//       id: 1, 
+//       username: 'admin', 
+//       first_name: 'Admin',
+//       last_name: 'System',
+//       email: 'admin@simplon.com'
+//     };
+//     setCurrentUser(user);
     
-//     // Activité basée sur les utilisateurs récents
-//     recentUsers.slice(0, 3).forEach(user => {
-//       activity.push({
-//         id: `user_${user.id}`,
-//         type: 'user',
-//         user: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
-//         action: 's\'est inscrit(e)',
-//         time: `Il y a ${Math.floor(Math.random() * 24)} heures`,
-//         icon: 'person',
-//         color: 'green'
-//       });
+//     const demoProjects = [
+//       {
+//         id: 1,
+//         title: 'API E-commerce',
+//         author: { id: 1, username: 'admin', first_name: 'Admin', last_name: 'System' },
+//         status: 'published',
+//         created_at: '2023-10-12T10:30:00Z',
+//         technologies: ['Node.js', 'MongoDB', 'Express'],
+//         downloads: 42,
+//         views: 156
+//       },
+//       {
+//         id: 2,
+//         title: 'Portfolio App',
+//         author: { id: 1, username: 'admin', first_name: 'Admin', last_name: 'System' },
+//         status: 'published',
+//         created_at: '2023-10-05T14:20:00Z',
+//         technologies: ['React', 'Tailwind', 'Framer Motion'],
+//         downloads: 28,
+//         views: 89
+//       },
+//       {
+//         id: 3,
+//         title: 'Data Scraper',
+//         author: { id: 1, username: 'admin', first_name: 'Admin', last_name: 'System' },
+//         status: 'published',
+//         created_at: '2023-09-28T09:15:00Z',
+//         technologies: ['Python', 'Scrapy', 'Pandas'],
+//         downloads: 31,
+//         views: 112
+//       },
+//       {
+//         id: 4,
+//         title: 'Application RH',
+//         author: { id: 1, username: 'admin', first_name: 'Admin', last_name: 'System' },
+//         status: 'pending',
+//         created_at: '2023-09-15T11:45:00Z',
+//         technologies: ['PHP', 'Laravel', 'MySQL'],
+//         downloads: 0,
+//         views: 45
+//       }
+//     ];
+    
+//     setMyProjects(demoProjects);
+//     setStats({
+//       totalProjects: 156,
+//       published: 132,
+//       pending: 24,
+//       totalUsers: 124,
+//       activeUsers: 89,
+//       myProjects: demoProjects.length
 //     });
     
-//     // Activité basée sur les projets récents
-//     recentProjects.slice(0, 2).forEach(project => {
-//       activity.push({
-//         id: `project_${project.id}`,
-//         type: 'project',
-//         user: project.author?.username || 'Utilisateur',
-//         action: 'a déposé un projet',
-//         project: project.title,
-//         time: 'Aujourd\'hui',
-//         icon: 'folder',
-//         color: 'blue'
-//       });
-//     });
-    
+//     const activity = [
+//       {
+//         id: 1,
+//         user: 'Marie Leroy',
+//         action: 'a soumis un projet',
+//         project: 'Dashboard Analytics',
+//         time: 'Il y a 2 heures'
+//       },
+//       {
+//         id: 2,
+//         user: 'Thomas Martin',
+//         action: 's\'est inscrit',
+//         time: 'Il y a 4 heures'
+//       },
+//       {
+//         id: 3,
+//         user: 'Sophie Dupont',
+//         action: 'a publié un projet',
+//         project: 'Système de Réservation',
+//         time: 'Hier'
+//       }
+//     ];
 //     setRecentActivity(activity);
 //   };
 
-//   // Fonctions helper pour les données mockées
-//   const getMockStats = () => ({
-//     totalUsers: 1247,
-//     totalProjects: 543,
-//     totalDownloads: 2891,
-//     pendingModeration: 23,
-//     approvedProjects: 320,
-//     activeUsers: 1100,
-//     inactiveUsers: 147,
-//     draftProjects: 200
-//   });
+//   const generateRecentActivity = (projectsData) => {
+//     const recentProjects = projectsData.slice(0, 3);
+//     const activity = recentProjects.map((project, index) => ({
+//       id: index + 1,
+//       user: `${project.author?.first_name || 'Utilisateur'} ${project.author?.last_name || ''}`.trim(),
+//       action: project.status === 'published' ? 'a publié un projet' : 'a soumis un projet',
+//       project: project.title,
+//       time: formatTimeAgo(project.created_at)
+//     }));
+//     setRecentActivity(activity);
+//   };
 
-//   const getMockUsers = () => [
-//     {
-//       id: 1,
-//       username: 'admin',
-//       email: 'admin@simplon.com',
-//       first_name: 'Admin',
-//       last_name: 'System',
-//       date_joined: new Date().toISOString(),
-//       is_active: true,
-//       is_staff: true,
-//       is_superuser: true
-//     },
-//     {
-//       id: 2,
-//       username: 'simplon_2025001',
-//       email: 'alice.martin@simplon.com',
-//       first_name: 'Alice',
-//       last_name: 'Martin',
-//       date_joined: new Date(Date.now() - 86400000).toISOString(),
-//       is_active: true,
-//       is_staff: false,
-//       is_superuser: false
-//     },
-//     {
-//       id: 3,
-//       username: 'simplon_2025002',
-//       email: 'bob.dupont@simplon.com',
-//       first_name: 'Bob',
-//       last_name: 'Dupont',
-//       date_joined: new Date(Date.now() - 172800000).toISOString(),
-//       is_active: true,
-//       is_staff: false,
-//       is_superuser: false
-//     }
-//   ];
-
-//   const getMockProjects = () => [
-//     {
-//       id: 1,
-//       title: 'Application E-commerce React/Node',
-//       author: {
-//         username: 'simplon_2025001',
-//         first_name: 'Alice',
-//         last_name: 'Martin'
-//       },
-//       status: 'published',
-//       created_at: new Date().toISOString(),
-//       technologies: 'React, Node.js, MongoDB'
-//     },
-//     {
-//       id: 2,
-//       title: 'Système de Gestion de Bibliothèque',
-//       author: {
-//         username: 'simplon_2025002',
-//         first_name: 'Bob',
-//         last_name: 'Dupont'
-//       },
-//       status: 'pending',
-//       created_at: new Date(Date.now() - 86400000).toISOString(),
-//       technologies: 'Django, PostgreSQL'
-//     }
-//   ];
-
-//   const handleQuickAction = (action) => {
-//     switch (action) {
-//       case 'moderation':
-//         navigate('/admin/projects?status=pending');
-//         break;
-//       case 'users':
-//         navigate('/admin/users');
-//         break;
-//       case 'projects':
-//         navigate('/admin/projects');
-//         break;
-//       case 'analytics':
-//         navigate('/admin/analytics');
-//         break;
-//       default:
-//         console.log('Action non implémentée:', action);
+//   const handleAddMatricule = () => {
+//     if (matriculeInput.trim() && !selectedMatricules.includes(matriculeInput.trim())) {
+//       setSelectedMatricules([...selectedMatricules, matriculeInput.trim()]);
+//       setMatriculeInput('');
 //     }
 //   };
 
-//   const getActivityIcon = (type) => {
-//     const icons = {
-//       project: 'folder',
-//       user: 'person',
-//       moderation: 'verified',
-//       download: 'download',
-//       update: 'update'
-//     };
-//     return icons[type] || 'notifications';
+//   const handleRemoveMatricule = (index) => {
+//     const newMatricules = [...selectedMatricules];
+//     newMatricules.splice(index, 1);
+//     setSelectedMatricules(newMatricules);
 //   };
 
-//   const getActivityColor = (type) => {
-//     const colors = {
-//       project: 'blue',
-//       user: 'green',
-//       moderation: 'orange',
-//       download: 'purple',
-//       update: 'cyan'
-//     };
-//     return colors[type] || 'gray';
+//   const handleSaveMatricules = async () => {
+//     try {
+//       // Envoyer les matricules au backend
+//       await api.post('/api/admin/authorized-matricules/', {
+//         matricules: selectedMatricules
+//       });
+      
+//       alert(`${selectedMatricules.length} matricule(s) ajouté(s) avec succès !`);
+//       setShowAddMatriculesModal(false);
+//       setSelectedMatricules([]);
+//       setMatriculeInput('');
+//     } catch (error) {
+//       console.error('Erreur lors de l\'ajout des matricules:', error);
+//       alert('Erreur lors de l\'ajout des matricules');
+//     }
 //   };
 
 //   const formatDate = (dateString) => {
-//     if (!dateString) return 'Date inconnue';
-//     try {
-//       const date = new Date(dateString);
-//       return date.toLocaleDateString('fr-FR', {
-//         day: '2-digit',
-//         month: '2-digit',
-//         year: 'numeric'
-//       });
-//     } catch (e) {
-//       return dateString;
+//     const date = new Date(dateString);
+//     return date.toLocaleDateString('fr-FR', {
+//       day: '2-digit',
+//       month: '2-digit',
+//       year: 'numeric'
+//     });
+//   };
+
+//   const formatTimeAgo = (dateString) => {
+//     const date = new Date(dateString);
+//     const now = new Date();
+//     const diffMs = now - date;
+//     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    
+//     if (diffHours < 1) {
+//       return 'À l\'instant';
+//     } else if (diffHours < 24) {
+//       return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+//     } else {
+//       const diffDays = Math.floor(diffHours / 24);
+//       return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 //     }
 //   };
 
 //   if (loading) {
 //     return (
-//       <div className="flex flex-col items-center justify-center h-64">
-//         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E30613] mb-4"></div>
-//         <span className="text-[#001F3F] dark:text-white">
-//           {isRealData ? 'Chargement des données...' : 'Connexion au backend...'}
-//         </span>
+//       <div className="min-h-screen bg-background-light dark:bg-background-dark">
+//         <div className="max-w-6xl mx-auto px-10 py-12">
+//           <div className="text-center py-20">
+//             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+//             <p className="text-gray-600 dark:text-gray-400">Chargement du dashboard...</p>
+//           </div>
+//         </div>
 //       </div>
 //     );
 //   }
 
 //   return (
-//     <div className="space-y-6">
-//       {/* En-tête avec indicateur de source */}
-//       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-//         <div>
-//           <h1 className="text-2xl md:text-3xl font-bold text-[#001F3F] dark:text-white">
-//             Tableau de Bord Administrateur
-//           </h1>
-//           <p className="text-gray-600 dark:text-gray-400 mt-1">
-//             Bienvenue, {authService.getCurrentUser()?.username}
-//             {isRealData ? ' • Données en direct' : ' • Mode démonstration'}
-//           </p>
-//         </div>
-//         <div className="flex items-center gap-3">
-//           <button 
-//             onClick={fetchDashboardData}
-//             className="flex items-center gap-2 px-4 py-2 bg-[#001F3F] text-white rounded-lg hover:bg-[#003265] transition-colors text-sm"
-//           >
-//             <span className="material-symbols-outlined text-sm">refresh</span>
-//             Actualiser
-//           </button>
-//           {!isRealData && (
-//             <span className="text-sm text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full">
-//               Mode démo
-//             </span>
-//           )}
-//         </div>
-//       </div>
-
-//       {error && (
-//         <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
-//           <div className="flex items-center">
-//             <span className="material-symbols-outlined mr-2">warning</span>
-//             <span>{error}</span>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Cartes de métriques */}
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-//         <MetricCard
-//           title="Utilisateurs"
-//           value={stats.totalUsers.toLocaleString('fr-FR')}
-//           trend={stats.activeUsers > 0 ? `${stats.activeUsers} actifs` : 'Données indisponibles'}
-//           icon="people"
-//           color="blue"
-//           description="Utilisateurs inscrits"
-//           onClick={() => handleQuickAction('users')}
-//         />
-//         <MetricCard
-//           title="Projets"
-//           value={stats.totalProjects.toLocaleString('fr-FR')}
-//           trend={stats.approvedProjects > 0 ? `${stats.approvedProjects} publiés` : 'Données indisponibles'}
-//           icon="folder"
-//           color="green"
-//           description="Projets déposés"
-//           onClick={() => handleQuickAction('projects')}
-//         />
-//         <MetricCard
-//           title="Validés"
-//           value={stats.approvedProjects.toLocaleString('fr-FR')}
-//           trend={stats.totalProjects > 0 ? `${Math.round((stats.approvedProjects / stats.totalProjects) * 100)}% publiés` : '0%'}
-//           icon="check_circle"
-//           color="purple"
-//           description="Projets publiés"
-//         />
-//         <MetricCard
-//           title="En Attente"
-//           value={stats.pendingModeration}
-//           trend={stats.pendingModeration > 0 ? "À modérer" : "Aucune attente"}
-//           icon="pending"
-//           color="red"
-//           description="Projets en attente"
-//           onClick={() => handleQuickAction('moderation')}
-//         />
-//       </div>
-
-//       {/* Deux colonnes principales */}
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//         {/* Activité Récente */}
-//         <div className="bg-white dark:bg-[#1a2f44] rounded-xl p-4 md:p-6 shadow-sm lg:col-span-2">
-//           <div className="flex justify-between items-center mb-4">
-//             <h2 className="text-lg font-semibold text-[#001F3F] dark:text-white">
-//               Activité Récente
-//             </h2>
-//             <span className="text-xs text-gray-500 dark:text-gray-400">
-//               {recentActivity.length} activités
-//             </span>
-//           </div>
-//           <div className="space-y-3">
-//             {recentActivity.map((activity) => (
-//               <div key={activity.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-[#0d1a29] transition-colors">
-//                 <div className={`p-2 rounded-full ${
-//                   getActivityColor(activity.type) === 'blue' ? 'bg-blue-100 dark:bg-blue-900/20' :
-//                   getActivityColor(activity.type) === 'green' ? 'bg-green-100 dark:bg-green-900/20' :
-//                   'bg-orange-100 dark:bg-orange-900/20'
-//                 }`}>
-//                   <span className={`material-symbols-outlined text-sm ${
-//                     getActivityColor(activity.type) === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-//                     getActivityColor(activity.type) === 'green' ? 'text-green-600 dark:text-green-400' :
-//                     'text-orange-600 dark:text-orange-400'
-//                   }`}>
-//                     {getActivityIcon(activity.type)}
-//                   </span>
-//                 </div>
-//                 <div className="flex-1 min-w-0">
-//                   <p className="text-sm text-[#001F3F] dark:text-white">
-//                     <strong className="font-medium">{activity.user}</strong> {activity.action}
-//                     {activity.project && (
-//                       <strong className="ml-1">"{activity.project}"</strong>
-//                     )}
-//                   </p>
-//                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-//                     {activity.time}
-//                   </p>
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-
-//         {/* Projets Récents */}
-//         <div className="bg-white dark:bg-[#1a2f44] rounded-xl p-4 md:p-6 shadow-sm">
-//           <h2 className="text-lg font-semibold text-[#001F3F] dark:text-white mb-4">
-//             Projets Récents
-//           </h2>
-//           <div className="space-y-4">
-//             {recentProjects.map((project) => (
-//               <div key={project.id} className="p-3 border border-gray-100 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-[#0d1a29] transition-colors">
-//                 <div className="flex-1 min-w-0">
-//                   <p className="text-sm font-medium text-[#001F3F] dark:text-white truncate mb-1">
-//                     {project.title}
-//                   </p>
-//                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-//                     Par {project.author?.username || project.author?.first_name + ' ' + project.author?.last_name || 'Inconnu'}
-//                   </p>
-//                   <div className="flex items-center gap-2">
-//                     <span className={`px-2 py-1 text-xs rounded-full ${
-//                       project.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-//                       project.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-//                       'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-//                     }`}>
-//                       {project.status === 'published' ? 'Publié' :
-//                        project.status === 'pending' ? 'En attente' : 'Brouillon'}
-//                     </span>
-//                     <span className="text-xs text-gray-500 dark:text-gray-400">
-//                       {formatDate(project.created_at)}
-//                     </span>
-//                   </div>
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AdminDashboard;
-
-
-// // src/components/admin/AdminDashboard.jsx - VERSION COMPLÈTE AVEC DONNÉES RÉELLES
-// import React, { useState, useEffect } from 'react';
-// import { useNavigate } from "react-router-dom";
-// import MetricCard from "./MetricCard";
-// import api from "../../services/api";
-// import authService from "../../services/auth";
-
-// const AdminDashboard = () => {
-//   const [stats, setStats] = useState({
-//     totalUsers: 0,
-//     totalProjects: 0,
-//     totalDownloads: 0,
-//     pendingModeration: 0,
-//     approvedProjects: 0,
-//     activeUsers: 0,
-//     inactiveUsers: 0,
-//     draftProjects: 0
-//   });
-
-//   const [recentActivity, setRecentActivity] = useState([]);
-//   const [recentUsers, setRecentUsers] = useState([]);
-//   const [recentProjects, setRecentProjects] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [isRealData, setIsRealData] = useState(false);
-//   const navigate = useNavigate();
-
-//   useEffect(() => {
-//     fetchDashboardData();
-//   }, []);
-
-//   const fetchDashboardData = async () => {
-//     try {
-//       setLoading(true);
-//       setError(null);
-      
-//       console.log('📊 Chargement des données du dashboard...');
-
-//       // 1. Vérifier que l'utilisateur est admin
-//       const user = authService.getCurrentUser();
-//       if (!user || !(user.is_staff || user.is_superuser)) {
-//         console.warn('⚠️ Utilisateur non-admin détecté');
-//         navigate('/dashboard');
-//         return;
-//       }
-
-//       console.log('✅ Utilisateur admin confirmé:', user.username);
-
-//       // 2. ESSAYER D'ABORD L'ENDPOINT DASHBOARD UNIFIÉ
-//       try {
-//         console.log('🔄 Tentative endpoint dashboard unifié...');
-//         const response = await api.get('/api/users/admin/dashboard-stats/');
-        
-//         if (response.status === 200) {
-//           const data = response.data;
-//           console.log('✅ Données dashboard récupérées:', data);
-          
-//           // Mettre à jour les stats principales
-//           if (data.stats) {
-//             setStats({
-//               totalUsers: data.stats.total_users || 0,
-//               totalProjects: data.stats.total_projects || 0,
-//               totalDownloads: data.stats.total_downloads || 0,
-//               pendingModeration: data.stats.pending_projects || 0,
-//               approvedProjects: data.stats.approved_projects || 0,
-//               activeUsers: data.stats.active_users || 0,
-//               inactiveUsers: data.stats.inactive_users || 0,
-//               draftProjects: data.stats.draft_projects || 0
-//             });
-//           }
-          
-//           // Mettre à jour les utilisateurs récents
-//           if (data.recent_users && Array.isArray(data.recent_users)) {
-//             setRecentUsers(data.recent_users.slice(0, 5));
-//           }
-          
-//           // Mettre à jour les projets récents
-//           if (data.recent_projects && Array.isArray(data.recent_projects)) {
-//             setRecentProjects(data.recent_projects.slice(0, 5));
-//           }
-          
-//           setIsRealData(true);
-//           console.log('🎉 Toutes les données réelles chargées!');
-          
-//         } else {
-//           throw new Error('Endpoint dashboard retourne un statut non-200');
-//         }
-        
-//       } catch (dashboardError) {
-//         console.log('❌ Endpoint dashboard unifié échoué:', dashboardError.message);
-        
-//         // 3. FALLBACK: Récupérer les données séparément
-//         console.log('🔄 Fallback: récupération séparée des données...');
-//         await fetchSeparateData();
-//       }
-      
-//     } catch (err) {
-//       console.error('❌ Erreur critique:', err);
-//       setError('Erreur lors du chargement des données. Vérifiez votre connexion.');
-      
-//       // Données de secours (mode démo)
-//       setStats(getMockStats());
-//       setRecentUsers(getMockUsers());
-//       setRecentProjects(getMockProjects());
-//       setIsRealData(false);
-      
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const fetchSeparateData = async () => {
-//     try {
-//       console.log('🔄 Récupération des données séparées...');
-      
-//       // Récupérer les stats utilisateurs
-//       try {
-//         const usersStatsResponse = await api.get('/api/users/admin/users/stats/');
-//         const usersStats = usersStatsResponse.data;
-        
-//         setStats(prev => ({
-//           ...prev,
-//           totalUsers: usersStats.total_users || 0,
-//           activeUsers: usersStats.active_users || 0,
-//           inactiveUsers: usersStats.inactive_users || 0
-//         }));
-        
-//         console.log('✅ Stats utilisateurs récupérées');
-//       } catch (userError) {
-//         console.log('⚠️ Erreur stats utilisateurs:', userError.message);
-//       }
-      
-//       // Récupérer les utilisateurs récents
-//       try {
-//         const recentUsersResponse = await api.get('/api/users/admin/users/recent/?limit=5');
-//         const usersData = recentUsersResponse.data;
-        
-//         if (usersData.results) {
-//           setRecentUsers(usersData.results);
-//         } else if (Array.isArray(usersData)) {
-//           setRecentUsers(usersData);
-//         } else {
-//           setRecentUsers(usersData.users || []);
-//         }
-//         console.log('✅ Utilisateurs récents récupérés');
-//       } catch (recentUsersError) {
-//         console.log('⚠️ Erreur utilisateurs récents:', recentUsersError.message);
-//       }
-      
-//       // Récupérer les projets
-//       try {
-//         const projectsResponse = await api.get('/api/projects/?limit=5&ordering=-created_at');
-//         const projectsData = projectsResponse.data;
-        
-//         if (projectsData.results) {
-//           setRecentProjects(projectsData.results);
-//           setStats(prev => ({
-//             ...prev,
-//             totalProjects: projectsData.count || projectsData.results.length
-//           }));
-//         } else if (Array.isArray(projectsData)) {
-//           setRecentProjects(projectsData);
-//           setStats(prev => ({
-//             ...prev,
-//             totalProjects: projectsData.length
-//           }));
-//         }
-//         console.log('✅ Projets récupérés');
-//       } catch (projectsError) {
-//         console.log('⚠️ Erreur projets:', projectsError.message);
-//       }
-      
-//       // Récupérer les stats projets
-//       try {
-//         const projectsStatsResponse = await api.get('/api/projects/stats/');
-//         const projectsStats = projectsStatsResponse.data;
-        
-//         setStats(prev => ({
-//           ...prev,
-//           pendingModeration: projectsStats.pending || 0,
-//           approvedProjects: projectsStats.published || 0,
-//           draftProjects: projectsStats.draft || 0,
-//           totalDownloads: projectsStats.total_downloads || 0
-//         }));
-        
-//         console.log('✅ Stats projets récupérées');
-//       } catch (statsError) {
-//         console.log('⚠️ Erreur stats projets:', statsError.message);
-//       }
-      
-//       setIsRealData(true);
-      
-//     } catch (separateError) {
-//       console.error('❌ Erreur récupération séparée:', separateError);
-//       throw separateError;
-//     }
-//   };
-
-//   // Générer l'activité récente à partir des données
-//   useEffect(() => {
-//     if (recentUsers.length > 0 || recentProjects.length > 0) {
-//       generateRecentActivity();
-//     }
-//   }, [recentUsers, recentProjects]);
-
-//   const generateRecentActivity = () => {
-//     const activity = [];
-    
-//     // Activité basée sur les utilisateurs récents (max 3)
-//     recentUsers.slice(0, 3).forEach(user => {
-//       const joinDate = new Date(user.date_joined || user.created_at);
-//       const hoursAgo = Math.floor((Date.now() - joinDate.getTime()) / (1000 * 60 * 60));
-      
-//       activity.push({
-//         id: `user_${user.id}`,
-//         type: 'user',
-//         user: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'Utilisateur',
-//         action: 's\'est inscrit(e)',
-//         time: hoursAgo < 24 ? `Il y a ${hoursAgo} heures` : joinDate.toLocaleDateString('fr-FR'),
-//         icon: 'person',
-//         color: 'green'
-//       });
-//     });
-    
-//     // Activité basée sur les projets récents (max 2)
-//     recentProjects.slice(0, 2).forEach(project => {
-//       const createDate = new Date(project.created_at || project.date_created);
-//       const timeDiff = Date.now() - createDate.getTime();
-//       const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
-      
-//       let timeText;
-//       if (hoursAgo < 1) timeText = 'Il y a moins d\'une heure';
-//       else if (hoursAgo < 24) timeText = `Il y a ${hoursAgo} heures`;
-//       else timeText = createDate.toLocaleDateString('fr-FR');
-      
-//       activity.push({
-//         id: `project_${project.id}`,
-//         type: 'project',
-//         user: project.author?.username || project.author?.first_name || 'Utilisateur',
-//         action: project.status === 'pending' ? 'a soumis un projet en attente' : 'a publié un projet',
-//         project: project.title || 'Sans titre',
-//         time: timeText,
-//         icon: project.status === 'pending' ? 'pending' : 'folder',
-//         color: project.status === 'pending' ? 'orange' : 'blue'
-//       });
-//     });
-    
-//     // Ajouter une activité de téléchargement si des downloads existent
-//     if (stats.totalDownloads > 0) {
-//       activity.unshift({
-//         id: 'downloads',
-//         type: 'download',
-//         user: 'Utilisateurs',
-//         action: `ont téléchargé ${stats.totalDownloads} projets`,
-//         time: 'Aujourd\'hui',
-//         icon: 'download',
-//         color: 'purple'
-//       });
-//     }
-    
-//     // Trier par date (plus récent en premier)
-//     activity.sort((a, b) => {
-//       // Simple tri - les téléchargements en premier, puis par ordre d'ajout
-//       if (a.type === 'download') return -1;
-//       if (b.type === 'download') return 1;
-//       return 0;
-//     });
-    
-//     setRecentActivity(activity.slice(0, 5)); // Limiter à 5 activités
-//   };
-
-//   // Fonctions helper pour les données mockées (fallback)
-//   const getMockStats = () => ({
-//     totalUsers: 1247,
-//     totalProjects: 543,
-//     totalDownloads: 2891,
-//     pendingModeration: 23,
-//     approvedProjects: 320,
-//     activeUsers: 1100,
-//     inactiveUsers: 147,
-//     draftProjects: 200
-//   });
-
-//   const getMockUsers = () => [
-//     {
-//       id: 1,
-//       username: 'admin',
-//       email: 'admin@simplon.com',
-//       first_name: 'Admin',
-//       last_name: 'System',
-//       date_joined: new Date().toISOString(),
-//       is_active: true,
-//       is_staff: true,
-//       is_superuser: true
-//     },
-//     {
-//       id: 2,
-//       username: 'simplon_2025001',
-//       email: 'alice.martin@simplon.com',
-//       first_name: 'Alice',
-//       last_name: 'Martin',
-//       date_joined: new Date(Date.now() - 86400000).toISOString(),
-//       is_active: true,
-//       is_staff: false,
-//       is_superuser: false
-//     },
-//     {
-//       id: 3,
-//       username: 'simplon_2025002',
-//       email: 'bob.dupont@simplon.com',
-//       first_name: 'Bob',
-//       last_name: 'Dupont',
-//       date_joined: new Date(Date.now() - 172800000).toISOString(),
-//       is_active: true,
-//       is_staff: false,
-//       is_superuser: false
-//     }
-//   ];
-
-//   const getMockProjects = () => [
-//     {
-//       id: 1,
-//       title: 'Application E-commerce React/Node',
-//       author: {
-//         username: 'simplon_2025001',
-//         first_name: 'Alice',
-//         last_name: 'Martin'
-//       },
-//       status: 'published',
-//       created_at: new Date().toISOString(),
-//       technologies: ['React', 'Node.js', 'MongoDB']
-//     },
-//     {
-//       id: 2,
-//       title: 'Système de Gestion de Bibliothèque',
-//       author: {
-//         username: 'simplon_2025002',
-//         first_name: 'Bob',
-//         last_name: 'Dupont'
-//       },
-//       status: 'pending',
-//       created_at: new Date(Date.now() - 86400000).toISOString(),
-//       technologies: ['Django', 'PostgreSQL']
-//     }
-//   ];
-
-//   const handleQuickAction = (action) => {
-//     switch (action) {
-//       case 'moderation':
-//         navigate('/admin/projects?status=pending');
-//         break;
-//       case 'users':
-//         navigate('/admin/users');
-//         break;
-//       case 'projects':
-//         navigate('/admin/projects');
-//         break;
-//       case 'analytics':
-//         navigate('/admin/analytics');
-//         break;
-//       default:
-//         console.log('Action non implémentée:', action);
-//     }
-//   };
-
-//   const getActivityIcon = (type) => {
-//     const icons = {
-//       project: 'folder',
-//       user: 'person',
-//       moderation: 'verified',
-//       download: 'download',
-//       update: 'update',
-//       pending: 'pending_actions'
-//     };
-//     return icons[type] || 'notifications';
-//   };
-
-//   const getActivityColor = (type) => {
-//     const colors = {
-//       project: 'blue',
-//       user: 'green',
-//       moderation: 'orange',
-//       download: 'purple',
-//       update: 'cyan',
-//       pending: 'orange'
-//     };
-//     return colors[type] || 'gray';
-//   };
-
-//   const formatDate = (dateString) => {
-//     if (!dateString) return 'Date inconnue';
-//     try {
-//       const date = new Date(dateString);
-//       const now = new Date();
-//       const diffTime = Math.abs(now - date);
-//       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
-//       if (diffDays === 0) return 'Aujourd\'hui';
-//       if (diffDays === 1) return 'Hier';
-//       if (diffDays < 7) return `Il y a ${diffDays} jours`;
-      
-//       return date.toLocaleDateString('fr-FR', {
-//         day: '2-digit',
-//         month: '2-digit',
-//         year: 'numeric'
-//       });
-//     } catch (e) {
-//       return dateString;
-//     }
-//   };
-
-//   const getUserDisplayName = (user) => {
-//     if (!user) return 'Inconnu';
-//     if (user.first_name && user.last_name) {
-//       return `${user.first_name} ${user.last_name}`;
-//     }
-//     return user.username || user.email || 'Utilisateur';
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="flex flex-col items-center justify-center min-h-[400px]">
-//         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#E30613] mb-6"></div>
-//         <p className="text-lg text-[#001F3F] dark:text-white mb-2">
-//           Chargement des données...
-//         </p>
-//         <p className="text-sm text-gray-500 dark:text-gray-400">
-//           Connexion à la base de données
-//         </p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="space-y-8">
-//       {/* En-tête avec indicateur de source */}
-//       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-//         <div>
-//           <h1 className="text-2xl md:text-3xl font-bold text-[#001F3F] dark:text-white">
-//             Tableau de Bord Administrateur
-//           </h1>
-//           <p className="text-gray-600 dark:text-gray-400 mt-2">
-//             {isRealData ? (
-//               <span className="flex items-center gap-2">
-//                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-//                 Données en direct • Dernière actualisation: {new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}
-//               </span>
-//             ) : (
-//               <span className="flex items-center gap-2">
-//                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-//                 Mode démonstration • Connectez-vous à l'API pour les données réelles
-//               </span>
-//             )}
-//           </p>
-//         </div>
-//         <div className="flex items-center gap-3">
-//           <button 
-//             onClick={fetchDashboardData}
-//             disabled={loading}
-//             className="flex items-center gap-2 px-4 py-2.5 bg-[#001F3F] text-white rounded-lg hover:bg-[#003265] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-//           >
-//             <span className="material-symbols-outlined text-sm">refresh</span>
-//             {loading ? 'Actualisation...' : 'Actualiser'}
-//           </button>
-//           {!isRealData && (
-//             <span className="flex items-center gap-2 text-sm text-yellow-700 bg-yellow-100 px-3 py-1.5 rounded-full">
-//               <span className="material-symbols-outlined text-sm">warning</span>
-//               Mode démo
-//             </span>
-//           )}
-//         </div>
-//       </div>
-
-//       {error && (
-//         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-//           <div className="flex items-start">
-//             <span className="material-symbols-outlined text-yellow-400 mr-3">error</span>
+//     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+//       {/* Main Content Area */}
+//       <main className="flex-1 overflow-y-auto bg-white dark:bg-background-dark">
+//         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//           {/* Header avec infos utilisateur */}
+//           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
 //             <div>
-//               <p className="font-medium text-yellow-800">{error}</p>
-//               <p className="text-sm text-yellow-700 mt-1">
-//                 Vérifiez votre connexion et assurez-vous que l'API est accessible.
+//               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-navy dark:text-white">
+//                 Tableau de Bord Admin
+//               </h1>
+//               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+//                 Connecté en tant que: {currentUser?.first_name || 'Admin'} {currentUser?.last_name || 'System'} • Super Admin
 //               </p>
+//             </div>
+//           </div>
+
+//           {/* Action Header */}
+//           <div className="flex flex-wrap gap-4 mb-12">
+//             <button
+//               onClick={() => setShowAddMatriculesModal(true)}
+//               className="flex items-center gap-2 bg-primary hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold text-sm transition-all shadow-md active:scale-95"
+//             >
+//               <UserPlus size={20} />
+//               Ajouter des matricules
+//             </button>
+            
+//             <button
+//               onClick={() => navigate('/admin/submit-project')}
+//               className="flex items-center gap-2 border-2 border-navy dark:border-slate-700 hover:bg-navy hover:text-white text-navy dark:text-slate-300 px-6 py-3 rounded-lg font-bold text-sm transition-all active:scale-95"
+//             >
+//               <Upload size={20} />
+//               Ajouter un projet
+//             </button>
+//           </div>
+          
+//           {/* Section Header */}
+//           <div className="flex items-center justify-between mb-8">
+//             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-navy dark:text-white">
+//               Mes Projets ({stats.myProjects})
+//             </h2>
+//             <div className="flex gap-2">
+//               <button className="p-2 text-slate-400 hover:text-navy dark:hover:text-white transition-colors">
+//                 <Filter size={20} />
+//               </button>
+//               <button className="p-2 text-slate-400 hover:text-navy dark:hover:text-white transition-colors">
+//                 <Search size={20} />
+//               </button>
+//             </div>
+//           </div>
+          
+//           {/* Projects Grid */}
+//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+//             {myProjects.map((project) => (
+//               <div 
+//                 key={project.id} 
+//                 className="group bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-6 rounded-xl hover:shadow-xl hover:border-primary/20 transition-all"
+//               >
+//                 <div className="flex flex-col h-full">
+//                   <div className="mb-4">
+//                     <h3 className="text-lg font-bold text-navy dark:text-white group-hover:text-primary transition-colors">
+//                       {project.title}
+//                     </h3>
+//                     <p className="text-sm text-slate-400 mt-1">
+//                       Créé le {formatDate(project.created_at)}
+//                     </p>
+//                   </div>
+                  
+//                   <div className="flex flex-wrap gap-2 mb-6">
+//                     {project.technologies && project.technologies.length > 0 ? (
+//                       project.technologies.slice(0, 3).map((tech, index) => (
+//                         <span 
+//                           key={index}
+//                           className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded"
+//                         >
+//                           {tech}
+//                         </span>
+//                       ))
+//                     ) : (
+//                       <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded">
+//                         Non spécifié
+//                       </span>
+//                     )}
+//                   </div>
+                  
+//                   <div className="mt-auto">
+//                     <button
+//                       onClick={() => navigate(`/admin/projects/${project.id}`)}
+//                       className="w-full py-2.5 border border-slate-200 dark:border-slate-700 text-navy dark:text-slate-300 font-bold text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+//                     >
+//                       Voir les détails
+//                       <ArrowRight size={18} />
+//                     </button>
+//                   </div>
+//                 </div>
+//               </div>
+//             ))}
+            
+//             {/* Empty State Placeholder (Decorative) */}
+//             <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col items-center justify-center text-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+//                  onClick={() => navigate('/admin/submit-project')}
+//             >
+//               <PlusCircle size={40} className="text-slate-300 mb-2" />
+//               <p className="text-sm text-slate-500 font-medium">Nouveau projet</p>
+//             </div>
+//           </div>
+
+//           {/* Quick Navigation */}
+//           <div className="mt-12 p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+//             <h3 className="text-lg font-semibold text-navy dark:text-white mb-4">Navigation Rapide</h3>
+//             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+//               <button
+//                 onClick={() => navigate('/submit')}
+//                 className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+//               >
+//                 <FolderPlus size={24} className="text-primary mb-2" />
+//                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Déposer</span>
+//               </button>
+              
+//               <button
+//                 onClick={() => navigate('/admin/users')}
+//                 className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+//               >
+//                 <Users size={24} className="text-primary mb-2" />
+//                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Utilisateurs</span>
+//               </button>
+              
+//               <button
+//                 onClick={() => navigate('/admin/projects')}
+//                 className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+//               >
+//                 <Kanban size={24} className="text-primary mb-2" />
+//                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Projets</span>
+//               </button>
+              
+//               <button
+//                 onClick={() => navigate('/admin/analytics')}
+//                 className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+//               >
+//                 <BarChart3 size={24} className="text-primary mb-2" />
+//                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Statistiques</span>
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       </main>
+      
+//       {/* Modal pour ajouter les matricules */}
+//       {showAddMatriculesModal && (
+//         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+//           <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-md">
+//             <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+//               <div className="flex justify-between items-center">
+//                 <h3 className="text-lg font-semibold text-navy dark:text-white">Ajouter des matricules autorisés</h3>
+//                 <button
+//                   onClick={() => setShowAddMatriculesModal(false)}
+//                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+//                 >
+//                   ✕
+//                 </button>
+//               </div>
+//               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+//                 Ajoutez les matricules des étudiants autorisés à accéder à la plateforme
+//               </p>
+//             </div>
+            
+//             <div className="p-6">
+//               <div className="mb-4">
+//                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                   Entrez un matricule
+//                 </label>
+//                 <div className="flex gap-2">
+//                   <input
+//                     type="text"
+//                     value={matriculeInput}
+//                     onChange={(e) => setMatriculeInput(e.target.value)}
+//                     placeholder="Ex: SIM2024001"
+//                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+//                     onKeyPress={(e) => e.key === 'Enter' && handleAddMatricule()}
+//                   />
+//                   <button
+//                     onClick={handleAddMatricule}
+//                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-red-700"
+//                   >
+//                     Ajouter
+//                   </button>
+//                 </div>
+//               </div>
+
+//               {selectedMatricules.length > 0 && (
+//                 <div className="mb-6">
+//                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                     Matricules à ajouter ({selectedMatricules.length})
+//                   </label>
+//                   <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-3 max-h-40 overflow-y-auto">
+//                     {selectedMatricules.map((matricule, index) => (
+//                       <div key={index} className="flex items-center justify-between py-2 px-3 bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-gray-700 mb-2 last:mb-0">
+//                         <span className="font-medium text-gray-800 dark:text-gray-200">{matricule}</span>
+//                         <button
+//                           onClick={() => handleRemoveMatricule(index)}
+//                           className="text-red-500 hover:text-red-700"
+//                         >
+//                           ✕
+//                         </button>
+//                       </div>
+//                     ))}
+//                   </div>
+//                 </div>
+//               )}
+
+//               <div className="flex justify-end gap-3">
+//                 <button
+//                   onClick={() => setShowAddMatriculesModal(false)}
+//                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+//                 >
+//                   Annuler
+//                 </button>
+//                 <button
+//                   onClick={handleSaveMatricules}
+//                   disabled={selectedMatricules.length === 0}
+//                   className={`px-4 py-2 rounded-lg font-medium ${
+//                     selectedMatricules.length === 0
+//                       ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+//                       : 'bg-primary text-white hover:bg-red-700'
+//                   }`}
+//                 >
+//                   Ajouter {selectedMatricules.length} matricule(s)
+//                 </button>
+//               </div>
 //             </div>
 //           </div>
 //         </div>
 //       )}
-
-//       {/* Cartes de métriques */}
-//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-//         <MetricCard
-//           title="Utilisateurs"
-//           value={stats.totalUsers.toLocaleString('fr-FR')}
-//           trend={stats.activeUsers > 0 ? `${stats.activeUsers} actifs` : 'Chargement...'}
-//           icon="people"
-//           color="blue"
-//           description="Utilisateurs inscrits"
-//           onClick={() => handleQuickAction('users')}
-//           clickable
-//         />
-//         <MetricCard
-//           title="Projets"
-//           value={stats.totalProjects.toLocaleString('fr-FR')}
-//           trend={stats.approvedProjects > 0 ? `${stats.approvedProjects} publiés` : 'Chargement...'}
-//           icon="folder"
-//           color="green"
-//           description="Projets déposés"
-//           onClick={() => handleQuickAction('projects')}
-//           clickable
-//         />
-//         <MetricCard
-//           title="Validés"
-//           value={stats.approvedProjects.toLocaleString('fr-FR')}
-//           trend={stats.totalProjects > 0 ? `${Math.round((stats.approvedProjects / stats.totalProjects) * 100)}% publiés` : '0%'}
-//           icon="check_circle"
-//           color="purple"
-//           description="Projets publiés"
-//         />
-//         <MetricCard
-//           title="En Attente"
-//           value={stats.pendingModeration}
-//           trend={stats.pendingModeration > 0 ? "À modérer" : "Aucune attente"}
-//           icon="pending_actions"
-//           color="red"
-//           description="Projets en attente"
-//           onClick={() => handleQuickAction('moderation')}
-//           clickable
-//         />
-//       </div>
-
-//       {/* Deux colonnes principales */}
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//         {/* Activité Récente */}
-//         <div className="bg-white dark:bg-[#1a2f44] rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
-//           <div className="flex justify-between items-center mb-6">
-//             <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">
-//               Activité Récente
-//             </h2>
-//             <button 
-//               onClick={fetchDashboardData}
-//               className="text-sm text-[#E30613] hover:text-[#c40511] font-medium flex items-center gap-1"
-//             >
-//               <span className="material-symbols-outlined text-base">refresh</span>
-//               Actualiser
-//             </button>
-//           </div>
-          
-//           {recentActivity.length > 0 ? (
-//             <div className="space-y-4">
-//               {recentActivity.map((activity) => (
-//                 <div key={activity.id} className="flex items-start gap-4 p-4 border border-gray-100 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-[#0d1a29] transition-all duration-200 group">
-//                   <div className={`p-3 rounded-full ${getActivityColor(activity.type) === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20' :
-//                     getActivityColor(activity.type) === 'green' ? 'bg-green-50 dark:bg-green-900/20' :
-//                     getActivityColor(activity.type) === 'orange' ? 'bg-orange-50 dark:bg-orange-900/20' :
-//                     'bg-purple-50 dark:bg-purple-900/20'
-//                   }`}>
-//                     <span className={`material-symbols-outlined ${
-//                       getActivityColor(activity.type) === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-//                       getActivityColor(activity.type) === 'green' ? 'text-green-600 dark:text-green-400' :
-//                       getActivityColor(activity.type) === 'orange' ? 'text-orange-600 dark:text-orange-400' :
-//                       'text-purple-600 dark:text-purple-400'
-//                     }`}>
-//                       {getActivityIcon(activity.type)}
-//                     </span>
-//                   </div>
-//                   <div className="flex-1 min-w-0">
-//                     <p className="text-sm text-[#001F3F] dark:text-white mb-1">
-//                       <strong className="font-semibold">{activity.user}</strong> {activity.action}
-//                       {activity.project && (
-//                         <strong className="ml-1 text-[#001F3F] dark:text-white">"{activity.project}"</strong>
-//                       )}
-//                     </p>
-//                     <p className="text-xs text-gray-500 dark:text-gray-400">
-//                       <span className="material-symbols-outlined text-xs align-middle mr-1">schedule</span>
-//                       {activity.time}
-//                     </p>
-//                   </div>
-//                   <span className={`text-xs px-2 py-1 rounded-full ${
-//                     activity.type === 'user' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-//                     activity.type === 'project' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-//                     'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-//                   }`}>
-//                     {activity.type === 'user' ? 'Utilisateur' : 
-//                      activity.type === 'project' ? 'Projet' : 
-//                      activity.type === 'download' ? 'Téléchargement' : 'Activité'}
-//                   </span>
-//                 </div>
-//               ))}
-//             </div>
-//           ) : (
-//             <div className="text-center py-12">
-//               <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-3">
-//                 activity_zone
-//               </span>
-//               <p className="text-gray-500 dark:text-gray-400">
-//                 Aucune activité récente
-//               </p>
-//             </div>
-//           )}
-//         </div>
-
-//         {/* Projets Récents */}
-//         <div className="bg-white dark:bg-[#1a2f44] rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-//           <div className="flex justify-between items-center mb-6">
-//             <h2 className="text-xl font-semibold text-[#001F3F] dark:text-white">
-//               Projets Récents
-//             </h2>
-//             <button 
-//               onClick={() => handleQuickAction('projects')}
-//               className="text-sm text-[#001F3F] dark:text-white hover:text-[#E30613] font-medium flex items-center gap-1"
-//             >
-//               Voir tous
-//               <span className="material-symbols-outlined text-base">arrow_forward</span>
-//             </button>
-//           </div>
-          
-//           {recentProjects.length > 0 ? (
-//             <div className="space-y-4">
-//               {recentProjects.map((project) => (
-//                 <div 
-//                   key={project.id} 
-//                   className="p-4 border border-gray-100 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-[#0d1a29] transition-all duration-200 cursor-pointer"
-//                   onClick={() => navigate(`/admin/projects/${project.id}`)}
-//                 >
-//                   <div className="flex justify-between items-start mb-2">
-//                     <p className="text-sm font-medium text-[#001F3F] dark:text-white truncate flex-1 mr-2">
-//                       {project.title || 'Projet sans titre'}
-//                     </p>
-//                     <span className={`px-2 py-1 text-xs rounded-full ${
-//                       project.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-//                       project.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-//                       project.status === 'draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' :
-//                       'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-//                     }`}>
-//                       {project.status === 'published' ? 'Publié' :
-//                        project.status === 'pending' ? 'En attente' : 
-//                        project.status === 'draft' ? 'Brouillon' : 'Inconnu'}
-//                     </span>
-//                   </div>
-//                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-//                     <span className="material-symbols-outlined text-xs align-middle mr-1">person</span>
-//                     {getUserDisplayName(project.author)}
-//                   </p>
-//                   <div className="flex items-center justify-between">
-//                     <span className="text-xs text-gray-500 dark:text-gray-400">
-//                       <span className="material-symbols-outlined text-xs align-middle mr-1">calendar_today</span>
-//                       {formatDate(project.created_at)}
-//                     </span>
-//                     {project.technologies && (
-//                       <div className="flex gap-1">
-//                         {Array.isArray(project.technologies) ? (
-//                           project.technologies.slice(0, 2).map((tech, index) => (
-//                             <span key={index} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">
-//                               {tech}
-//                             </span>
-//                           ))
-//                         ) : (
-//                           <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">
-//                             {project.technologies}
-//                           </span>
-//                         )}
-//                       </div>
-//                     )}
-//                   </div>
-//                 </div>
-//               ))}
-//             </div>
-//           ) : (
-//             <div className="text-center py-12">
-//               <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-3">
-//                 folder_off
-//               </span>
-//               <p className="text-gray-500 dark:text-gray-400">
-//                 Aucun projet récent
-//               </p>
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Informations supplémentaires */}
-//       <div className="bg-gradient-to-r from-[#001F3F] to-[#003265] rounded-xl p-6 text-white">
-//         <div className="flex flex-col md:flex-row items-center justify-between">
-//           <div className="mb-4 md:mb-0 md:mr-6">
-//             <h3 className="text-xl font-bold mb-2">Statistiques avancées</h3>
-//             <p className="text-blue-100">
-//               {isRealData ? 'Données synchronisées avec la base de données' : 'Activer l\'API pour les données complètes'}
-//             </p>
-//           </div>
-//           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto">
-//             <div className="text-center">
-//               <p className="text-2xl font-bold">{stats.activeUsers}</p>
-//               <p className="text-sm text-blue-200">Utilisateurs actifs</p>
-//             </div>
-//             <div className="text-center">
-//               <p className="text-2xl font-bold">{stats.draftProjects}</p>
-//               <p className="text-sm text-blue-200">Brouillons</p>
-//             </div>
-//             <div className="text-center">
-//               <p className="text-2xl font-bold">{stats.totalDownloads}</p>
-//               <p className="text-sm text-blue-200">Téléchargements</p>
-//             </div>
-//             <div className="text-center">
-//               <p className="text-2xl font-bold">
-//                 {stats.totalProjects > 0 ? Math.round((stats.approvedProjects / stats.totalProjects) * 100) : 0}%
-//               </p>
-//               <p className="text-sm text-blue-200">Taux de publication</p>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
 //     </div>
 //   );
 // };
@@ -1231,14 +499,14 @@
 // export default AdminDashboard;
 
 
-// src/components/admin/AdminDashboard.jsx - VERSION PROFESSIONNELLE
+// src/components/admin/AdminDashboard.jsx - VERSION RÉELLE
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { 
-  Folder, Users, FileCheck, Clock, 
-  TrendingUp, BarChart3, Shield, Settings,
-  Search, Filter, Plus, MoreVertical,
-  Download, Eye, Edit, Trash2
+  LayoutDashboard, FolderPlus, Compass, Users, 
+  Kanban, BarChart3, User, Settings,
+  Filter, Search, UserPlus, Upload, Trash2,
+  ArrowRight, PlusCircle, CheckCircle, XCircle
 } from 'lucide-react';
 import api from "../../services/api";
 import authService from "../../services/auth";
@@ -1246,7 +514,12 @@ import authService from "../../services/auth";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [showAddMatriculesModal, setShowAddMatriculesModal] = useState(false);
+  const [matriculeInput, setMatriculeInput] = useState('');
+  const [selectedMatricules, setSelectedMatricules] = useState([]);
+  const [authorizedMatricules, setAuthorizedMatricules] = useState([]);
+  const [loadingMatricules, setLoadingMatricules] = useState(false);
+  const [matriculeError, setMatriculeError] = useState('');
 
   // Données
   const [stats, setStats] = useState({
@@ -1254,14 +527,17 @@ const AdminDashboard = () => {
     published: 0,
     pending: 0,
     totalUsers: 0,
-    activeUsers: 0
+    activeUsers: 0,
+    myProjects: 0
   });
 
-  const [projects, setProjects] = useState([]);
+  const [myProjects, setMyProjects] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchAuthorizedMatricules();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -1269,169 +545,191 @@ const AdminDashboard = () => {
       setLoading(true);
       const user = authService.getCurrentUser();
       
-      if (!user || !(user.is_staff || user.is_superuser)) {
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setCurrentUser(user);
+      
+      // Vérifier que l'utilisateur est admin
+      if (!(user.is_staff || user.is_superuser)) {
         navigate('/dashboard');
         return;
       }
 
-      try {
-        // Récupérer les projets
-        const projectsRes = await api.get('/api/projects/?limit=6&ordering=-created_at');
-        const projectsData = projectsRes.data.results || projectsRes.data;
-        setProjects(projectsData);
+      // Récupérer les données de la base de données
+      const [projectsRes, allProjectsRes, usersRes, activityRes] = await Promise.all([
+        api.get(`/api/projects/?author=${user.id}&limit=6&ordering=-created_at`),
+        api.get('/api/projects/?limit=100'),
+        api.get('/api/users/?limit=100'),
+        api.get('/api/admin/recent-activity/?limit=5')
+      ]);
 
-        // Calculer les stats
-        const published = projectsData.filter(p => p.status === 'published').length;
-        const pending = projectsData.filter(p => p.status === 'pending').length;
+      // Projets de l'admin
+      const projectsData = projectsRes.data.results || projectsRes.data;
+      setMyProjects(projectsData);
 
-        // Récupérer les utilisateurs (simulé pour l'exemple)
-        const usersRes = await api.get('/api/users/?limit=100');
-        const usersData = usersRes.data.results || usersRes.data;
-        const activeUsers = usersData.filter(u => u.is_active).length;
+      // Tous les projets pour les stats
+      const allProjectsData = allProjectsRes.data.results || allProjectsRes.data;
+      const published = allProjectsData.filter(p => p.status === 'published').length;
+      const pending = allProjectsData.filter(p => p.status === 'pending').length;
 
-        setStats({
-          totalProjects: projectsData.length,
-          published,
-          pending,
-          totalUsers: usersData.length,
-          activeUsers
-        });
+      // Utilisateurs
+      const usersData = usersRes.data.results || usersRes.data;
+      const activeUsers = usersData.filter(u => u.is_active).length;
 
-        // Générer l'activité récente
-        generateRecentActivity(projectsData);
+      // Stats
+      setStats({
+        totalProjects: allProjectsData.length,
+        published,
+        pending,
+        totalUsers: usersData.length,
+        activeUsers,
+        myProjects: projectsData.length
+      });
 
-      } catch (error) {
-        console.log('Mode démo activé');
-        loadDemoData();
-      }
+      // Activité récente
+      const activityData = activityRes.data.results || activityRes.data;
+      setRecentActivity(activityData);
 
     } catch (error) {
-      console.error('Erreur:', error);
-      loadDemoData();
+      console.error('Erreur lors du chargement des données:', error);
+      // Rediriger en cas d'erreur d'authentification
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        authService.logout();
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const loadDemoData = () => {
-    const demoProjects = [
-      {
-        id: 1,
-        title: 'Application E-commerce React',
-        author: { username: 'alex.dubois', first_name: 'Alex', last_name: 'Dubois' },
-        status: 'published',
-        created_at: new Date().toISOString(),
-        downloads: 42,
-        views: 156
-      },
-      {
-        id: 2,
-        title: 'API REST Django',
-        author: { username: 'marie.leroy', first_name: 'Marie', last_name: 'Leroy' },
-        status: 'pending',
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        downloads: 0,
-        views: 23
-      },
-      {
-        id: 3,
-        title: 'Dashboard Analytics',
-        author: { username: 'thomas.martin', first_name: 'Thomas', last_name: 'Martin' },
-        status: 'published',
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        downloads: 18,
-        views: 89
-      },
-      {
-        id: 4,
-        title: 'Système de Réservation',
-        author: { username: 'sophie.dupont', first_name: 'Sophie', last_name: 'Dupont' },
-        status: 'published',
-        created_at: new Date(Date.now() - 259200000).toISOString(),
-        downloads: 31,
-        views: 142
-      }
-    ];
-
-    setProjects(demoProjects);
-    setStats({
-      totalProjects: demoProjects.length,
-      published: 3,
-      pending: 1,
-      totalUsers: 124,
-      activeUsers: 89
-    });
-    generateRecentActivity(demoProjects);
-  };
-
-  const generateRecentActivity = (projectsData) => {
-    const activity = [
-      {
-        id: 1,
-        type: 'project',
-        user: 'Alex Dubois',
-        action: 'a publié un projet',
-        project: 'Application E-commerce React',
-        time: 'Il y a 2 heures'
-      },
-      {
-        id: 2,
-        type: 'user',
-        user: 'Nouvel utilisateur',
-        action: 's\'est inscrit',
-        time: 'Il y a 4 heures'
-      },
-      {
-        id: 3,
-        type: 'project',
-        user: 'Marie Leroy',
-        action: 'a soumis un projet',
-        project: 'API REST Django',
-        time: 'Hier'
-      }
-    ];
-    setRecentActivity(activity);
-  };
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'published': return 'text-green-600 bg-green-50';
-      case 'pending': return 'text-amber-600 bg-amber-50';
-      case 'draft': return 'text-gray-600 bg-gray-50';
-      default: return 'text-gray-600 bg-gray-50';
+  const fetchAuthorizedMatricules = async () => {
+    try {
+      setLoadingMatricules(true);
+      const response = await api.get('/api/admin/authorized-matricules/');
+      setAuthorizedMatricules(response.data.results || response.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des matricules:', error);
+      setAuthorizedMatricules([]);
+    } finally {
+      setLoadingMatricules(false);
     }
   };
 
-  const getStatusText = (status) => {
-    switch(status) {
-      case 'published': return 'Publié';
-      case 'pending': return 'En attente';
-      case 'draft': return 'Brouillon';
-      default: return 'Inconnu';
+  const handleAddMatricule = () => {
+    const matricule = matriculeInput.trim().toUpperCase();
+    
+    if (!matricule) {
+      setMatriculeError('Veuillez entrer un matricule');
+      return;
+    }
+    
+    // Validation du format (ex: SIM2024001)
+    if (!/^[A-Z]{3}\d{7}$/.test(matricule)) {
+      setMatriculeError('Format invalide. Exemple: SIM2024001');
+      return;
+    }
+    
+    // Vérifier si le matricule existe déjà
+    if (selectedMatricules.includes(matricule) || 
+        authorizedMatricules.some(m => m.matricule === matricule)) {
+      setMatriculeError('Ce matricule existe déjà');
+      return;
+    }
+    
+    setSelectedMatricules([...selectedMatricules, matricule]);
+    setMatriculeInput('');
+    setMatriculeError('');
+  };
+
+  const handleRemoveMatricule = (index) => {
+    const newMatricules = [...selectedMatricules];
+    newMatricules.splice(index, 1);
+    setSelectedMatricules(newMatricules);
+  };
+
+  const handleSaveMatricules = async () => {
+    try {
+      if (selectedMatricules.length === 0) {
+        alert('Veuillez ajouter au moins un matricule');
+        return;
+      }
+
+      // Envoyer les matricules au backend
+      const response = await api.post('/api/admin/authorized-matricules/bulk-create/', {
+        matricules: selectedMatricules
+      });
+      
+      alert(`${selectedMatricules.length} matricule(s) ajouté(s) avec succès !`);
+      setShowAddMatriculesModal(false);
+      setSelectedMatricules([]);
+      setMatriculeInput('');
+      
+      // Recharger la liste des matricules
+      fetchAuthorizedMatricules();
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout des matricules:', error);
+      if (error.response?.data) {
+        const errorMsg = error.response.data.detail || 
+                        error.response.data.error || 
+                        'Erreur lors de l\'ajout des matricules';
+        alert(`Erreur: ${errorMsg}`);
+      } else {
+        alert('Erreur de connexion au serveur');
+      }
+    }
+  };
+
+  const handleDeleteMatricule = async (matriculeId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce matricule ?')) {
+      try {
+        await api.delete(`/api/admin/authorized-matricules/${matriculeId}/`);
+        alert('Matricule supprimé avec succès !');
+        fetchAuthorizedMatricules();
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert('Erreur lors de la suppression');
+      }
     }
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatTimeAgo = (dateString) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     
-    if (diffHours < 24) {
+    if (diffHours < 1) {
+      return 'À l\'instant';
+    } else if (diffHours < 24) {
       return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+    } else {
+      const diffDays = Math.floor(diffHours / 24);
+      return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
     }
-    return date.toLocaleDateString('fr-FR');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Chargement du dashboard...</p>
-            </div>
+      <div className="min-h-screen bg-background-light dark:bg-background-dark">
+        <div className="max-w-6xl mx-auto px-10 py-12">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Chargement du dashboard...</p>
           </div>
         </div>
       </div>
@@ -1439,322 +737,420 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        {/* En-tête */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+      <main className="flex-1 overflow-y-auto bg-white dark:bg-background-dark">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header avec infos utilisateur */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tableau de Bord</h1>
-              <p className="text-gray-600 mt-1">Gestion des projets et utilisateurs</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-navy dark:text-white">
+                Tableau de Bord Admin
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Connecté en tant que: {currentUser?.first_name || currentUser?.username} {currentUser?.last_name || ''}
+                {currentUser?.is_superuser ? ' • Super Admin' : currentUser?.is_staff ? ' • Staff' : ''}
+              </p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/admin/projects/new')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                <Plus size={18} />
-                Nouveau projet
-              </button>
-              <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-                <Settings size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Cartes de stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Projets totaux</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalProjects}</p>
-              </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Folder size={24} className="text-blue-600" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center text-sm">
-              <span className="text-green-600 font-medium">{stats.published} publiés</span>
-              <span className="mx-2">•</span>
-              <span className="text-amber-600 font-medium">{stats.pending} en attente</span>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Utilisateurs</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <Users size={24} className="text-green-600" />
-              </div>
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              <span className="font-medium text-green-600">{stats.activeUsers} actifs</span>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">À valider</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-              </div>
-              <div className="p-3 bg-amber-50 rounded-lg">
-                <Clock size={24} className="text-amber-600" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <button
-                onClick={() => navigate('/admin/projects?status=pending')}
-                className="text-sm text-amber-600 hover:text-amber-700 font-medium"
-              >
-                Voir les projets en attente →
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Activité</p>
-                <p className="text-2xl font-bold text-gray-900">24h</p>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <TrendingUp size={24} className="text-purple-600" />
-              </div>
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              <span className="font-medium">2 nouveaux projets</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Contenu principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Liste des projets */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Projets récents</h2>
-                    <p className="text-sm text-gray-600 mt-1">Dernières soumissions</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
-                      <Filter size={16} />
-                      Filtrer
-                    </button>
-                    <button 
-                      onClick={() => navigate('/admin/projects')}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      Voir tous →
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                {projects.map((project) => (
-                  <div key={project.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-medium text-gray-900 truncate">
-                            {project.title}
-                          </h3>
-                          <span className={`ml-2 px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
-                            {getStatusText(project.status)}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
-                          <span>Par {project.author?.first_name || project.author?.username}</span>
-                          <span className="hidden sm:inline">•</span>
-                          <span>{formatDate(project.created_at)}</span>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Eye size={16} className="text-gray-400" />
-                            <span className="text-gray-600">{project.views || 0} vues</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Download size={16} className="text-gray-400" />
-                            <span className="text-gray-600">{project.downloads || 0} téléchargements</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => navigate(`/admin/projects/${project.id}`)}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Voir détails"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/admin/projects/${project.id}/edit`)}
-                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Modifier"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/admin/projects/${project.id}/delete`)}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Barre latérale */}
-          <div className="space-y-6">
-            {/* Actions rapides */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Actions rapides</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate('/admin/projects?status=pending')}
-                  className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-50 rounded-lg">
-                      <FileCheck size={18} className="text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Modération</p>
-                      <p className="text-sm text-gray-500">Projets en attente</p>
-                    </div>
-                  </div>
-                  <span className="text-amber-600">{stats.pending}</span>
-                </button>
-
-                <button
-                  onClick={() => navigate('/admin/users')}
-                  className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <Users size={18} className="text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Utilisateurs</p>
-                      <p className="text-sm text-gray-500">Gérer les comptes</p>
-                    </div>
-                  </div>
-                  <span className="text-blue-600">{stats.totalUsers}</span>
-                </button>
-
-                <button
-                  onClick={() => navigate('/admin/analytics')}
-                  className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-50 rounded-lg">
-                      <BarChart3 size={18} className="text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Analytiques</p>
-                      <p className="text-sm text-gray-500">Statistiques détaillées</p>
-                    </div>
-                  </div>
-                  <span className="text-purple-600">→</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Activité récente */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Activité récente</h3>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        activity.type === 'project' ? 'bg-blue-50' : 'bg-green-50'
-                      }`}>
-                        {activity.type === 'project' ? (
-                          <Folder size={16} className="text-blue-600" />
-                        ) : (
-                          <Users size={16} className="text-green-600" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-900">
-                          <span className="font-medium">{activity.user}</span> {activity.action}
-                        </p>
-                        {activity.project && (
-                          <p className="text-sm text-gray-600 mt-1">{activity.project}</p>
-                        )}
-                        <p className="text-xs text-gray-500 mt-2">{activity.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Statut système */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-white">
-              <div className="flex items-center gap-3 mb-4">
-                <Shield size={20} className="text-blue-400" />
-                <h3 className="font-semibold">Statut système</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">API</span>
-                  <span className="inline-flex items-center gap-1 text-sm text-green-400">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    En ligne
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Base de données</span>
-                  <span className="inline-flex items-center gap-1 text-sm text-green-400">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    En ligne
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Performances</span>
-                  <span className="text-sm text-green-400">Optimale</span>
-                </div>
-              </div>
-              <div className="mt-6 pt-4 border-t border-gray-700">
-                <p className="text-xs text-gray-400">
-                  Dernière vérification: {new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {currentUser?.email}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Dernière connexion: {formatDate(currentUser?.last_login || new Date())}
                 </p>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Pied de page */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
-            <p>Dashboard v2.1 • {new Date().getFullYear()} © Tous droits réservés</p>
-            <div className="flex items-center gap-4">
-              <button className="hover:text-gray-900 transition-colors">Support</button>
-              <button className="hover:text-gray-900 transition-colors">Documentation</button>
-              <button className="hover:text-gray-900 transition-colors">Paramètres</button>
+          {/* Statistiques */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Projets totaux</p>
+                  <p className="text-2xl font-bold text-navy dark:text-white mt-2">{stats.totalProjects}</p>
+                </div>
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <FolderPlus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-xs text-green-600 dark:text-green-400 flex items-center">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  {stats.published} publiés
+                </span>
+                <span className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center">
+                  <XCircle className="w-3 h-3 mr-1" />
+                  {stats.pending} en attente
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Utilisateurs</p>
+                  <p className="text-2xl font-bold text-navy dark:text-white mt-2">{stats.totalUsers}</p>
+                </div>
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">
+                {stats.activeUsers} utilisateurs actifs
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Mes Projets</p>
+                  <p className="text-2xl font-bold text-navy dark:text-white mt-2">{stats.myProjects}</p>
+                </div>
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Kanban className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Matricules autorisés</p>
+                  <p className="text-2xl font-bold text-navy dark:text-white mt-2">{authorizedMatricules.length}</p>
+                </div>
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <UserPlus className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Header */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <button
+              onClick={() => setShowAddMatriculesModal(true)}
+              className="flex items-center gap-2 bg-primary hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
+            >
+              <UserPlus size={20} />
+              Ajouter des matricules
+            </button>
+            
+            <button
+              onClick={() => navigate('/admin/submit-project')}
+              className="flex items-center gap-2 border-2 border-navy dark:border-slate-700 hover:bg-navy hover:text-white text-navy dark:text-slate-300 px-6 py-3 rounded-lg font-bold text-sm transition-all hover:shadow-lg active:scale-95"
+            >
+              <Upload size={20} />
+              Ajouter un projet
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/users')}
+              className="flex items-center gap-2 border-2 border-green-600 dark:border-green-700 hover:bg-green-600 hover:text-white text-green-600 dark:text-green-400 px-6 py-3 rounded-lg font-bold text-sm transition-all hover:shadow-lg active:scale-95"
+            >
+              <Users size={20} />
+              Gérer les utilisateurs
+            </button>
+          </div>
+
+          {/* Section des matricules existants */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-navy dark:text-white">
+                Matricules autorisés ({authorizedMatricules.length})
+              </h2>
+              <button
+                onClick={fetchAuthorizedMatricules}
+                disabled={loadingMatricules}
+                className="text-sm text-primary hover:text-red-700 font-medium disabled:opacity-50"
+              >
+                {loadingMatricules ? 'Chargement...' : 'Actualiser'}
+              </button>
+            </div>
+
+            {loadingMatricules ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Chargement des matricules...</p>
+              </div>
+            ) : authorizedMatricules.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+                <UserPlus className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                <p className="text-slate-600 dark:text-slate-400 mb-2">Aucun matricule autorisé</p>
+                <p className="text-sm text-slate-500 dark:text-slate-500">
+                  Ajoutez des matricules pour autoriser l'accès à la plateforme
+                </p>
+                <button
+                  onClick={() => setShowAddMatriculesModal(true)}
+                  className="mt-4 inline-flex items-center gap-2 bg-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  <UserPlus size={16} />
+                  Ajouter des matricules
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-900/50">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Matricule
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Date d'ajout
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Ajouté par
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                      {authorizedMatricules.map((matricule) => (
+                        <tr key={matricule.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">
+                              {matricule.matricule}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                            {formatDate(matricule.created_at)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                            {matricule.created_by?.username || 'Système'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleDeleteMatricule(matricule.id)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section Projets */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-navy dark:text-white">
+                Mes Projets récents ({stats.myProjects})
+              </h2>
+              <div className="flex gap-2">
+                <button className="p-2 text-slate-400 hover:text-navy dark:hover:text-white transition-colors">
+                  <Filter size={20} />
+                </button>
+                <button className="p-2 text-slate-400 hover:text-navy dark:hover:text-white transition-colors">
+                  <Search size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myProjects.map((project) => (
+                <div 
+                  key={project.id} 
+                  className="group bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-6 rounded-xl hover:shadow-xl hover:border-primary/20 transition-all"
+                >
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-lg font-bold text-navy dark:text-white group-hover:text-primary transition-colors">
+                          {project.title}
+                        </h3>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                          project.status === 'published' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        }`}>
+                          {project.status === 'published' ? 'Publié' : 'En attente'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Créé le {formatDate(project.created_at)}
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {project.technologies && project.technologies.length > 0 ? (
+                        project.technologies.slice(0, 3).map((tech, index) => (
+                          <span 
+                            key={index}
+                            className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded"
+                          >
+                            {tech}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded">
+                          Non spécifié
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="mt-auto">
+                      <button
+                        onClick={() => navigate(`/admin/projects/${project.id}`)}
+                        className="w-full py-2.5 border border-slate-200 dark:border-slate-700 text-navy dark:text-slate-300 font-bold text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                      >
+                        Voir les détails
+                        <ArrowRight size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <div 
+                className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col items-center justify-center text-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer hover:border-primary/30"
+                onClick={() => navigate('/admin/submit-project')}
+              >
+                <PlusCircle size={40} className="text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500 font-medium">Nouveau projet</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section Activité récente */}
+          {recentActivity.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <h3 className="text-lg font-semibold text-navy dark:text-white mb-4">Activité récente</h3>
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <div className="w-2 h-2 mt-2 bg-primary rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-900 dark:text-white">
+                        <span className="font-semibold">{activity.user}</span> {activity.action}
+                        {activity.project && (
+                          <span className="font-medium text-primary"> "{activity.project}"</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {formatTimeAgo(activity.created_at || activity.time)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+      
+      {/* Modal pour ajouter les matricules */}
+      {showAddMatriculesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-navy dark:text-white">Ajouter des matricules autorisés</h3>
+                <button
+                  onClick={() => {
+                    setShowAddMatriculesModal(false);
+                    setMatriculeError('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Ajoutez les matricules des étudiants autorisés à accéder à la plateforme
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Entrez un matricule (Format: XXX0000000)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={matriculeInput}
+                    onChange={(e) => {
+                      setMatriculeInput(e.target.value);
+                      setMatriculeError('');
+                    }}
+                    placeholder="Ex: SIM2024001"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-900 text-gray-900 dark:text-white uppercase"
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddMatricule()}
+                  />
+                  <button
+                    onClick={handleAddMatricule}
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-red-700 font-medium"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                {matriculeError && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{matriculeError}</p>
+                )}
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Format: 3 lettres suivies de 7 chiffres (ex: SIM2024001)
+                </p>
+              </div>
+
+              {selectedMatricules.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Matricules à ajouter ({selectedMatricules.length})
+                  </label>
+                  <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    {selectedMatricules.map((matricule, index) => (
+                      <div key={index} className="flex items-center justify-between py-2 px-3 bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-gray-700 mb-2 last:mb-0">
+                        <span className="font-mono font-medium text-gray-800 dark:text-gray-200">{matricule}</span>
+                        <button
+                          onClick={() => handleRemoveMatricule(index)}
+                          className="text-red-500 hover:text-red-700"
+                          title="Supprimer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => {
+                    setShowAddMatriculesModal(false);
+                    setMatriculeError('');
+                  }}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSaveMatricules}
+                  disabled={selectedMatricules.length === 0}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedMatricules.length === 0
+                      ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-primary text-white hover:bg-red-700 hover:shadow-lg'
+                  }`}
+                >
+                  Ajouter {selectedMatricules.length} matricule(s)
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
