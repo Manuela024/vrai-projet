@@ -1,0 +1,1254 @@
+﻿// // src/services/projects.js - CORRECTIONS
+// import api from './api';
+
+// const projectService = {
+//   // âœ… CORRECT - juste /projects/
+//   async getAllProjects() {
+//     try {
+//       const response = await api.get('/projects/');
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur /projects/:', error.response?.data || error.message);
+//       throw new Error('Erreur lors du chargement des projets');
+//     }
+//   },
+
+//   // âœ… CORRECT - juste /my-projects/
+//   async getUserProjects() {
+//     try {
+//       const response = await api.get('/my-projects/');
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur my-projects:', error.response?.data || error.message);
+//       throw new Error('Erreur lors du chargement de vos projets');
+//     }
+//   },
+
+//   // âœ… CORRECT - juste /projects/
+//   async createProject(projectData) {
+//     try {
+//       console.log('ðŸ“¤ Envoi projet:', projectData);
+      
+//       // Formatage des donnÃ©es
+//       const formData = new FormData();
+      
+//       // Ajouter les champs textuels
+//       formData.append('title', projectData.title);
+//       formData.append('description', projectData.description);
+//       formData.append('technologies', JSON.stringify(projectData.technologies || []));
+//       formData.append('difficulty', projectData.difficulty || 'beginner');
+//       formData.append('status', projectData.status || 'draft');
+      
+//       if (projectData.cohort) {
+//         formData.append('cohort', projectData.cohort);
+//       }
+      
+//       // Ajouter les fichiers
+//       if (projectData.zip_file) {
+//         formData.append('zip_file', projectData.zip_file);
+//       }
+      
+//       if (projectData.images && projectData.images.length > 0) {
+//         projectData.images.forEach((image, index) => {
+//           formData.append(`images`, image);
+//         });
+//       }
+      
+//       // Envoyer avec le bon content-type pour FormData
+//       const response = await api.post('/projects/', formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+      
+//       console.log('âœ… Projet crÃ©Ã©:', response.data);
+//       return response.data;
+      
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur crÃ©ation projet:', error);
+      
+//       let errorMessage = 'Erreur serveur interne. Veuillez rÃ©essayer plus tard.';
+      
+//       if (error.response) {
+//         console.error('ðŸ“Š DÃ©tails erreur:', {
+//           status: error.response.status,
+//           data: error.response.data,
+//           headers: error.response.headers
+//         });
+        
+//         if (error.response.status === 400) {
+//           errorMessage = error.response.data?.title?.[0] || 
+//                         error.response.data?.description?.[0] || 
+//                         'DonnÃ©es invalides. VÃ©rifiez les champs.';
+//         } else if (error.response.status === 401) {
+//           errorMessage = 'Non authentifiÃ©. Veuillez vous reconnecter.';
+//         } else if (error.response.status === 413) {
+//           errorMessage = 'Fichier trop volumineux. Taille maximale: 10MB.';
+//         }
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… CORRECT - juste /projects/${id}/
+//   async updateProject(id, projectData) {
+//     try {
+//       const response = await api.put(`/projects/${id}/`, projectData);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur update projet:', error);
+//       throw new Error('Erreur lors de la mise Ã  jour du projet');
+//     }
+//   },
+
+//   // âœ… CORRECT - juste /projects/${id}/
+//   async deleteProject(id) {
+//     try {
+//       await api.delete(`/projects/${id}/`);
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur suppression projet:', error);
+//       throw new Error('Erreur lors de la suppression du projet');
+//     }
+//   },
+
+//   // âœ… CORRECT - juste /projects/${id}/
+//   async getProjectDetails(id) {
+//     try {
+//       const response = await api.get(`/projects/${id}/`);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur dÃ©tails projet:', error);
+//       throw new Error('Erreur lors du chargement des dÃ©tails du projet');
+//     }
+//   }
+// };
+// export { projectService };
+// // export default projectService;
+
+
+// // src/services/projects.js
+// import api from './api';
+// import { projectService } from '../services/projects';
+// const projectService = {
+//   // âœ… RÃ©cupÃ©rer tous les projets
+//   async getAllProjects() {
+//     try {
+//       const response = await api.get('/projects/');
+//       console.log('ðŸ“¥ Projets rÃ©cupÃ©rÃ©s:', response.data.length);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur /projects/:', error.response?.data || error.message);
+//       throw new Error('Erreur lors du chargement des projets');
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets de l'utilisateur connectÃ©
+//   async getUserProjects() {
+//     try {
+//       const response = await api.get('/my-projects/');
+//       console.log('ðŸ“¥ Mes projets rÃ©cupÃ©rÃ©s:', response.data.length);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur my-projects:', error.response?.data || error.message);
+//       throw new Error('Erreur lors du chargement de vos projets');
+//     }
+//   },
+
+//   // âœ… CRÃ‰ER un projet - CORRIGÃ‰
+//   async createProject(projectData) {
+//     try {
+//       console.log('ðŸ“¤ Envoi projet COMPLET:', projectData);
+//       console.log('ðŸ“¤ Keys prÃ©sentes:', Object.keys(projectData));
+//       console.log('ðŸ“¤ Author:', projectData.author);
+      
+//       const formData = new FormData();
+      
+//       // CHAMPS OBLIGATOIRES selon votre modÃ¨le Django
+//       formData.append('title', projectData.title || '');
+//       formData.append('description', projectData.description || '');
+//       formData.append('technologies', projectData.technologies || '');
+//       formData.append('status', projectData.status || 'draft');
+      
+//       // â­ CRITIQUE : Le champ author (ForeignKey)
+//       if (projectData.author) {
+//         formData.append('author', projectData.author);
+//         console.log('âœ… Author ajoutÃ©:', projectData.author);
+//       } else {
+//         console.error('Error checking project ownership:Œ ERREUR: Aucun author fourni dans projectData');
+//         throw new Error('Aucun utilisateur spÃ©cifiÃ© pour ce projet');
+//       }
+      
+//       // Champs optionnels
+//       if (projectData.cohort) {
+//         formData.append('cohort', projectData.cohort);
+//         console.log('âœ… Cohort ajoutÃ©:', projectData.cohort);
+//       }
+      
+//       if (projectData.tags) {
+//         formData.append('tags', projectData.tags);
+//         console.log('âœ… Tags ajoutÃ©s:', projectData.tags);
+//       }
+      
+//       if (projectData.github_url) {
+//         formData.append('github_url', projectData.github_url);
+//         console.log('âœ… GitHub URL ajoutÃ©:', projectData.github_url);
+//       }
+      
+//       if (projectData.demo_url) {
+//         formData.append('demo_url', projectData.demo_url);
+//         console.log('âœ… Demo URL ajoutÃ©:', projectData.demo_url);
+//       }
+      
+//       // Fichiers
+//       if (projectData.image) {
+//         formData.append('image', projectData.image);
+//         console.log('âœ… Image ajoutÃ©e:', projectData.image.name);
+//       }
+      
+//       if (projectData.zip_file) {
+//         formData.append('zip_file', projectData.zip_file);
+//         console.log('âœ… ZIP file ajoutÃ©:', projectData.zip_file.name);
+//       }
+      
+//       // Afficher le contenu de FormData
+//       console.log('ðŸ“¦ FormData envoyÃ©:');
+//       for (let [key, value] of formData.entries()) {
+//         if (value instanceof File) {
+//           console.log(`  ${key}: File - ${value.name} (${value.type}, ${value.size} bytes)`);
+//         } else {
+//           console.log(`  ${key}:`, value);
+//         }
+//       }
+      
+//       const response = await api.post('/projects/', formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+      
+//       console.log('âœ… Projet crÃ©Ã© avec succÃ¨s:', response.data);
+//       return response.data;
+      
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ ERREUR CRÃ‰ATION PROJET:', {
+//         status: error.response?.status,
+//         data: error.response?.data,
+//         message: error.message
+//       });
+      
+//       // Afficher les erreurs Django dÃ©taillÃ©es
+//       if (error.response?.data) {
+//         console.error('ðŸ“‹ Erreurs de validation Django:');
+//         for (const [field, errors] of Object.entries(error.response.data)) {
+//           console.error(`  ${field}:`, errors);
+//         }
+//       }
+      
+//       // Message d'erreur personnalisÃ©
+//       let errorMessage = 'Erreur lors de la crÃ©ation du projet';
+//       if (error.response?.data) {
+//         const errors = error.response.data;
+//         if (errors.author) {
+//           errorMessage = 'Erreur avec l\'auteur du projet. VÃ©rifiez votre connexion.';
+//         } else if (errors.title) {
+//           errorMessage = `Titre invalide: ${errors.title[0]}`;
+//         } else if (errors.status) {
+//           errorMessage = `Statut invalide: ${errors.status[0]}`;
+//         }
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… Mettre Ã  jour un projet
+//   async updateProject(id, projectData) {
+//     try {
+//       console.log('âœï¸ Mise Ã  jour projet ID:', id);
+//       console.log('âœï¸ DonnÃ©es envoyÃ©es:', projectData);
+      
+//       // Pour la mise Ã  jour, on peut envoyer en JSON si pas de fichiers
+//       const formData = new FormData();
+      
+//       // Ajouter tous les champs textuels
+//       for (const key in projectData) {
+//         if (projectData[key] !== undefined && projectData[key] !== null) {
+//           if (projectData[key] instanceof File) {
+//             formData.append(key, projectData[key]);
+//           } else {
+//             formData.append(key, projectData[key]);
+//           }
+//         }
+//       }
+      
+//       // VÃ©rifier si on a des fichiers
+//       let hasFiles = false;
+//       for (let [key, value] of formData.entries()) {
+//         if (value instanceof File) {
+//           hasFiles = true;
+//           break;
+//         }
+//       }
+      
+//       let response;
+//       if (hasFiles) {
+//         // Utiliser FormData pour les fichiers
+//         response = await api.put(`/projects/${id}/`, formData, {
+//           headers: {
+//             'Content-Type': 'multipart/form-data',
+//           },
+//         });
+//       } else {
+//         // Utiliser JSON pour les donnÃ©es simples
+//         response = await api.put(`/projects/${id}/`, projectData);
+//       }
+      
+//       console.log('âœ… Projet mis Ã  jour:', response.data);
+//       return response.data;
+      
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur update projet:', error.response?.data || error.message);
+//       throw new Error('Erreur lors de la mise Ã  jour du projet');
+//     }
+//   },
+
+//   // âœ… Supprimer un projet
+//   async deleteProject(id) {
+//     try {
+//       await api.delete(`/projects/${id}/`);
+//       console.log('ðŸ—‘ï¸ Projet supprimÃ© ID:', id);
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur suppression projet:', error.response?.data || error.message);
+//       throw new Error('Erreur lors de la suppression du projet');
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les dÃ©tails d'un projet
+//   async getProjectDetails(id) {
+//     try {
+//       const response = await api.get(`/projects/${id}/`);
+//       console.log('ðŸ“‹ DÃ©tails projet ID:', id);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur dÃ©tails projet:', error.response?.data || error.message);
+//       throw new Error('Erreur lors du chargement des dÃ©tails du projet');
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer un projet par ID (alias pour getProjectDetails)
+//   async getProjectById(id) {
+//     return this.getProjectDetails(id);
+//   },
+
+//   // âœ… Upload un fichier pour un projet (si API sÃ©parÃ©e)
+//   async uploadProjectFile(projectId, file) {
+//     try {
+//       const formData = new FormData();
+//       formData.append('zip_file', file);
+      
+//       const response = await api.post(`/projects/${projectId}/upload/`, formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+      
+//       console.log('âœ… Fichier uploadÃ© pour projet:', projectId);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur upload fichier:', error.response?.data || error.message);
+//       throw new Error('Erreur lors de l\'upload du fichier');
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets par cohorte
+//   async getProjectsByCohort(cohort) {
+//     try {
+//       const response = await api.get(`/projects/?cohort=${encodeURIComponent(cohort)}`);
+//       console.log('ðŸ“Š Projets par cohorte:', cohort, response.data.length);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur projets par cohorte:', error);
+//       throw new Error('Erreur lors de la rÃ©cupÃ©ration par cohorte');
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets par tag
+//   async getProjectsByTag(tag) {
+//     try {
+//       const response = await api.get(`/projects/?tags__contains=${encodeURIComponent(tag)}`);
+//       console.log('ðŸ·ï¸ Projets par tag:', tag, response.data.length);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur projets par tag:', error);
+//       throw new Error('Erreur lors de la rÃ©cupÃ©ration par tag');
+//     }
+//   }
+// };
+
+// // export { projectService };
+// export default projectService;
+
+
+// // src/services/projects.js - SERVICE COMPLET CORRIGÃ‰
+// import api from './api';
+// // Dans projects.js, au dÃ©but
+// console.log('ðŸ”§ projects.js chargÃ©, export type:', 'nommÃ© (avec accolades)');
+// const projectService = {
+//   // âœ… RÃ©cupÃ©rer tous les projets publics
+//   async getAllProjects() {
+//     try {
+//       console.log('ðŸ“¥ RÃ©cupÃ©ration de tous les projets...');
+//       const response = await api.get('/projects/');
+//       console.log(`âœ… ${response.data.length} projets rÃ©cupÃ©rÃ©s`);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur lors de la rÃ©cupÃ©ration des projets:', {
+//         message: error.message,
+//         status: error.response?.status,
+//         data: error.response?.data
+//       });
+      
+//       let errorMessage = 'Erreur lors du chargement des projets';
+//       if (error.response?.status === 404) {
+//         errorMessage = 'L\'API projets n\'est pas disponible';
+//       } else if (error.response?.status === 500) {
+//         errorMessage = 'Erreur serveur interne';
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets de l'utilisateur connectÃ©
+//   async getUserProjects() {
+//     try {
+//       console.log('ðŸ“¥ RÃ©cupÃ©ration des projets utilisateur...');
+//       const response = await api.get('/my-projects/');
+//       console.log(`âœ… ${response.data.length} projets utilisateur rÃ©cupÃ©rÃ©s`);
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur lors de la rÃ©cupÃ©ration des projets utilisateur:', {
+//         message: error.message,
+//         status: error.response?.status,
+//         data: error.response?.data
+//       });
+      
+//       let errorMessage = 'Erreur lors du chargement de vos projets';
+//       if (error.response?.status === 401) {
+//         errorMessage = 'Vous devez Ãªtre connectÃ© pour voir vos projets';
+//       } else if (error.response?.status === 404) {
+//         errorMessage = 'L\'API mes-projets n\'est pas disponible';
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… CRÃ‰ER un nouveau projet - CORRIGÃ‰ AVEC TOUS LES CHAMPS
+//   async createProject(projectData) {
+//     try {
+//       console.log('ðŸ“¤ CRÃ‰ATION PROJET - DonnÃ©es reÃ§ues:', projectData);
+//       console.log('ðŸ“¤ Champs prÃ©sents:', Object.keys(projectData));
+      
+//       // Validation des donnÃ©es requises
+//       if (!projectData.title?.trim()) {
+//         throw new Error('Le titre du projet est requis');
+//       }
+      
+//       if (!projectData.technologies?.trim()) {
+//         throw new Error('Les technologies utilisÃ©es sont requises');
+//       }
+      
+//       if (!projectData.author) {
+//         throw new Error('Auteur non spÃ©cifiÃ© - veuillez vous reconnecter');
+//       }
+      
+//       // PrÃ©paration FormData
+//       const formData = new FormData();
+      
+//       // â­ CHAMPS OBLIGATOIRES (selon modÃ¨le Django)
+//       formData.append('title', projectData.title.trim());
+//       formData.append('description', projectData.description?.trim() || '');
+//       formData.append('technologies', projectData.technologies.trim());
+//       formData.append('status', projectData.status || 'draft');
+//       formData.append('author', projectData.author); // â­ CRITIQUE
+      
+//       // â­ NOUVEAUX CHAMPS (optionnels)
+//       if (projectData.cohort?.trim()) {
+//         formData.append('cohort', projectData.cohort.trim());
+//       }
+      
+//       if (projectData.tags?.trim()) {
+//         formData.append('tags', projectData.tags.trim());
+//       }
+      
+//       if (projectData.github_url?.trim()) {
+//         formData.append('github_url', projectData.github_url.trim());
+//       }
+      
+//       if (projectData.demo_url?.trim()) {
+//         formData.append('demo_url', projectData.demo_url.trim());
+//       }
+      
+//       // â­ FICHIERS
+//       if (projectData.image && projectData.image instanceof File) {
+//         formData.append('image', projectData.image);
+//       }
+      
+//       if (projectData.zip_file && projectData.zip_file instanceof File) {
+//         formData.append('zip_file', projectData.zip_file);
+//       }
+      
+//       // Debug: Afficher le contenu FormData
+//       console.log('ðŸ“¦ FormData Ã  envoyer:');
+//       for (let [key, value] of formData.entries()) {
+//         if (value instanceof File) {
+//           console.log(`  ${key}: Fichier - ${value.name} (${value.type}, ${(value.size / 1024).toFixed(2)} KB)`);
+//         } else {
+//           console.log(`  ${key}:`, value);
+//         }
+//       }
+      
+//       // Envoi de la requÃªte
+//       console.log('ðŸš€ Envoi vers /projects/...');
+//       const response = await api.post('/projects/', formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+      
+//       console.log('âœ… PROJET CRÃ‰Ã‰ AVEC SUCCÃˆS:', response.data);
+//       return response.data;
+      
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ ERREUR LORS DE LA CRÃ‰ATION DU PROJET:', error);
+      
+//       // Log dÃ©taillÃ© pour le debug
+//       if (error.response) {
+//         console.error('ðŸ“‹ DÃ©tails de l\'erreur serveur:', {
+//           status: error.response.status,
+//           statusText: error.response.statusText,
+//           data: error.response.data,
+//           headers: error.response.headers
+//         });
+//       }
+      
+//       // Messages d'erreur personnalisÃ©s
+//       let errorMessage = 'Erreur lors de la crÃ©ation du projet';
+      
+//       if (error.response?.data) {
+//         const errors = error.response.data;
+        
+//         // Traitement des erreurs Django spÃ©cifiques
+//         if (typeof errors === 'object') {
+//           if (errors.author) {
+//             errorMessage = 'Erreur avec l\'auteur: ' + (errors.author[0] || 'Auteur invalide');
+//           } else if (errors.title) {
+//             errorMessage = 'Titre: ' + errors.title[0];
+//           } else if (errors.technologies) {
+//             errorMessage = 'Technologies: ' + errors.technologies[0];
+//           } else if (errors.status) {
+//             const validStatuses = ['draft', 'pending', 'approved', 'rejected'];
+//             errorMessage = `Statut invalide. Utilisez: ${validStatuses.join(', ')}`;
+//           } else if (errors.non_field_errors) {
+//             errorMessage = errors.non_field_errors[0];
+//           } else {
+//             // Compiler toutes les erreurs
+//             const allErrors = Object.entries(errors)
+//               .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(', ') : errs}`)
+//               .join('; ');
+//             errorMessage = `Erreurs de validation: ${allErrors}`;
+//           }
+//         }
+//       } else if (error.message) {
+//         errorMessage = error.message;
+//       }
+      
+//       console.error('ðŸ’¡ Message d\'erreur retournÃ©:', errorMessage);
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… Mettre Ã  jour un projet existant
+//   async updateProject(id, projectData) {
+//     try {
+//       console.log(`âœï¸ MISE Ã€ JOUR PROJET ID ${id}:`, projectData);
+      
+//       // VÃ©rifier si on a des fichiers
+//       const hasFiles = projectData.image instanceof File || 
+//                        projectData.zip_file instanceof File;
+      
+//       let response;
+      
+//       if (hasFiles) {
+//         // Utiliser FormData si fichiers prÃ©sents
+//         const formData = new FormData();
+        
+//         for (const key in projectData) {
+//           if (projectData[key] !== undefined && projectData[key] !== null) {
+//             formData.append(key, projectData[key]);
+//           }
+//         }
+        
+//         response = await api.put(`/projects/${id}/`, formData, {
+//           headers: {
+//             'Content-Type': 'multipart/form-data',
+//           },
+//         });
+//       } else {
+//         // Utiliser JSON si pas de fichiers
+//         response = await api.put(`/projects/${id}/`, projectData);
+//       }
+      
+//       console.log('âœ… Projet mis Ã  jour avec succÃ¨s:', response.data);
+//       return response.data;
+      
+//     } catch (error) {
+//       console.error(`âŒ Erreur mise Ã  jour projet ${id}:`, error.response?.data || error.message);
+      
+//       let errorMessage = 'Erreur lors de la mise Ã  jour du projet';
+//       if (error.response?.status === 404) {
+//         errorMessage = 'Projet non trouvÃ©';
+//       } else if (error.response?.status === 403) {
+//         errorMessage = 'Vous n\'avez pas la permission de modifier ce projet';
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… Supprimer un projet
+//   async deleteProject(id) {
+//     try {
+//       console.log(`ðŸ—‘ï¸ SUPPRESSION PROJET ID ${id}...`);
+//       await api.delete(`/projects/${id}/`);
+//       console.log('âœ… Projet supprimÃ© avec succÃ¨s');
+//       return true;
+//     } catch (error) {
+//       console.error(`âŒ Erreur suppression projet ${id}:`, error.response?.data || error.message);
+      
+//       let errorMessage = 'Erreur lors de la suppression du projet';
+//       if (error.response?.status === 404) {
+//         errorMessage = 'Projet non trouvÃ©';
+//       } else if (error.response?.status === 403) {
+//         errorMessage = 'Vous n\'avez pas la permission de supprimer ce projet';
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les dÃ©tails d'un projet spÃ©cifique
+//   async getProjectDetails(id) {
+//     try {
+//       console.log(`ðŸ“‹ DÃ‰TAILS PROJET ID ${id}...`);
+//       const response = await api.get(`/projects/${id}/`);
+//       console.log('âœ… DÃ©tails projet rÃ©cupÃ©rÃ©s:', response.data.title);
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur dÃ©tails projet ${id}:`, error.response?.data || error.message);
+      
+//       let errorMessage = 'Erreur lors du chargement des dÃ©tails du projet';
+//       if (error.response?.status === 404) {
+//         errorMessage = 'Projet non trouvÃ©';
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… Alias pour getProjectDetails (pour compatibilitÃ©)
+//   async getProjectById(id) {
+//     return this.getProjectDetails(id);
+//   },
+
+//   // âœ… Uploader un fichier pour un projet (endpoint sÃ©parÃ© si existant)
+//   async uploadProjectFile(projectId, file) {
+//     try {
+//       if (!file || !(file instanceof File)) {
+//         throw new Error('Fichier invalide');
+//       }
+      
+//       console.log(`ðŸ“¤ UPLOAD FICHIER pour projet ${projectId}:`, file.name);
+      
+//       const formData = new FormData();
+//       formData.append('zip_file', file);
+      
+//       const response = await api.post(`/projects/${projectId}/upload/`, formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
+      
+//       console.log('âœ… Fichier uploadÃ© avec succÃ¨s');
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur upload fichier projet ${projectId}:`, error);
+      
+//       let errorMessage = 'Erreur lors de l\'upload du fichier';
+//       if (error.response?.status === 404) {
+//         errorMessage = 'Projet non trouvÃ©';
+//       } else if (error.response?.status === 413) {
+//         errorMessage = 'Fichier trop volumineux';
+//       }
+      
+//       throw new Error(errorMessage);
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets par cohorte
+//   async getProjectsByCohort(cohort) {
+//     try {
+//       console.log(`ðŸ“Š PROJETS PAR COHORTE "${cohort}"...`);
+//       const response = await api.get(`/projects/?cohort=${encodeURIComponent(cohort)}`);
+//       console.log(`âœ… ${response.data.length} projets trouvÃ©s pour la cohorte ${cohort}`);
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur projets par cohorte "${cohort}":`, error);
+//       throw new Error(`Erreur lors de la rÃ©cupÃ©ration des projets de la cohorte ${cohort}`);
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets par tag
+//   async getProjectsByTag(tag) {
+//     try {
+//       console.log(`ðŸ·ï¸ PROJETS PAR TAG "${tag}"...`);
+//       const response = await api.get(`/projects/?tags__contains=${encodeURIComponent(tag)}`);
+//       console.log(`âœ… ${response.data.length} projets trouvÃ©s avec le tag ${tag}`);
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur projets par tag "${tag}":`, error);
+//       throw new Error(`Erreur lors de la rÃ©cupÃ©ration des projets avec le tag ${tag}`);
+//     }
+//   },
+
+//   // âœ… Rechercher des projets
+//   async searchProjects(query) {
+//     try {
+//       console.log(`ðŸ” RECHERCHE PROJETS "${query}"...`);
+//       const response = await api.get(`/projects/?search=${encodeURIComponent(query)}`);
+//       console.log(`âœ… ${response.data.length} projets trouvÃ©s pour "${query}"`);
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur recherche projets "${query}":`, error);
+//       throw new Error('Erreur lors de la recherche de projets');
+//     }
+//   },
+
+//   // âœ… RÃ©cupÃ©rer les projets par statut
+//   async getProjectsByStatus(status) {
+//     try {
+//       console.log(`ðŸ“Š PROJETS PAR STATUT "${status}"...`);
+//       const response = await api.get(`/projects/?status=${status}`);
+//       console.log(`âœ… ${response.data.length} projets avec statut ${status}`);
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur projets par statut "${status}":`, error);
+//       throw new Error(`Erreur lors de la rÃ©cupÃ©ration des projets avec statut ${status}`);
+//     }
+//   },
+
+//   // âœ… Mettre Ã  jour uniquement le statut d'un projet
+//   async updateProjectStatus(id, status) {
+//     try {
+//       console.log(`ðŸ”„ MISE Ã€ JOUR STATUT projet ${id} â†’ ${status}`);
+//       const response = await api.patch(`/projects/${id}/`, { status });
+//       console.log('âœ… Statut mis Ã  jour avec succÃ¨s');
+//       return response.data;
+//     } catch (error) {
+//       console.error(`âŒ Erreur mise Ã  jour statut projet ${id}:`, error);
+//       throw new Error('Erreur lors de la mise Ã  jour du statut');
+//     }
+//   },
+
+//   // âœ… VÃ©rifier si un projet appartient Ã  l'utilisateur connectÃ©
+//   async isProjectOwner(projectId) {
+//     try {
+//       const project = await this.getProjectDetails(projectId);
+//       const user = JSON.parse(localStorage.getItem('user'));
+//       return project.author === user?.id || project.author_id === user?.id;
+//     } catch (error) {
+//       console.error('Error checking project ownership:Œ Erreur vÃ©rification propriÃ©taire:', error);
+//       return false;
+//     }
+//   }
+// };
+//  export { projectService };
+
+
+
+// src/services/projects.js - SERVICE COMPLET
+import api from './api';
+
+console.log('📦 projects.js chargé, export type: nommé (avec accolades)');
+
+const projectService = {
+  // Récupérer tous les projets publics
+  async getAllProjects() {
+    try {
+      console.log('📥 Récupération de tous les projets...');
+      const response = await api.get('/projects/');
+      
+      // Gestion des différents formats de réponse
+      let projects = [];
+      if (Array.isArray(response.data)) {
+        projects = response.data;
+      } else if (response.data && response.data.results) {
+        projects = response.data.results; // DRF pagination
+      } else if (response.data && response.data.data) {
+        projects = response.data.data;
+      } else {
+        projects = response.data || [];
+      }
+      
+      console.log(`✅ ${projects.length} projets récupérés`);
+      return projects;
+    } catch (error) {
+      console.error('❌ Erreur lors de la récupération des projets:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      let errorMessage = 'Erreur lors du chargement des projets';
+      if (error.response?.status === 404) {
+        errorMessage = 'L\'API projets n\'est pas disponible';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Erreur serveur interne';
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Récupérer les projets de l'utilisateur connecté
+  async getUserProjects() {
+    try {
+      console.log('📥 Récupération des projets utilisateur...');
+      
+      // Essayer plusieurs endpoints
+      const endpoints = [
+        '/my-projects/',
+        '/projects/?my=true',
+        '/projects/?author=me',
+        '/projects/'
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`🔍 Essai endpoint: ${endpoint}`);
+          const response = await api.get(endpoint);
+          
+          if (response.data) {
+            console.log(`✅ Réponse de ${endpoint}:`, response.data);
+            
+            // Extraire les projets selon le format
+            let projects = [];
+            if (Array.isArray(response.data)) {
+              projects = response.data;
+            } else if (response.data.results) {
+              projects = response.data.results;
+            } else if (response.data.data) {
+              projects = response.data.data;
+            } else if (response.data.projects) {
+              projects = response.data.projects;
+            } else {
+              projects = [response.data];
+            }
+            
+            // Si on a récupéré depuis /projects/, filtrer pour l'utilisateur courant
+            if (endpoint === '/projects/' && projects.length > 0) {
+              const user = JSON.parse(localStorage.getItem('user'));
+              if (user && user.id) {
+                const filteredProjects = projects.filter(project => {
+                  const authorId = project.author || project.author_id || (project.author && project.author.id);
+                  return authorId === user.id;
+                });
+                if (filteredProjects.length > 0) {
+                  console.log(`🎯 ${filteredProjects.length} projets filtrés pour l'utilisateur`);
+                  return filteredProjects;
+                }
+              }
+            } else if (projects.length > 0) {
+              console.log(`🎯 ${projects.length} projets récupérés depuis ${endpoint}`);
+              return projects;
+            }
+          }
+        } catch (endpointError) {
+          console.log(`⚠️ Endpoint ${endpoint} non disponible:`, endpointError.message);
+          continue;
+        }
+      }
+      
+      // Si aucun endpoint ne fonctionne
+      console.log("📭 Aucun projet trouvé, retour tableau vide");
+      return [];
+      
+    } catch (error) {
+      console.error('❌ Erreur récupération projets utilisateur:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      return [];
+    }
+  },
+
+  // CRÉER un nouveau projet
+  async createProject(projectData) {
+    try {
+      console.log('🛠️ CRÉATION PROJET - Données reçues:', projectData);
+      console.log('🛠️ Champs présents:', Object.keys(projectData));
+      
+      // Validation des données requises
+      if (!projectData.title?.trim()) {
+        throw new Error('Le titre du projet est requis');
+      }
+      
+      if (!projectData.technologies?.trim()) {
+        throw new Error('Les technologies utilisées sont requises');
+      }
+      
+      if (!projectData.author) {
+        throw new Error('Auteur non spécifié - veuillez vous reconnecter');
+      }
+      
+      // Préparation FormData
+      const formData = new FormData();
+      
+      // CHAMPS OBLIGATOIRES
+      formData.append('title', projectData.title.trim());
+      formData.append('description', projectData.description?.trim() || '');
+      formData.append('technologies', projectData.technologies.trim());
+      formData.append('status', projectData.status || 'draft');
+      formData.append('author', projectData.author);
+      
+      // CHAMPS OPTIONNELS
+      if (projectData.cohort?.trim()) {
+        formData.append('cohort', projectData.cohort.trim());
+      }
+      
+      if (projectData.tags?.trim()) {
+        formData.append('tags', projectData.tags.trim());
+      }
+      
+      if (projectData.github_url?.trim()) {
+        formData.append('github_url', projectData.github_url.trim());
+      }
+      
+      if (projectData.demo_url?.trim()) {
+        formData.append('demo_url', projectData.demo_url.trim());
+      }
+      
+      // FICHIERS
+      if (projectData.image && projectData.image instanceof File) {
+        formData.append('image', projectData.image);
+      }
+      
+      if (projectData.zip_file && projectData.zip_file instanceof File) {
+        formData.append('zip_file', projectData.zip_file);
+      }
+      
+      // Debug: Afficher le contenu FormData
+      console.log('📋 FormData à envoyer:');
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: Fichier - ${value.name} (${value.type}, ${(value.size / 1024).toFixed(2)} KB)`);
+        } else {
+          console.log(`  ${key}:`, value);
+        }
+      }
+      
+      // Envoi de la requête
+      console.log('🚀 Envoi vers /projects/...');
+      const response = await api.post('/projects/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ PROJET CRÉÉ AVEC SUCCÈS:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ ERREUR LORS DE LA CRÉATION DU PROJET:', error);
+      
+      if (error.response) {
+        console.error('📋 Détails de l\'erreur serveur:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
+      
+      let errorMessage = 'Erreur lors de la création du projet';
+      
+      if (error.response?.data) {
+        const errors = error.response.data;
+        
+        if (typeof errors === 'object') {
+          if (errors.author) {
+            errorMessage = 'Erreur avec l\'auteur: ' + (errors.author[0] || 'Auteur invalide');
+          } else if (errors.title) {
+            errorMessage = 'Titre: ' + errors.title[0];
+          } else if (errors.technologies) {
+            errorMessage = 'Technologies: ' + errors.technologies[0];
+          } else if (errors.status) {
+            const validStatuses = ['draft', 'pending', 'approved', 'rejected'];
+            errorMessage = `Statut invalide. Utilisez: ${validStatuses.join(', ')}`;
+          } else if (errors.non_field_errors) {
+            errorMessage = errors.non_field_errors[0];
+          } else {
+            const allErrors = Object.entries(errors)
+              .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(', ') : errs}`)
+              .join('; ');
+            errorMessage = `Erreurs de validation: ${allErrors}`;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.error('⚠️ Message d\'erreur retourné:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Mettre à jour un projet existant
+  async updateProject(id, projectData) {
+    try {
+      console.log(`✏️ MISE À JOUR PROJET ID ${id}:`, projectData);
+      
+      const hasFiles = projectData.image instanceof File || 
+                       projectData.zip_file instanceof File;
+      
+      let response;
+      
+      if (hasFiles) {
+        const formData = new FormData();
+        
+        for (const key in projectData) {
+          if (projectData[key] !== undefined && projectData[key] !== null) {
+            formData.append(key, projectData[key]);
+          }
+        }
+        
+        response = await api.put(`/projects/${id}/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        response = await api.put(`/projects/${id}/`, projectData);
+      }
+      
+      console.log('✅ Projet mis à jour avec succès:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error(`❌ Erreur mise à jour projet ${id}:`, error.response?.data || error.message);
+      
+      let errorMessage = 'Erreur lors de la mise à jour du projet';
+      if (error.response?.status === 404) {
+        errorMessage = 'Projet non trouvé';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Vous n\'avez pas la permission de modifier ce projet';
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Supprimer un projet
+  async deleteProject(id) {
+    try {
+      console.log(`🗑️ SUPPRESSION PROJET ID ${id}...`);
+      await api.delete(`/projects/${id}/`);
+      console.log('✅ Projet supprimé avec succès');
+      return true;
+    } catch (error) {
+      console.error(`❌ Erreur suppression projet ${id}:`, error.response?.data || error.message);
+      
+      let errorMessage = 'Erreur lors de la suppression du projet';
+      if (error.response?.status === 404) {
+        errorMessage = 'Projet non trouvé';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Vous n\'avez pas la permission de supprimer ce projet';
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Récupérer les détails d'un projet
+  async getProjectDetails(id) {
+    try {
+      console.log(`🔍 DÉTAILS PROJET ID ${id}...`);
+      const response = await api.get(`/projects/${id}/`);
+      console.log('✅ Détails projet récupérés:', response.data.title);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur détails projet ${id}:`, error.response?.data || error.message);
+      
+      let errorMessage = 'Erreur lors du chargement des détails du projet';
+      if (error.response?.status === 404) {
+        errorMessage = 'Projet non trouvé';
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Alias pour getProjectDetails
+  async getProjectById(id) {
+    return this.getProjectDetails(id);
+  },
+
+  // Uploader un fichier
+  async uploadProjectFile(projectId, file) {
+    try {
+      if (!file || !(file instanceof File)) {
+        throw new Error('Fichier invalide');
+      }
+      
+      console.log(`📤 UPLOAD FICHIER pour projet ${projectId}:`, file.name);
+      
+      const formData = new FormData();
+      formData.append('zip_file', file);
+      
+      const response = await api.post(`/projects/${projectId}/upload/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ Fichier uploadé avec succès');
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur upload fichier projet ${projectId}:`, error);
+      
+      let errorMessage = 'Erreur lors de l\'upload du fichier';
+      if (error.response?.status === 404) {
+        errorMessage = 'Projet non trouvé';
+      } else if (error.response?.status === 413) {
+        errorMessage = 'Fichier trop volumineux';
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Récupérer les projets par cohorte
+  async getProjectsByCohort(cohort) {
+    try {
+      console.log(`👥 PROJETS PAR COHORTE "${cohort}"...`);
+      const response = await api.get(`/projects/?cohort=${encodeURIComponent(cohort)}`);
+      
+      let projects = [];
+      if (Array.isArray(response.data)) {
+        projects = response.data;
+      } else if (response.data && response.data.results) {
+        projects = response.data.results;
+      }
+      
+      console.log(`✅ ${projects.length} projets trouvés pour la cohorte ${cohort}`);
+      return projects;
+    } catch (error) {
+      console.error(`❌ Erreur projets par cohorte "${cohort}":`, error);
+      return [];
+    }
+  },
+
+  // Récupérer les projets par tag
+  async getProjectsByTag(tag) {
+    try {
+      console.log(`🏷️ PROJETS PAR TAG "${tag}"...`);
+      const response = await api.get(`/projects/?tags__contains=${encodeURIComponent(tag)}`);
+      
+      let projects = [];
+      if (Array.isArray(response.data)) {
+        projects = response.data;
+      } else if (response.data && response.data.results) {
+        projects = response.data.results;
+      }
+      
+      console.log(`✅ ${projects.length} projets trouvés avec le tag ${tag}`);
+      return projects;
+    } catch (error) {
+      console.error(`❌ Erreur projets par tag "${tag}":`, error);
+      return [];
+    }
+  },
+
+  // Rechercher des projets
+  async searchProjects(query) {
+    try {
+      console.log(`🔎 RECHERCHE PROJETS "${query}"...`);
+      const response = await api.get(`/projects/?search=${encodeURIComponent(query)}`);
+      
+      let projects = [];
+      if (Array.isArray(response.data)) {
+        projects = response.data;
+      } else if (response.data && response.data.results) {
+        projects = response.data.results;
+      }
+      
+      console.log(`✅ ${projects.length} projets trouvés pour "${query}"`);
+      return projects;
+    } catch (error) {
+      console.error(`❌ Erreur recherche projets "${query}":`, error);
+      return [];
+    }
+  },
+
+  // Récupérer les projets par statut
+  async getProjectsByStatus(status) {
+    try {
+      console.log(`📊 PROJETS PAR STATUT "${status}"...`);
+      const response = await api.get(`/projects/?status=${status}`);
+      
+      let projects = [];
+      if (Array.isArray(response.data)) {
+        projects = response.data;
+      } else if (response.data && response.data.results) {
+        projects = response.data.results;
+      }
+      
+      console.log(`✅ ${projects.length} projets avec statut ${status}`);
+      return projects;
+    } catch (error) {
+      console.error(`❌ Erreur projets par statut "${status}":`, error);
+      return [];
+    }
+  },
+
+  // Mettre à jour le statut d'un projet
+  async updateProjectStatus(id, status) {
+    try {
+      console.log(`🔄 MISE À JOUR STATUT projet ${id} → ${status}`);
+      const response = await api.patch(`/projects/${id}/`, { status });
+      console.log('✅ Statut mis à jour avec succès');
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur mise à jour statut projet ${id}:`, error);
+      throw new Error('Erreur lors de la mise à jour du statut');
+    }
+  },
+
+  // Vérifier si l'utilisateur est propriétaire du projet
+  async isProjectOwner(projectId) {
+    try {
+      const project = await this.getProjectDetails(projectId);
+      const user = JSON.parse(localStorage.getItem('user'));
+      return project.author === user?.id || project.author_id === user?.id;
+    } catch (error) {
+      console.error('❌ Erreur vérification propriétaire:', error);
+      return false;
+    }
+  }
+};
+
+export { projectService };

@@ -138,66 +138,346 @@
 #     })
 
 
-# users/urls.py - VERSION SIMPLIFIÉE
+# # users/urls.py - VERSION SIMPLIFIÉE
+# from django.urls import path, include
+# from rest_framework.routers import DefaultRouter
+# from rest_framework.decorators import api_view, permission_classes
+# from rest_framework.permissions import AllowAny
+# from rest_framework.response import Response
+# from django.utils import timezone
+# from . import views
+# from .views import UserProjectsAPIView, UserProjectsCountView
+
+# from projects.models import Project
+# from projects.serializers import ProjectSerializer
+
+# router = DefaultRouter()
+# router.register(r'admin/users', views.AdminUserViewSet, basename='admin-users')
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def api_root(request):
+#     """Vue racine simplifiée"""
+#     return Response({
+#         'message': 'API Users de Simplon',
+#         'version': '1.0',
+#         'endpoints': {
+#             'profile': '/api/users/profile/',
+#             'extended_profile': '/api/users/profile/extended/',
+#             'avatar': '/api/users/profile/avatar/',
+#             'auth': '/api/users/auth/',
+#             'health': '/api/users/health/',
+#         }
+#     })
+
+# urlpatterns = [
+#     # Racine
+#     path('', api_root, name='api-root'),
+    
+#     # Router
+#     path('', include(router.urls)),
+    
+#     # Profil
+#     path('profile/', views.UserProfileView.as_view(), name='user-profile'),
+#     path('profile/extended/', views.UserExtendedProfileView.as_view(), name='user-profile-extended'),
+#     path('profile/complete/', views.UserProfileCompleteView.as_view(), name='user-profile-complete'),
+#     path('profile/complete-data/', views.get_complete_profile, name='user-profile-complete-data'),
+#     path('profile/avatar/', views.UserProfileImageView.as_view(), name='user-profile-avatar'),
+#     path('profile/history/', views.UserProfileHistoryView.as_view(), name='user-profile-history'),
+#     path('profile/change-password/', views.ChangePasswordView.as_view(), name='change-password'),
+    
+#     # Notifications
+#     path('notifications/', views.UserNotificationsView.as_view(), name='user-notifications'),
+    
+#     # Authentification
+#     path('auth/request-login/', views.RequestLoginView.as_view(), name='request-login'),
+#     path('auth/setup-password/', views.SetupPasswordView.as_view(), name='setup-password'),
+#     path('auth/quick-login/', views.QuickLoginView.as_view(), name='quick-login'),
+    
+#     # Utilitaires
+#     path('all/', views.get_all_users_simple, name='all-users-simple'),
+#     path('all/admin/', views.get_all_users_admin, name='all-users-admin'),
+#     path('health/', views.health_check, name='health-check'),
+#     path('status/', views.user_status, name='user-status'),
+    
+#     # Stats admin
+#     path('admin/dashboard-stats/', views.AdminUserViewSet.as_view({'get': 'stats'}), name='admin-dashboard-stats'),
+
+#     path('auth/universal-login/', views.UniversalLoginView.as_view(), name='universal-login'),
+
+
+#     path('projects/user/', UserProjectsAPIView.as_view(), name='user-projects'),
+#     path('projects/user/<int:user_id>/', UserProjectsAPIView.as_view(), name='user-projects-by-id'),
+#     path('projects/user/<int:user_id>/count/', UserProjectsCountView.as_view(), name='user-projects-count'),
+# ]
+
+
+
+# # users/urls.py - VERSION COMPLÈTE ET AMÉLIORÉE
+# from django.urls import path, include
+# from rest_framework.routers import DefaultRouter
+# from rest_framework.decorators import api_view, permission_classes
+# from rest_framework.permissions import AllowAny
+# from rest_framework.response import Response
+
+# from .views_api import (
+#     # Authentification
+#     UniversalLoginView,
+#     QuickLoginView,
+#     RequestLoginView,
+#     SetupPasswordView,
+#     get_current_user,
+    
+#     # Profil
+#     UserProfileView,
+#     UserExtendedProfileView,
+#     UserProfileCompleteView,
+#     get_complete_profile,
+#     UserProfileImageView,
+#     UserProfileHistoryView,
+#     ChangePasswordView,
+    
+#     # Projets
+#     UserProjectsAPIView,
+#     UserProjectsCountView,
+    
+#     # Notifications
+#     UserNotificationsView,
+    
+#     # Admin
+#     AdminUserViewSet,
+    
+#     # Utilitaires
+#     get_all_users_simple,
+#     get_all_users_admin,
+#     health_check,
+#     user_status,
+# )
+
+# # Router pour les vues admin
+# router = DefaultRouter()
+# router.register(r'admin/users', AdminUserViewSet, basename='admin-users')
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def api_root(request):
+#     """Page racine de l'API avec documentation"""
+#     return Response({
+#         'api': 'Simplon Users API',
+#         'version': '2.0',
+#         'description': 'API de gestion des utilisateurs pour la plateforme Simplon',
+#         'documentation': {
+#             'authentication': {
+#                 'login': 'POST /api/users/auth/login/',
+#                 'quick_login': 'POST /api/users/auth/quick-login/',
+#                 'request_login': 'POST /api/users/auth/request-login/',
+#                 'setup_password': 'POST /api/users/auth/setup-password/',
+#                 'current_user': 'GET /api/users/auth/me/'
+#             },
+#             'profile': {
+#                 'profile': 'GET/PUT /api/users/profile/',
+#                 'extended_profile': 'GET /api/users/profile/extended/',
+#                 'profile_complete': 'GET /api/users/profile/complete/',
+#                 'complete_data': 'GET /api/users/profile/complete-data/',
+#                 'avatar': 'GET/POST/DELETE /api/users/profile/avatar/',
+#                 'history': 'GET /api/users/profile/history/',
+#                 'change_password': 'POST /api/users/profile/change-password/'
+#             },
+#             'projects': {
+#                 'user_projects': 'GET /api/users/projects/user/',
+#                 'user_projects_by_id': 'GET /api/users/projects/user/<id>/',
+#                 'projects_count': 'GET /api/users/projects/user/<id>/count/'
+#             },
+#             'notifications': {
+#                 'notifications': 'GET /api/users/notifications/'
+#             },
+#             'admin': {
+#                 'users': 'GET/POST/PUT/DELETE /api/users/admin/users/',
+#                 'dashboard_stats': 'GET /api/users/admin/dashboard-stats/'
+#             },
+#             'utilities': {
+#                 'all_users': 'GET /api/users/all/',
+#                 'all_users_admin': 'GET /api/users/all/admin/',
+#                 'health': 'GET /api/users/health/',
+#                 'status': 'GET /api/users/status/'
+#             }
+#         },
+#         'status': 'operational',
+#         'timestamp': 'now'
+#     })
+
+# urlpatterns = [
+#     # Racine et documentation
+#     path('', api_root, name='api-root'),
+    
+#     # Router admin
+#     path('', include(router.urls)),
+    
+#     # ==================== AUTHENTIFICATION ====================
+#     path('auth/login/', UniversalLoginView.as_view(), name='universal-login'),
+#     path('auth/quick-login/', QuickLoginView.as_view(), name='quick-login'),
+#     path('auth/request-login/', RequestLoginView.as_view(), name='request-login'),
+#     path('auth/setup-password/', SetupPasswordView.as_view(), name='setup-password'),
+#     path('auth/me/', get_current_user, name='current-user'),
+    
+#     # ==================== PROFIL UTILISATEUR ====================
+#     path('profile/', UserProfileView.as_view(), name='user-profile'),
+#     path('profile/extended/', UserExtendedProfileView.as_view(), name='user-profile-extended'),
+#     path('profile/complete/', UserProfileCompleteView.as_view(), name='user-profile-complete'),
+#     path('profile/complete-data/', get_complete_profile, name='user-profile-complete-data'),
+#     path('profile/avatar/', UserProfileImageView.as_view(), name='user-profile-avatar'),
+#     path('profile/history/', UserProfileHistoryView.as_view(), name='user-profile-history'),
+#     path('profile/change-password/', ChangePasswordView.as_view(), name='change-password'),
+    
+#     # ==================== NOTIFICATIONS ====================
+#     path('notifications/', UserNotificationsView.as_view(), name='user-notifications'),
+    
+#     # ==================== PROJETS ====================
+#     path('projects/user/', UserProjectsAPIView.as_view(), name='user-projects'),
+#     path('projects/user/<int:user_id>/', UserProjectsAPIView.as_view(), name='user-projects-by-id'),
+#     path('projects/user/<int:user_id>/count/', UserProjectsCountView.as_view(), name='user-projects-count'),
+    
+#     # ==================== STATISTIQUES ADMIN ====================
+#     path('admin/dashboard-stats/', AdminUserViewSet.as_view({'get': 'stats'}), name='admin-dashboard-stats'),
+    
+#     # ==================== UTILITAIRES ====================
+#     path('all/', get_all_users_simple, name='all-users-simple'),
+#     path('all/admin/', get_all_users_admin, name='all-users-admin'),
+#     path('health/', health_check, name='health-check'),
+#     path('status/', user_status, name='user-status'),
+# ]
+
+
+# users/urls.py - VERSION COMPLÈTE ET AMÉLIORÉE
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django.utils import timezone
-from . import views
 
+from .views import (
+    # Authentification
+    UniversalLoginView,
+    QuickLoginView,
+    RequestLoginView,
+    SetupPasswordView,
+    get_current_user,
+    
+    # Profil
+    UserProfileView,
+    UserExtendedProfileView,
+    UserProfileCompleteView,
+    get_complete_profile,
+    UserProfileImageView,
+    UserProfileHistoryView,
+    ChangePasswordView,
+    
+    # Projets
+    UserProjectsAPIView,
+    UserProjectsCountView,
+    
+    # Notifications
+    UserNotificationsView,
+    
+    # Admin
+    AdminUserViewSet,
+    
+    # Utilitaires
+    get_all_users_simple,
+    get_all_users_admin,
+    health_check,
+    user_status,
+)
+
+# Router pour les vues admin
 router = DefaultRouter()
-router.register(r'admin/users', views.AdminUserViewSet, basename='admin-users')
+router.register(r'admin/users', AdminUserViewSet, basename='admin-users')
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def api_root(request):
-    """Vue racine simplifiée"""
+    """Page racine de l'API avec documentation"""
     return Response({
-        'message': 'API Users de Simplon',
-        'version': '1.0',
-        'endpoints': {
-            'profile': '/api/users/profile/',
-            'extended_profile': '/api/users/profile/extended/',
-            'avatar': '/api/users/profile/avatar/',
-            'auth': '/api/users/auth/',
-            'health': '/api/users/health/',
-        }
+        'api': 'Simplon Users API',
+        'version': '2.0',
+        'description': 'API de gestion des utilisateurs pour la plateforme Simplon',
+        'documentation': {
+            'authentication': {
+                'login': 'POST /api/users/auth/login/',
+                'quick_login': 'POST /api/users/auth/quick-login/',
+                'request_login': 'POST /api/users/auth/request-login/',
+                'setup_password': 'POST /api/users/auth/setup-password/',
+                'current_user': 'GET /api/users/auth/me/'
+            },
+            'profile': {
+                'profile': 'GET/PUT /api/users/profile/',
+                'extended_profile': 'GET /api/users/profile/extended/',
+                'profile_complete': 'GET /api/users/profile/complete/',
+                'complete_data': 'GET /api/users/profile/complete-data/',
+                'avatar': 'GET/POST/DELETE /api/users/profile/avatar/',
+                'history': 'GET /api/users/profile/history/',
+                'change_password': 'POST /api/users/profile/change-password/'
+            },
+            'projects': {
+                'user_projects': 'GET /api/users/projects/user/',
+                'user_projects_by_id': 'GET /api/users/projects/user/<id>/',
+                'projects_count': 'GET /api/users/projects/user/<id>/count/'
+            },
+            'notifications': {
+                'notifications': 'GET /api/users/notifications/'
+            },
+            'admin': {
+                'users': 'GET/POST/PUT/DELETE /api/users/admin/users/',
+                'dashboard_stats': 'GET /api/users/admin/dashboard-stats/'
+            },
+            'utilities': {
+                'all_users': 'GET /api/users/all/',
+                'all_users_admin': 'GET /api/users/all/admin/',
+                'health': 'GET /api/users/health/',
+                'status': 'GET /api/users/status/'
+            }
+        },
+        'status': 'operational',
+        'timestamp': 'now'
     })
 
 urlpatterns = [
-    # Racine
+    # Racine et documentation
     path('', api_root, name='api-root'),
     
-    # Router
+    # Router admin
     path('', include(router.urls)),
     
-    # Profil
-    path('profile/', views.UserProfileView.as_view(), name='user-profile'),
-    path('profile/extended/', views.UserExtendedProfileView.as_view(), name='user-profile-extended'),
-    path('profile/complete/', views.UserProfileCompleteView.as_view(), name='user-profile-complete'),
-    path('profile/complete-data/', views.get_complete_profile, name='user-profile-complete-data'),
-    path('profile/avatar/', views.UserProfileImageView.as_view(), name='user-profile-avatar'),
-    path('profile/history/', views.UserProfileHistoryView.as_view(), name='user-profile-history'),
-    path('profile/change-password/', views.ChangePasswordView.as_view(), name='change-password'),
+    # ==================== AUTHENTIFICATION ====================
+    path('auth/login/', UniversalLoginView.as_view(), name='universal-login'),
+    path('auth/quick-login/', QuickLoginView.as_view(), name='quick-login'),
+    path('auth/request-login/', RequestLoginView.as_view(), name='request-login'),
+    path('auth/setup-password/', SetupPasswordView.as_view(), name='setup-password'),
+    path('auth/me/', get_current_user, name='current-user'),
     
-    # Notifications
-    path('notifications/', views.UserNotificationsView.as_view(), name='user-notifications'),
+    # ==================== PROFIL UTILISATEUR ====================
+    path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path('profile/extended/', UserExtendedProfileView.as_view(), name='user-profile-extended'),
+    path('profile/complete/', UserProfileCompleteView.as_view(), name='user-profile-complete'),
+    path('profile/complete-data/', get_complete_profile, name='user-profile-complete-data'),
+    path('profile/avatar/', UserProfileImageView.as_view(), name='user-profile-avatar'),
+    path('profile/history/', UserProfileHistoryView.as_view(), name='user-profile-history'),
+    path('profile/change-password/', ChangePasswordView.as_view(), name='change-password'),
     
-    # Authentification
-    path('auth/request-login/', views.RequestLoginView.as_view(), name='request-login'),
-    path('auth/setup-password/', views.SetupPasswordView.as_view(), name='setup-password'),
-    path('auth/quick-login/', views.QuickLoginView.as_view(), name='quick-login'),
+    # ==================== NOTIFICATIONS ====================
+    path('notifications/', UserNotificationsView.as_view(), name='user-notifications'),
     
-    # Utilitaires
-    path('all/', views.get_all_users_simple, name='all-users-simple'),
-    path('all/admin/', views.get_all_users_admin, name='all-users-admin'),
-    path('health/', views.health_check, name='health-check'),
-    path('status/', views.user_status, name='user-status'),
+    # ==================== PROJETS ====================
+    path('projects/user/', UserProjectsAPIView.as_view(), name='user-projects'),
+    path('projects/user/<int:user_id>/', UserProjectsAPIView.as_view(), name='user-projects-by-id'),
+    path('projects/user/<int:user_id>/count/', UserProjectsCountView.as_view(), name='user-projects-count'),
     
-    # Stats admin
-    path('admin/dashboard-stats/', views.AdminUserViewSet.as_view({'get': 'stats'}), name='admin-dashboard-stats'),
-
-    path('auth/universal-login/', views.UniversalLoginView.as_view(), name='universal-login'),
+    # ==================== STATISTIQUES ADMIN ====================
+    path('admin/dashboard-stats/', AdminUserViewSet.as_view({'get': 'stats'}), name='admin-dashboard-stats'),
+    
+    # ==================== UTILITAIRES ====================
+    path('all/', get_all_users_simple, name='all-users-simple'),
+    path('all/admin/', get_all_users_admin, name='all-users-admin'),
+    path('health/', health_check, name='health-check'),
+    path('status/', user_status, name='user-status'),
 ]

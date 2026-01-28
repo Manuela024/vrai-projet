@@ -24,6 +24,17 @@
 
 # projects/views.py - VERSION COMPLÈTE ET OPTIMISÉE
 from rest_framework import viewsets, permissions, generics, status, filters
+
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from django.utils import timezone
+from django.contrib.auth.models import User
+from .models import Project
+from .serializers import ProjectUploadSerializer
+import os
+
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -617,3 +628,295 @@ class CohortAnalysisView(APIView):
             'cohort_count': len(analysis),
             'analysis': analysis
         })
+    
+
+
+    # projects/views_api.py - AJOUTEZ CES VUES À LA FIN DU FICHIER
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from django.utils import timezone
+from django.contrib.auth.models import User
+from .models import Project
+from .serializers import ProjectUploadSerializer
+import os
+
+# ============================================================================
+# VUES POUR MINIO (NOUVELLES - NE MODIFIENT PAS L'EXISTANT)
+# ============================================================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@parser_classes([MultiPartParser, FormParser])
+def upload_project_with_files(request):
+    """
+    Upload d'un projet avec fichiers (ZIP + Image) vers MinIO
+    Compatible avec les vues existantes
+    """
+    try:
+        print("=" * 80)
+        print("📤 UPLOAD AVEC FICHIERS (MinIO)")
+        print("=" * 80)
+        
+        # Log pour debug
+        print(f"📝 Données POST: {dict(request.POST)}")
+        print(f"📦 Fichiers reçus: {list(request.FILES.keys())}")
+        
+        for key, file in request.FILES.items():
+            print(f"   - {key}: {file.name} ({file.size} bytes)")
+        
+        # Validation du titre
+        title = request.POST.get('title', '').strip()
+        if not title:
+            return Response({
+                'status': 'error',
+                'message': 'Le titre est requis'
+            }, status=400)
+        
+        # Déterminer l'auteur (compatible avec la logique existante)
+        if request.user.is_authenticated:
+            author = request.user
+        else:
+            # Utiliser la même logique que la vue existante
+            author, _ = User.objects.get_or_create(
+                username='default_uploader',
+                defaults={
+                    'email': 'uploader@example.com',
+                    'first_name': 'Default',
+                    'last_name': 'Uploader'
+                }
+            )
+        
+        # Préparer les données pour le projet
+        project_data = {
+            'title': title,
+            'description': request.POST.get('description', ''),
+            'technologies': request.POST.get('technologies', ''),
+            'category': request.POST.get('category', 'web'),
+            'cohort': request.POST.get('cohort', ''),
+            'tags': request.POST.get('tags', ''),
+            'github_url': request.POST.get('github_url', ''),
+            'demo_url': request.POST.get('demo_url', ''),
+            'status': request.POST.get('status', 'draft'),
+            'author': author
+        }
+        
+        # Créer le projet
+        project = Project.objects.create(**project_data)
+        
+        # Gérer les fichiers
+        files_added = []
+        
+        if 'zip_file' in request.FILES:
+            project.zip_file = request.FILES['zip_file']
+            files_added.append('zip_file')
+            print(f"📦 Fichier ZIP sauvegardé: {project.zip_file.name}")
+        
+        if 'image' in request.FILES:
+            project.image = request.FILES['image']
+            files_added.append('image')
+            print(f"🖼️ Image sauvegardée: {project.image.name}")
+        
+        # Sauvegarder les modifications
+        if files_added:
+            project.save()
+        
+        print(f"✅ Projet créé avec succès!")
+        print(f"   ID: {project.id}")
+        print(f"   Fichiers ajoutés: {files_added}")
+        print("=" * 80)
+        
+        # Retourner la réponse
+        return Response({
+            'status': 'success',
+            'message': 'Projet créé avec succès!',
+            'project': {
+                'id': project.id,
+                'title': project.title,
+                'zip_file_url': project.zip_file.url if project.zip_file else None,
+                'image_url': project.image.url if project.image else None,
+                'files_added': files_added,
+                'created_at': project.created_at.isoformat()
+            }
+        }, status=201)
+        
+    except Exception as e:
+        print(f"❌ Erreur d'upload: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return Response({
+            'status': 'error',
+            'message': f'Erreur lors de la création du projet: {str(e)}'
+        }, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def download_project_zip(request, project_id):
+    """
+    Récupère l'URL de téléchargement d'un fichier ZIP
+    Compatible avec MinIO et stockage local
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+        
+        if not project.zip_file:
+            return Response({
+                'status': 'error',
+                'message': 'Aucun fichier ZIP disponible pour ce projet'
+            }, status=404)
+        
+        # Incrémenter les téléchargements
+        project.downloads += 1
+        project.save(update_fields=['downloads'])
+        
+        # Retourner l'URL de téléchargement
+        return Response({
+            'status': 'success',
+            'project_id': project.id,
+            'title': project.title,
+            'download_url': project.zip_file.url,
+            'filename': os.path.basename(project.zip_file.name),
+            'size': project.zip_file.size,
+            'downloads': project.downloads,
+            'is_minio': 'minio' in project.zip_file.url.lower() if project.zip_file else False
+        })
+        
+    except Project.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Projet non trouvé'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'Erreur: {str(e)}'
+        }, status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def increment_views(request, project_id):
+    """
+    Incrémente le compteur de vues d'un projet
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+        project.views += 1
+        project.save(update_fields=['views'])
+        
+        return Response({
+            'status': 'success',
+            'project_id': project.id,
+            'title': project.title,
+            'views': project.views
+        })
+        
+    except Project.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Projet non trouvé'
+        }, status=404)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def project_files_info(request, project_id):
+    """
+    Retourne les informations sur les fichiers d'un projet
+    """
+    try:
+        project = Project.objects.get(id=project_id)
+        
+        zip_info = None
+        if project.zip_file:
+            zip_info = {
+                'url': project.zip_file.url,
+                'name': os.path.basename(project.zip_file.name),
+                'size': project.zip_file.size,
+                'available': True
+            }
+        
+        image_info = None
+        if project.image:
+            image_info = {
+                'url': project.image.url,
+                'name': os.path.basename(project.image.name),
+                'size': project.image.size,
+                'available': True
+            }
+        
+        return Response({
+            'status': 'success',
+            'project_id': project.id,
+            'title': project.title,
+            'zip_file': zip_info,
+            'image': image_info,
+            'has_files': bool(zip_info or image_info)
+        })
+        
+    except Project.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'Projet non trouvé'
+        }, status=404)
+
+# ============================================================================
+# VUE POUR TESTER MINIO
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def minio_status(request):
+    """
+    Vérifie l'état de MinIO
+    """
+    try:
+        from django.conf import settings
+        
+        minio_info = {
+            'enabled': getattr(settings, 'MINIO_AVAILABLE', False),
+            'endpoint': getattr(settings, 'MINIO_ENDPOINT', 'non configuré'),
+            'bucket': getattr(settings, 'MINIO_BUCKET_NAME', 'non configuré'),
+            'secure': getattr(settings, 'MINIO_SECURE', False)
+        }
+        
+        if minio_info['enabled']:
+            try:
+                from minio import Minio
+                client = Minio(
+                    endpoint=settings.MINIO_ENDPOINT,
+                    access_key=settings.MINIO_ACCESS_KEY,
+                    secret_key=settings.MINIO_SECRET_KEY,
+                    secure=settings.MINIO_SECURE
+                )
+                
+                # Tester la connexion
+                buckets = client.list_buckets()
+                minio_info['connected'] = True
+                minio_info['buckets'] = [b.name for b in buckets]
+                
+            except Exception as e:
+                minio_info['connected'] = False
+                minio_info['error'] = str(e)
+        
+        return Response({
+            'status': 'success',
+            'minio': minio_info,
+            'timestamp': timezone.now().isoformat()
+        })
+        
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+print("=" * 70)
+print("✅ VUES MINIO AJOUTÉES!")
+print("📊 Nouvelles endpoints MinIO:")
+print("   - POST /api/projects/upload-files/ → Upload avec fichiers")
+print("   - GET  /api/projects/<id>/download/ → Téléchargement ZIP")
+print("   - POST /api/projects/<id>/increment-views/ → Incrémenter vues")
+print("   - GET  /api/projects/<id>/files/ → Info fichiers")
+print("   - GET  /api/minio-status/ → Statut MinIO")
+print("=" * 70)

@@ -1,450 +1,2197 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { projectService } from '../services/projects';
+﻿
+// // src/pages/ProjectDetail.jsx - VERSION PROFESSIONNELLE
+// import React, { useState, useEffect } from 'react';
+// import { useParams, useNavigate, Link } from 'react-router-dom';
 // import authService from '../services/auth';
 
-import authService from '../services/auth'; // ⭐ CHANGEMENT ICI
+// const ProjectDetail = () => {
+//   const { id } = useParams();
+//   const navigate = useNavigate();
+//   const [project, setProject] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [similarProjects, setSimilarProjects] = useState([]);
+//   const [user, setUser] = useState(null);
+//   const [activeTab, setActiveTab] = useState('description');
+//   const [downloading, setDownloading] = useState(false);
+//   const [isFavorite, setIsFavorite] = useState(false);
+
+//   useEffect(() => {
+//     const currentUser = authService.getCurrentUser();
+//     setUser(currentUser);
+    
+//     if (!currentUser) {
+//       navigate('/login');
+//       return;
+//     }
+    
+//     loadProject();
+//     checkIfFavorite();
+//   }, [id, navigate]);
+
+//   const loadProject = async () => {
+//     try {
+//       setLoading(true);
+//       const token = authService.getAccessToken();
+      
+//       // Charger le projet avec plus de détails
+//       const endpoints = [
+//         `http://localhost:8000/api/projects/${id}/`,
+//         `http://localhost:8000/api/projects/projects/${id}/`,
+//         `http://localhost:8000/api/project/${id}/`
+//       ];
+      
+//       let projectData = null;
+      
+//       for (const endpoint of endpoints) {
+//         try {
+//           const response = await fetch(endpoint, {
+//             headers: {
+//               'Authorization': `Bearer ${token}`,
+//               'Accept': 'application/json'
+//             }
+//           });
+          
+//           if (response.ok) {
+//             const data = await response.json();
+//             projectData = data;
+//             break;
+//           }
+//         } catch (error) {
+//           continue;
+//         }
+//       }
+      
+//       if (projectData) {
+//         setProject(projectData);
+        
+//         // Charger des projets similaires
+//         if (projectData.technologies || projectData.category) {
+//           loadSimilarProjects(projectData);
+//         }
+        
+//         // Incrémenter les vues
+//         incrementViews();
+//       } else {
+//         throw new Error('Projet non trouvé');
+//       }
+//     } catch (error) {
+//       console.error('Erreur chargement projet:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const loadSimilarProjects = async (projectData) => {
+//     try {
+//       const token = authService.getAccessToken();
+//       const techs = projectData.technologies ? encodeURIComponent(projectData.technologies.substring(0, 50)) : '';
+//       const category = projectData.category ? encodeURIComponent(projectData.category) : '';
+      
+//       const response = await fetch(
+//         `http://localhost:8000/api/projects/?${techs ? `technologies=${techs}` : ''}${category ? `&category=${category}` : ''}&exclude=${id}`,
+//         {
+//           headers: {
+//             'Authorization': `Bearer ${token}`,
+//             'Accept': 'application/json'
+//           }
+//         }
+//       );
+      
+//       if (response.ok) {
+//         const data = await response.json();
+//         // Extraire les projets selon la structure
+//         const projects = data.results || data.projects || data.data || data;
+//         setSimilarProjects(projects.filter(p => p.id !== parseInt(id)).slice(0, 3));
+//       }
+//     } catch (error) {
+//       console.error('Erreur chargement projets similaires:', error);
+//     }
+//   };
+
+//   const incrementViews = async () => {
+//     try {
+//       const token = authService.getAccessToken();
+//       await fetch(`http://localhost:8000/api/projects/${id}/increment-views/`, {
+//         method: 'POST',
+//         headers: {
+//           'Authorization': `Bearer ${token}`,
+//           'Content-Type': 'application/json'
+//         }
+//       });
+//     } catch (error) {
+//       // Ignorer l'erreur, ce n'est pas critique
+//     }
+//   };
+
+//   const checkIfFavorite = () => {
+//     // Vérifier si le projet est dans les favoris
+//     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+//     setIsFavorite(favorites.includes(parseInt(id)));
+//   };
+
+//   const toggleFavorite = () => {
+//     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+//     const projectId = parseInt(id);
+    
+//     if (isFavorite) {
+//       const newFavorites = favorites.filter(favId => favId !== projectId);
+//       localStorage.setItem('favorites', JSON.stringify(newFavorites));
+//       setIsFavorite(false);
+//     } else {
+//       favorites.push(projectId);
+//       localStorage.setItem('favorites', JSON.stringify(favorites));
+//       setIsFavorite(true);
+//     }
+//   };
+
+//   const handleDownloadZip = async () => {
+//     if (!project || downloading) return;
+    
+//     setDownloading(true);
+    
+//     try {
+//       let zipFileUrl = project.zip_file;
+      
+//       if (!zipFileUrl) {
+//         // Essayer de récupérer depuis les détails complets
+//         const token = authService.getAccessToken();
+//         const response = await fetch(`http://localhost:8000/api/projects/${id}/`, {
+//           headers: {
+//             'Authorization': `Bearer ${token}`,
+//             'Accept': 'application/json'
+//           }
+//         });
+        
+//         if (response.ok) {
+//           const data = await response.json();
+//           zipFileUrl = data.zip_file;
+//         }
+//       }
+      
+//       if (zipFileUrl) {
+//         // Normaliser l'URL
+//         let finalUrl = zipFileUrl;
+//         if (!zipFileUrl.startsWith('http')) {
+//           if (zipFileUrl.startsWith('/media/') || zipFileUrl.startsWith('/static/')) {
+//             finalUrl = `http://localhost:8000${zipFileUrl}`;
+//           } else {
+//             finalUrl = `http://localhost:8000/media/${zipFileUrl}`;
+//           }
+//         }
+        
+//         // Créer un lien pour le téléchargement
+//         const link = document.createElement('a');
+//         link.href = finalUrl;
+//         link.download = `${project.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.zip`;
+//         link.target = '_blank';
+        
+//         document.body.appendChild(link);
+//         link.click();
+//         document.body.removeChild(link);
+        
+//         // Enregistrer le téléchargement
+//         await fetch(`http://localhost:8000/api/projects/${id}/increment-downloads/`, {
+//           method: 'POST',
+//           headers: {
+//             'Authorization': `Bearer ${authService.getAccessToken()}`,
+//             'Content-Type': 'application/json'
+//           }
+//         });
+//       } else {
+//         alert('Aucun fichier ZIP disponible pour ce projet.');
+//       }
+//     } catch (error) {
+//       console.error('Erreur téléchargement:', error);
+//       alert('Erreur lors du téléchargement. Veuillez réessayer.');
+//     } finally {
+//       setDownloading(false);
+//     }
+//   };
+
+//   const shareProject = () => {
+//     const shareUrl = window.location.href;
+//     const title = project.title;
+    
+//     if (navigator.share) {
+//       navigator.share({
+//         title: title,
+//         text: `Découvrez ce projet : ${title}`,
+//         url: shareUrl,
+//       });
+//     } else {
+//       navigator.clipboard.writeText(shareUrl);
+//       alert('Lien copié dans le presse-papier !');
+//     }
+//   };
+
+//   const formatDate = (dateString) => {
+//     if (!dateString) return 'Date inconnue';
+//     try {
+//       return new Date(dateString).toLocaleDateString('fr-FR', {
+//         day: 'numeric',
+//         month: 'long',
+//         year: 'numeric'
+//       });
+//     } catch {
+//       return 'Date invalide';
+//     }
+//   };
+
+//   const getStatusBadge = (status) => {
+//     const statusMap = {
+//       'published': { label: '✅ Publié', color: 'bg-green-100 text-green-800 border border-green-200' },
+//       'pending': { label: '⏳ En attente', color: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
+//       'draft': { label: '📝 Brouillon', color: 'bg-gray-100 text-gray-800 border border-gray-200' },
+//       'approved': { label: '✅ Approuvé', color: 'bg-blue-100 text-blue-800 border border-blue-200' },
+//       'rejected': { label: '❌ Rejeté', color: 'bg-red-100 text-red-800 border border-red-200' }
+//     };
+    
+//     const statusInfo = statusMap[status?.toLowerCase()] || statusMap.draft;
+    
+//     return (
+//       <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+//         {statusInfo.label}
+//       </span>
+//     );
+//   };
+
+//   const getTechnologies = () => {
+//     if (!project?.technologies) return [];
+//     if (Array.isArray(project.technologies)) return project.technologies;
+//     if (typeof project.technologies === 'string') {
+//       return project.technologies.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0);
+//     }
+//     return [];
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+//         <div className="text-center">
+//           <div className="relative">
+//             <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#E30613] border-t-transparent mx-auto"></div>
+//             <div className="absolute inset-0 flex items-center justify-center">
+//               <div className="h-8 w-8 bg-[#001F3F] rounded-full animate-pulse"></div>
+//             </div>
+//           </div>
+//           <p className="mt-6 text-lg font-medium text-gray-700">Chargement du projet</p>
+//           <p className="mt-2 text-sm text-gray-500">Nous préparons tous les détails...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   if (!project) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+//         <div className="text-center max-w-md">
+//           <div className="text-6xl mb-6">🔍</div>
+//           <h1 className="text-2xl font-bold text-gray-900 mb-3">Projet non trouvé</h1>
+//           <p className="text-gray-600 mb-8">
+//             Le projet que vous recherchez n'existe pas ou a été déplacé.
+//           </p>
+//           <div className="space-y-3">
+//             <button
+//               onClick={() => navigate('/explore')}
+//               className="w-full px-6 py-3 bg-gradient-to-r from-[#001F3F] to-[#003265] text-white rounded-xl hover:opacity-90 transition-all font-medium"
+//             >
+//               Explorer les projets
+//             </button>
+//             <button
+//               onClick={() => navigate(-1)}
+//               className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+//             >
+//               ← Retour
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   const technologies = getTechnologies();
+//   const isOwner = user && user.id && (user.id === project.author_id || user.id === project.author?.id);
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+//       {/* Navigation */}
+//       <nav className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-200">
+//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+//           <div className="flex justify-between items-center h-16">
+//             <button
+//               onClick={() => navigate(-1)}
+//               className="flex items-center gap-2 text-gray-600 hover:text-[#001F3F] transition-colors"
+//             >
+//               <span className="material-symbols-outlined">arrow_back</span>
+//               <span className="font-medium">Retour</span>
+//             </button>
+            
+//             <div className="flex items-center gap-3">
+//               <button
+//                 onClick={toggleFavorite}
+//                 className={`p-2 rounded-full ${isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
+//                 title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+//               >
+//                 <span className="material-symbols-outlined">
+//                   {isFavorite ? 'favorite' : 'favorite_border'}
+//                 </span>
+//               </button>
+              
+//               <button
+//                 onClick={shareProject}
+//                 className="p-2 rounded-full text-gray-400 hover:text-[#001F3F] hover:bg-gray-100"
+//                 title="Partager"
+//               >
+//                 <span className="material-symbols-outlined">share</span>
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       </nav>
+
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//         {/* En-tête */}
+//         <div className="mb-8">
+//           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+//             <div className="flex-1">
+//               <div className="flex items-center gap-3 mb-3">
+//                 {getStatusBadge(project.status)}
+//                 <span className="text-sm text-gray-500">
+//                   {project.views || 0} vues • {project.downloads || 0} téléchargements
+//                 </span>
+//               </div>
+              
+//               <h1 className="text-3xl lg:text-4xl font-bold text-[#001F3F] mb-3">
+//                 {project.title}
+//               </h1>
+              
+//               <div className="flex flex-wrap items-center gap-4 text-gray-600">
+//                 <div className="flex items-center gap-2">
+//                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+//                     {project.author_name?.charAt(0) || 'U'}
+//                   </div>
+//                   <div>
+//                     <p className="font-medium">{project.author_name || 'Auteur inconnu'}</p>
+//                     <p className="text-xs text-gray-500">{project.cohort || 'Sans cohorte'}</p>
+//                   </div>
+//                 </div>
+                
+//                 <div className="flex items-center gap-1">
+//                   <span className="material-symbols-outlined text-sm">calendar_today</span>
+//                   <span className="text-sm">{formatDate(project.created_at)}</span>
+//                 </div>
+                
+//                 {project.category && (
+//                   <div className="flex items-center gap-1">
+//                     <span className="material-symbols-outlined text-sm">category</span>
+//                     <span className="text-sm capitalize">{project.category}</span>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+            
+//             {/* Actions */}
+//             <div className="flex flex-wrap gap-3">
+//               {isOwner && (
+//                 <Link
+//                   to={`/upload?edit=${project.id}`}
+//                   className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:opacity-90 transition-all flex items-center gap-2 font-medium"
+//                 >
+//                   <span className="material-symbols-outlined">edit</span>
+//                   Modifier
+//                 </Link>
+//               )}
+              
+//               <button
+//                 onClick={handleDownloadZip}
+//                 disabled={downloading}
+//                 className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:opacity-90 transition-all flex items-center gap-2 font-medium disabled:opacity-50"
+//               >
+//                 <span className="material-symbols-outlined">
+//                   {downloading ? 'downloading' : 'download'}
+//                 </span>
+//                 {downloading ? 'Téléchargement...' : 'Télécharger le projet'}
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+//           {/* Colonne principale */}
+//           <div className="lg:col-span-2 space-y-6">
+//             {/* Image du projet */}
+//             <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+//               {project.image ? (
+//                 <img
+//                   src={project.image}
+//                   alt={project.title}
+//                   className="w-full h-80 lg:h-96 object-cover"
+//                   onError={(e) => {
+//                     e.target.onerror = null;
+//                     e.target.src = `https://via.placeholder.com/800x400/001F3F/ffffff?text=${encodeURIComponent(project.title)}`;
+//                   }}
+//                 />
+//               ) : (
+//                 <div className="w-full h-80 lg:h-96 bg-gradient-to-br from-[#001F3F] to-[#003265] flex items-center justify-center">
+//                   <div className="text-center p-8">
+//                     <span className="material-symbols-outlined text-white text-6xl mb-4">
+//                       code
+//                     </span>
+//                     <p className="text-white text-lg font-medium">{project.title}</p>
+//                     <p className="text-white/70 mt-2">Projet de développement</p>
+//                   </div>
+//                 </div>
+//               )}
+//             </div>
+
+//             {/* Onglets */}
+//             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+//               <div className="border-b border-gray-200">
+//                 <nav className="flex">
+//                   {['description', 'technologies', 'details'].map(tab => (
+//                     <button
+//                       key={tab}
+//                       onClick={() => setActiveTab(tab)}
+//                       className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+//                         activeTab === tab
+//                           ? 'text-[#E30613] border-b-2 border-[#E30613]'
+//                           : 'text-gray-600 hover:text-gray-900'
+//                       }`}
+//                     >
+//                       {tab === 'description' && '📋 Description'}
+//                       {tab === 'technologies' && '🛠️ Technologies'}
+//                       {tab === 'details' && '📄 Détails'}
+//                     </button>
+//                   ))}
+//                 </nav>
+//               </div>
+              
+//               <div className="p-6">
+//                 {activeTab === 'description' && (
+//                   <div className="prose max-w-none">
+//                     <h3 className="text-xl font-bold text-gray-900 mb-4">À propos de ce projet</h3>
+//                     <div className="space-y-4 text-gray-700">
+//                       {project.description ? (
+//                         project.description.split('\n').map((paragraph, index) => (
+//                           <p key={index} className="leading-relaxed">{paragraph}</p>
+//                         ))
+//                       ) : (
+//                         <p className="text-gray-500 italic">Aucune description fournie pour ce projet.</p>
+//                       )}
+//                     </div>
+//                   </div>
+//                 )}
+                
+//                 {activeTab === 'technologies' && (
+//                   <div>
+//                     <h3 className="text-xl font-bold text-gray-900 mb-6">Stack technique</h3>
+//                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+//                       {technologies.map((tech, index) => (
+//                         <div
+//                           key={index}
+//                           className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 text-center hover:border-blue-300 transition-colors"
+//                         >
+//                           <div className="text-2xl mb-2">
+//                             {tech.toLowerCase().includes('react') && '⚛️'}
+//                             {tech.toLowerCase().includes('node') && '🟢'}
+//                             {tech.toLowerCase().includes('python') && '🐍'}
+//                             {tech.toLowerCase().includes('django') && '🐳'}
+//                             {tech.toLowerCase().includes('js') && '📜'}
+//                             {!tech.toLowerCase().includes('react') && 
+//                              !tech.toLowerCase().includes('node') && 
+//                              !tech.toLowerCase().includes('python') && 
+//                              !tech.toLowerCase().includes('django') && 
+//                              !tech.toLowerCase().includes('js') && '💻'}
+//                           </div>
+//                           <span className="font-medium text-gray-800">{tech}</span>
+//                         </div>
+//                       ))}
+//                     </div>
+//                   </div>
+//                 )}
+                
+//                 {activeTab === 'details' && (
+//                   <div className="space-y-6">
+//                     <div>
+//                       <h4 className="font-bold text-gray-900 mb-3">📁 Structure du projet</h4>
+//                       <div className="bg-gray-50 rounded-lg p-4 font-mono text-sm">
+//                         <p>{project.title}/</p>
+//                         <p className="ml-4">├── src/</p>
+//                         <p className="ml-4">├── public/</p>
+//                         <p className="ml-4">├── package.json</p>
+//                         <p className="ml-4">└── README.md</p>
+//                       </div>
+//                     </div>
+                    
+//                     <div>
+//                       <h4 className="font-bold text-gray-900 mb-3">🎯 Objectifs</h4>
+//                       <ul className="space-y-2 text-gray-700">
+//                         <li className="flex items-start gap-2">
+//                           <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+//                           <span>Application fonctionnelle et responsive</span>
+//                         </li>
+//                         <li className="flex items-start gap-2">
+//                           <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+//                           <span>Code propre et bien documenté</span>
+//                         </li>
+//                         <li className="flex items-start gap-2">
+//                           <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+//                           <span>Architecture modulaire et scalable</span>
+//                         </li>
+//                       </ul>
+//                     </div>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+//           </div>
+
+//           {/* Sidebar */}
+//           <div className="space-y-6">
+//             {/* Liens externes */}
+//             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+//               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+//                 <span className="material-symbols-outlined">link</span>
+//                 Ressources
+//               </h3>
+//               <div className="space-y-3">
+//                 {project.github_url && (
+//                   <a
+//                     href={project.github_url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+//                   >
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+//                         <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+//                           <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+//                         </svg>
+//                       </div>
+//                       <div>
+//                         <p className="font-medium">Repository GitHub</p>
+//                         <p className="text-xs text-gray-500">Code source</p>
+//                       </div>
+//                     </div>
+//                     <span className="material-symbols-outlined text-gray-400 group-hover:text-gray-600">open_in_new</span>
+//                   </a>
+//                 )}
+                
+//                 {project.demo_url && (
+//                   <a
+//                     href={project.demo_url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className="flex items-center justify-between p-3 bg-gradient-to-r from-[#001F3F] to-[#003265] text-white hover:opacity-90 rounded-lg transition-all group"
+//                   >
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+//                         <span className="material-symbols-outlined">rocket_launch</span>
+//                       </div>
+//                       <div>
+//                         <p className="font-medium">Démo en ligne</p>
+//                         <p className="text-xs text-white/70">Voir en action</p>
+//                       </div>
+//                     </div>
+//                     <span className="material-symbols-outlined">open_in_new</span>
+//                   </a>
+//                 )}
+                
+//                 {project.zip_file && (
+//                   <button
+//                     onClick={handleDownloadZip}
+//                     disabled={downloading}
+//                     className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:opacity-90 rounded-lg transition-all group disabled:opacity-50"
+//                   >
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+//                         <span className="material-symbols-outlined">download</span>
+//                       </div>
+//                       <div>
+//                         <p className="font-medium">Télécharger le ZIP</p>
+//                         <p className="text-xs text-white/70">Archive complète</p>
+//                       </div>
+//                     </div>
+//                     <span className="material-symbols-outlined">
+//                       {downloading ? 'downloading' : 'download'}
+//                     </span>
+//                   </button>
+//                 )}
+                
+//                 {!project.github_url && !project.demo_url && !project.zip_file && (
+//                   <div className="text-center py-4">
+//                     <span className="material-symbols-outlined text-gray-400 text-4xl mb-2">link_off</span>
+//                     <p className="text-gray-500 text-sm">Aucune ressource disponible</p>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+
+//             {/* Informations */}
+//             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+//               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+//                 <span className="material-symbols-outlined">info</span>
+//                 Informations
+//               </h3>
+//               <div className="space-y-4">
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Statut</span>
+//                   {getStatusBadge(project.status)}
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Cohorte</span>
+//                   <span className="font-medium">{project.cohort || 'Non spécifiée'}</span>
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Date création</span>
+//                   <span className="font-medium">{formatDate(project.created_at)}</span>
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Dernière mise à jour</span>
+//                   <span className="font-medium">{formatDate(project.updated_at)}</span>
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2">
+//                   <span className="text-gray-600">Catégorie</span>
+//                   <span className="font-medium capitalize">{project.category || 'Développement'}</span>
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* Projets similaires */}
+//             {similarProjects.length > 0 && (
+//               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+//                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+//                   <span className="material-symbols-outlined">auto_awesome</span>
+//                   Projets similaires
+//                 </h3>
+//                 <div className="space-y-3">
+//                   {similarProjects.map(similar => (
+//                     <div
+//                       key={similar.id}
+//                       onClick={() => navigate(`/project/${similar.id}`)}
+//                       className="group p-3 border border-gray-200 hover:border-[#E30613] rounded-lg cursor-pointer transition-all hover:shadow-md"
+//                     >
+//                       <div className="flex items-start gap-3">
+//                         <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
+//                           <span className="material-symbols-outlined text-blue-600 text-sm">code</span>
+//                         </div>
+//                         <div className="flex-1 min-w-0">
+//                           <h4 className="font-medium text-gray-900 truncate group-hover:text-[#E30613]">
+//                             {similar.title}
+//                           </h4>
+//                           <p className="text-xs text-gray-500 truncate">
+//                             {similar.technologies?.split(',').slice(0, 2).join(', ')}
+//                           </p>
+//                         </div>
+//                         <span className="material-symbols-outlined text-gray-400 group-hover:text-[#E30613] text-sm">
+//                           arrow_forward
+//                         </span>
+//                       </div>
+//                     </div>
+//                   ))}
+//                 </div>
+//               </div>
+//             )}
+
+//             {/* Statistiques */}
+//             <div className="bg-gradient-to-br from-[#001F3F] to-[#003265] rounded-2xl p-6 text-white">
+//               <h3 className="text-lg font-bold mb-4">📊 Statistiques</h3>
+//               <div className="grid grid-cols-2 gap-4">
+//                 <div className="text-center">
+//                   <div className="text-2xl font-bold mb-1">{project.views || 0}</div>
+//                   <div className="text-xs text-white/70">Vues</div>
+//                 </div>
+//                 <div className="text-center">
+//                   <div className="text-2xl font-bold mb-1">{project.downloads || 0}</div>
+//                   <div className="text-xs text-white/70">Téléchargements</div>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ProjectDetail;
+
+
+// // src/pages/ProjectDetail.jsx - VERSION PROFESSIONNELLE
+// import React, { useState, useEffect } from 'react';
+// import { useParams, useNavigate, Link } from 'react-router-dom';
+// import authService from '../services/auth';
+
+// const ProjectDetail = () => {
+//   const { id } = useParams();
+//   const navigate = useNavigate();
+//   const [project, setProject] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [similarProjects, setSimilarProjects] = useState([]);
+//   const [user, setUser] = useState(null);
+//   const [activeTab, setActiveTab] = useState('description');
+//   const [downloading, setDownloading] = useState(false);
+//   const [isFavorite, setIsFavorite] = useState(false);
+
+//   useEffect(() => {
+//     const currentUser = authService.getCurrentUser();
+//     setUser(currentUser);
+    
+//     if (!currentUser) {
+//       navigate('/login');
+//       return;
+//     }
+    
+//     loadProject();
+//     checkIfFavorite();
+//   }, [id, navigate]);
+
+//   const loadProject = async () => {
+//     try {
+//       setLoading(true);
+//       const token = authService.getAccessToken();
+      
+//       // Charger le projet avec plus de détails
+//       const endpoints = [
+//         `http://localhost:8000/api/projects/${id}/`,
+//         `http://localhost:8000/api/projects/projects/${id}/`,
+//         `http://localhost:8000/api/project/${id}/`
+//       ];
+      
+//       let projectData = null;
+      
+//       for (const endpoint of endpoints) {
+//         try {
+//           const response = await fetch(endpoint, {
+//             headers: {
+//               'Authorization': `Bearer ${token}`,
+//               'Accept': 'application/json'
+//             }
+//           });
+          
+//           if (response.ok) {
+//             const data = await response.json();
+//             projectData = data;
+//             break;
+//           }
+//         } catch (error) {
+//           continue;
+//         }
+//       }
+      
+//       if (projectData) {
+//         setProject(projectData);
+        
+//         // Charger des projets similaires
+//         if (projectData.technologies || projectData.category) {
+//           loadSimilarProjects(projectData);
+//         }
+        
+//         // Incrémenter les vues
+//         incrementViews();
+//       } else {
+//         throw new Error('Projet non trouvé');
+//       }
+//     } catch (error) {
+//       console.error('Erreur chargement projet:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const loadSimilarProjects = async (projectData) => {
+//     try {
+//       const token = authService.getAccessToken();
+//       const techs = projectData.technologies ? encodeURIComponent(projectData.technologies.substring(0, 50)) : '';
+//       const category = projectData.category ? encodeURIComponent(projectData.category) : '';
+      
+//       const response = await fetch(
+//         `http://localhost:8000/api/projects/?${techs ? `technologies=${techs}` : ''}${category ? `&category=${category}` : ''}&exclude=${id}`,
+//         {
+//           headers: {
+//             'Authorization': `Bearer ${token}`,
+//             'Accept': 'application/json'
+//           }
+//         }
+//       );
+      
+//       if (response.ok) {
+//         const data = await response.json();
+//         // Extraire les projets selon la structure
+//         const projects = data.results || data.projects || data.data || data;
+//         setSimilarProjects(projects.filter(p => p.id !== parseInt(id)).slice(0, 3));
+//       }
+//     } catch (error) {
+//       console.error('Erreur chargement projets similaires:', error);
+//     }
+//   };
+
+//   const incrementViews = async () => {
+//     try {
+//       const token = authService.getAccessToken();
+//       await fetch(`http://localhost:8000/api/projects/${id}/increment-views/`, {
+//         method: 'POST',
+//         headers: {
+//           'Authorization': `Bearer ${token}`,
+//           'Content-Type': 'application/json'
+//         }
+//       });
+//     } catch (error) {
+//       // Ignorer l'erreur, ce n'est pas critique
+//     }
+//   };
+
+//   const checkIfFavorite = () => {
+//     // Vérifier si le projet est dans les favoris
+//     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+//     setIsFavorite(favorites.includes(parseInt(id)));
+//   };
+
+//   const toggleFavorite = () => {
+//     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+//     const projectId = parseInt(id);
+    
+//     if (isFavorite) {
+//       const newFavorites = favorites.filter(favId => favId !== projectId);
+//       localStorage.setItem('favorites', JSON.stringify(newFavorites));
+//       setIsFavorite(false);
+//     } else {
+//       favorites.push(projectId);
+//       localStorage.setItem('favorites', JSON.stringify(favorites));
+//       setIsFavorite(true);
+//     }
+//   };
+
+//   const handleDownloadZip = async () => {
+//     if (!project || downloading) return;
+    
+//     setDownloading(true);
+    
+//     try {
+//       let zipFileUrl = project.zip_file;
+      
+//       if (!zipFileUrl) {
+//         // Essayer de récupérer depuis les détails complets
+//         const token = authService.getAccessToken();
+//         const response = await fetch(`http://localhost:8000/api/projects/${id}/`, {
+//           headers: {
+//             'Authorization': `Bearer ${token}`,
+//             'Accept': 'application/json'
+//           }
+//         });
+        
+//         if (response.ok) {
+//           const data = await response.json();
+//           zipFileUrl = data.zip_file;
+//         }
+//       }
+      
+//       if (zipFileUrl) {
+//         // Normaliser l'URL
+//         let finalUrl = zipFileUrl;
+//         if (!zipFileUrl.startsWith('http')) {
+//           if (zipFileUrl.startsWith('/media/') || zipFileUrl.startsWith('/static/')) {
+//             finalUrl = `http://localhost:8000${zipFileUrl}`;
+//           } else {
+//             finalUrl = `http://localhost:8000/media/${zipFileUrl}`;
+//           }
+//         }
+        
+//         // Créer un lien pour le téléchargement
+//         const link = document.createElement('a');
+//         link.href = finalUrl;
+//         link.download = `${project.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.zip`;
+//         link.target = '_blank';
+        
+//         document.body.appendChild(link);
+//         link.click();
+//         document.body.removeChild(link);
+        
+//         // Enregistrer le téléchargement
+//         await fetch(`http://localhost:8000/api/projects/${id}/increment-downloads/`, {
+//           method: 'POST',
+//           headers: {
+//             'Authorization': `Bearer ${authService.getAccessToken()}`,
+//             'Content-Type': 'application/json'
+//           }
+//         });
+//       } else {
+//         alert('Aucun fichier ZIP disponible pour ce projet.');
+//       }
+//     } catch (error) {
+//       console.error('Erreur téléchargement:', error);
+//       alert('Erreur lors du téléchargement. Veuillez réessayer.');
+//     } finally {
+//       setDownloading(false);
+//     }
+//   };
+
+//   const shareProject = () => {
+//     const shareUrl = window.location.href;
+//     const title = project.title;
+    
+//     if (navigator.share) {
+//       navigator.share({
+//         title: title,
+//         text: `Découvrez ce projet : ${title}`,
+//         url: shareUrl,
+//       });
+//     } else {
+//       navigator.clipboard.writeText(shareUrl);
+//       alert('Lien copié dans le presse-papier !');
+//     }
+//   };
+
+//   const formatDate = (dateString) => {
+//     if (!dateString) return 'Date inconnue';
+//     try {
+//       return new Date(dateString).toLocaleDateString('fr-FR', {
+//         day: 'numeric',
+//         month: 'long',
+//         year: 'numeric'
+//       });
+//     } catch {
+//       return 'Date invalide';
+//     }
+//   };
+
+//   const getStatusBadge = (status) => {
+//     const statusMap = {
+//       'published': { label: '✅ Publié', color: 'bg-green-100 text-green-800 border border-green-200' },
+//       'pending': { label: '⏳ En attente', color: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
+//       'draft': { label: '📝 Brouillon', color: 'bg-gray-100 text-gray-800 border border-gray-200' },
+//       'approved': { label: '✅ Approuvé', color: 'bg-blue-100 text-blue-800 border border-blue-200' },
+//       'rejected': { label: '❌ Rejeté', color: 'bg-red-100 text-red-800 border border-red-200' }
+//     };
+    
+//     const statusInfo = statusMap[status?.toLowerCase()] || statusMap.draft;
+    
+//     return (
+//       <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+//         {statusInfo.label}
+//       </span>
+//     );
+//   };
+
+//   const getTechnologies = () => {
+//     if (!project?.technologies) return [];
+//     if (Array.isArray(project.technologies)) return project.technologies;
+//     if (typeof project.technologies === 'string') {
+//       return project.technologies.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0);
+//     }
+//     return [];
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+//         <div className="text-center">
+//           <div className="relative">
+//             <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#E30613] border-t-transparent mx-auto"></div>
+//             <div className="absolute inset-0 flex items-center justify-center">
+//               <div className="h-8 w-8 bg-[#001F3F] rounded-full animate-pulse"></div>
+//             </div>
+//           </div>
+//           <p className="mt-6 text-lg font-medium text-gray-700">Chargement du projet</p>
+//           <p className="mt-2 text-sm text-gray-500">Nous préparons tous les détails...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   if (!project) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+//         <div className="text-center max-w-md">
+//           <div className="text-6xl mb-6">🔍</div>
+//           <h1 className="text-2xl font-bold text-gray-900 mb-3">Projet non trouvé</h1>
+//           <p className="text-gray-600 mb-8">
+//             Le projet que vous recherchez n'existe pas ou a été déplacé.
+//           </p>
+//           <div className="space-y-3">
+//             <button
+//               onClick={() => navigate('/explore')}
+//               className="w-full px-6 py-3 bg-gradient-to-r from-[#001F3F] to-[#003265] text-white rounded-xl hover:opacity-90 transition-all font-medium"
+//             >
+//               Explorer les projets
+//             </button>
+//             <button
+//               onClick={() => navigate(-1)}
+//               className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+//             >
+//               ← Retour
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   const technologies = getTechnologies();
+//   const isOwner = user && user.id && (user.id === project.author_id || user.id === project.author?.id);
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+//       {/* Navigation */}
+//       <nav className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-200">
+//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+//           <div className="flex justify-between items-center h-16">
+//             <button
+//               onClick={() => navigate(-1)}
+//               className="flex items-center gap-2 text-gray-600 hover:text-[#001F3F] transition-colors"
+//             >
+//               <span className="material-symbols-outlined">arrow_back</span>
+//               <span className="font-medium">Retour</span>
+//             </button>
+            
+//             <div className="flex items-center gap-3">
+//               <button
+//                 onClick={toggleFavorite}
+//                 className={`p-2 rounded-full ${isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
+//                 title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+//               >
+//                 <span className="material-symbols-outlined">
+//                   {isFavorite ? 'favorite' : 'favorite_border'}
+//                 </span>
+//               </button>
+              
+//               <button
+//                 onClick={shareProject}
+//                 className="p-2 rounded-full text-gray-400 hover:text-[#001F3F] hover:bg-gray-100"
+//                 title="Partager"
+//               >
+//                 <span className="material-symbols-outlined">share</span>
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       </nav>
+
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//         {/* En-tête */}
+//         <div className="mb-8">
+//           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+//             <div className="flex-1">
+//               <div className="flex items-center gap-3 mb-3">
+//                 {getStatusBadge(project.status)}
+//                 <span className="text-sm text-gray-500">
+//                   {project.views || 0} vues • {project.downloads || 0} téléchargements
+//                 </span>
+//               </div>
+              
+//               <h1 className="text-3xl lg:text-4xl font-bold text-[#001F3F] mb-3">
+//                 {project.title}
+//               </h1>
+              
+//               <div className="flex flex-wrap items-center gap-4 text-gray-600">
+//                 <div className="flex items-center gap-2">
+//                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+//                     {project.author_name?.charAt(0) || 'U'}
+//                   </div>
+//                   <div>
+//                     <p className="font-medium">{project.author_name || 'Auteur inconnu'}</p>
+//                     <p className="text-xs text-gray-500">{project.cohort || 'Sans cohorte'}</p>
+//                   </div>
+//                 </div>
+                
+//                 <div className="flex items-center gap-1">
+//                   <span className="material-symbols-outlined text-sm">calendar_today</span>
+//                   <span className="text-sm">{formatDate(project.created_at)}</span>
+//                 </div>
+                
+//                 {project.category && (
+//                   <div className="flex items-center gap-1">
+//                     <span className="material-symbols-outlined text-sm">category</span>
+//                     <span className="text-sm capitalize">{project.category}</span>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+            
+//             {/* Actions */}
+//             <div className="flex flex-wrap gap-3">
+//               {isOwner && (
+//                 <Link
+//                   to={`/upload?edit=${project.id}`}
+//                   className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:opacity-90 transition-all flex items-center gap-2 font-medium"
+//                 >
+//                   <span className="material-symbols-outlined">edit</span>
+//                   Modifier
+//                 </Link>
+//               )}
+              
+//               <button
+//                 onClick={handleDownloadZip}
+//                 disabled={downloading}
+//                 className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:opacity-90 transition-all flex items-center gap-2 font-medium disabled:opacity-50"
+//               >
+//                 <span className="material-symbols-outlined">
+//                   {downloading ? 'downloading' : 'download'}
+//                 </span>
+//                 {downloading ? 'Téléchargement...' : 'Télécharger le projet'}
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+//           {/* Colonne principale */}
+//           <div className="lg:col-span-2 space-y-6">
+//             {/* Image du projet */}
+//             <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+//               {project.image ? (
+//                 <img
+//                   src={project.image}
+//                   alt={project.title}
+//                   className="w-full h-80 lg:h-96 object-cover"
+//                   onError={(e) => {
+//                     e.target.onerror = null;
+//                     e.target.src = `https://via.placeholder.com/800x400/001F3F/ffffff?text=${encodeURIComponent(project.title)}`;
+//                   }}
+//                 />
+//               ) : (
+//                 <div className="w-full h-80 lg:h-96 bg-gradient-to-br from-[#001F3F] to-[#003265] flex items-center justify-center">
+//                   <div className="text-center p-8">
+//                     <span className="material-symbols-outlined text-white text-6xl mb-4">
+//                       code
+//                     </span>
+//                     <p className="text-white text-lg font-medium">{project.title}</p>
+//                     <p className="text-white/70 mt-2">Projet de développement</p>
+//                   </div>
+//                 </div>
+//               )}
+//             </div>
+
+//             {/* Onglets - MAJ: Seulement 2 onglets */}
+//             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+//               <div className="border-b border-gray-200">
+//                 <nav className="flex">
+//                   {['description', 'technologies'].map(tab => (
+//                     <button
+//                       key={tab}
+//                       onClick={() => setActiveTab(tab)}
+//                       className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+//                         activeTab === tab
+//                           ? 'text-[#E30613] border-b-2 border-[#E30613]'
+//                           : 'text-gray-600 hover:text-gray-900'
+//                       }`}
+//                     >
+//                       {tab === 'description' && '📋 Description'}
+//                       {tab === 'technologies' && '🛠️ Technologies'}
+//                     </button>
+//                   ))}
+//                 </nav>
+//               </div>
+              
+//               <div className="p-6">
+//                 {activeTab === 'description' && (
+//                   <div className="prose max-w-none">
+//                     <h3 className="text-xl font-bold text-gray-900 mb-4">À propos de ce projet</h3>
+//                     <div className="space-y-4 text-gray-700">
+//                       {project.description ? (
+//                         project.description.split('\n').map((paragraph, index) => (
+//                           <p key={index} className="leading-relaxed">{paragraph}</p>
+//                         ))
+//                       ) : (
+//                         <p className="text-gray-500 italic">Aucune description fournie pour ce projet.</p>
+//                       )}
+//                     </div>
+//                   </div>
+//                 )}
+                
+//                 {activeTab === 'technologies' && (
+//                   <div>
+//                     <h3 className="text-xl font-bold text-gray-900 mb-6">Stack technique</h3>
+//                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+//                       {technologies.map((tech, index) => (
+//                         <div
+//                           key={index}
+//                           className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 text-center hover:border-blue-300 transition-colors"
+//                         >
+//                           <div className="text-2xl mb-2">
+//                             {tech.toLowerCase().includes('react') && '⚛️'}
+//                             {tech.toLowerCase().includes('node') && '🟢'}
+//                             {tech.toLowerCase().includes('python') && '🐍'}
+//                             {tech.toLowerCase().includes('django') && '🐳'}
+//                             {tech.toLowerCase().includes('js') && '📜'}
+//                             {!tech.toLowerCase().includes('react') && 
+//                              !tech.toLowerCase().includes('node') && 
+//                              !tech.toLowerCase().includes('python') && 
+//                              !tech.toLowerCase().includes('django') && 
+//                              !tech.toLowerCase().includes('js') && '💻'}
+//                           </div>
+//                           <span className="font-medium text-gray-800">{tech}</span>
+//                         </div>
+//                       ))}
+//                     </div>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+//           </div>
+
+//           {/* Sidebar */}
+//           <div className="space-y-6">
+//             {/* Liens externes */}
+//             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+//               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+//                 <span className="material-symbols-outlined">link</span>
+//                 Ressources
+//               </h3>
+//               <div className="space-y-3">
+//                 {project.github_url && (
+//                   <a
+//                     href={project.github_url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+//                   >
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+//                         <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+//                           <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+//                         </svg>
+//                       </div>
+//                       <div>
+//                         <p className="font-medium">Repository GitHub</p>
+//                         <p className="text-xs text-gray-500">Code source</p>
+//                       </div>
+//                     </div>
+//                     <span className="material-symbols-outlined text-gray-400 group-hover:text-gray-600">open_in_new</span>
+//                   </a>
+//                 )}
+                
+//                 {project.demo_url && (
+//                   <a
+//                     href={project.demo_url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className="flex items-center justify-between p-3 bg-gradient-to-r from-[#001F3F] to-[#003265] text-white hover:opacity-90 rounded-lg transition-all group"
+//                   >
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+//                         <span className="material-symbols-outlined">rocket_launch</span>
+//                       </div>
+//                       <div>
+//                         <p className="font-medium">Démo en ligne</p>
+//                         <p className="text-xs text-white/70">Voir en action</p>
+//                       </div>
+//                     </div>
+//                     <span className="material-symbols-outlined">open_in_new</span>
+//                   </a>
+//                 )}
+                
+//                 {project.zip_file && (
+//                   <button
+//                     onClick={handleDownloadZip}
+//                     disabled={downloading}
+//                     className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:opacity-90 rounded-lg transition-all group disabled:opacity-50"
+//                   >
+//                     <div className="flex items-center gap-3">
+//                       <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+//                         <span className="material-symbols-outlined">download</span>
+//                       </div>
+//                       <div>
+//                         <p className="font-medium">Télécharger le ZIP</p>
+//                         <p className="text-xs text-white/70">Archive complète</p>
+//                       </div>
+//                     </div>
+//                     <span className="material-symbols-outlined">
+//                       {downloading ? 'downloading' : 'download'}
+//                     </span>
+//                   </button>
+//                 )}
+                
+//                 {!project.github_url && !project.demo_url && !project.zip_file && (
+//                   <div className="text-center py-4">
+//                     <span className="material-symbols-outlined text-gray-400 text-4xl mb-2">link_off</span>
+//                     <p className="text-gray-500 text-sm">Aucune ressource disponible</p>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+
+//             {/* Informations */}
+//             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+//               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+//                 <span className="material-symbols-outlined">info</span>
+//                 Informations
+//               </h3>
+//               <div className="space-y-4">
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Statut</span>
+//                   {getStatusBadge(project.status)}
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Cohorte</span>
+//                   <span className="font-medium">{project.cohort || 'Non spécifiée'}</span>
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Date création</span>
+//                   <span className="font-medium">{formatDate(project.created_at)}</span>
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+//                   <span className="text-gray-600">Dernière mise à jour</span>
+//                   <span className="font-medium">{formatDate(project.updated_at)}</span>
+//                 </div>
+                
+//                 <div className="flex justify-between items-center py-2">
+//                   <span className="text-gray-600">Catégorie</span>
+//                   <span className="font-medium capitalize">{project.category || 'Développement'}</span>
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* Projets similaires */}
+//             {similarProjects.length > 0 && (
+//               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+//                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+//                   <span className="material-symbols-outlined">auto_awesome</span>
+//                   Projets similaires
+//                 </h3>
+//                 <div className="space-y-3">
+//                   {similarProjects.map(similar => (
+//                     <div
+//                       key={similar.id}
+//                       onClick={() => navigate(`/project/${similar.id}`)}
+//                       className="group p-3 border border-gray-200 hover:border-[#E30613] rounded-lg cursor-pointer transition-all hover:shadow-md"
+//                     >
+//                       <div className="flex items-start gap-3">
+//                         <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
+//                           <span className="material-symbols-outlined text-blue-600 text-sm">code</span>
+//                         </div>
+//                         <div className="flex-1 min-w-0">
+//                           <h4 className="font-medium text-gray-900 truncate group-hover:text-[#E30613]">
+//                             {similar.title}
+//                           </h4>
+//                           <p className="text-xs text-gray-500 truncate">
+//                             {similar.technologies?.split(',').slice(0, 2).join(', ')}
+//                           </p>
+//                         </div>
+//                         <span className="material-symbols-outlined text-gray-400 group-hover:text-[#E30613] text-sm">
+//                           arrow_forward
+//                         </span>
+//                       </div>
+//                     </div>
+//                   ))}
+//                 </div>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ProjectDetail;
+
+
+// src/pages/ProjectDetail.jsx - VERSION PROFESSIONNELLE
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import authService from '../services/auth';
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [similarProjects, setSimilarProjects] = useState([]);
   const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('description');
   const [downloading, setDownloading] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [zipAvailable, setZipAvailable] = useState(false);
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        setLoading(true);
-        console.log('🔄 Chargement du projet ID:', id);
-        
-        // Récupérer le projet spécifique
-        const projectData = await projectService.getProjectById(id);
-        console.log('✅ Projet récupéré:', projectData);
-        
-        // CORRECTION: S'assurer que la cohorte et le fichier sont bien définis
-        const projectWithDefaults = {
-          ...projectData,
-          cohort: projectData.cohort || 'Cohorte non spécifiée',
-          // CORRECTION: Générer un nom de fichier si non fourni
-          file: projectData.file || `${projectData.title?.replace(/\s+/g, '-').toLowerCase() || 'projet'}-${projectData.id}.zip`,
-          file_name: projectData.file_name || `${projectData.title?.replace(/\s+/g, '-').toLowerCase() || 'projet'}-${projectData.id}.zip`,
-          file_size: projectData.file_size || '2.4 MB',
-          file_type: projectData.file_type || 'application/zip'
-        };
-        
-        setProject(projectWithDefaults);
-
-        // Récupérer l'utilisateur connecté
-        const currentUser = authService.getCurrentUser();
-        setUser(currentUser);
-
-      } catch (err) {
-        console.error('❌ Erreur chargement projet:', err);
-        
-        // CORRECTION: Données mockées de secours avec fichier
-        const mockProject = {
-          id: parseInt(id),
-          title: "Projet Démonstration",
-          author_name: "Auteur Inconnu",
-          cohort: "DWWM - Mars 2024",
-          technologies: "React,JavaScript,Node.js",
-          description: "Ceci est un projet de démonstration. Les données réelles n'ont pas pu être chargées.",
-          file: `demo-project-${id}.zip`,
-          file_name: `demo-project-${id}.zip`,
-          file_size: "2.4 MB",
-          file_type: "application/zip"
-        };
-        
-        setProject(mockProject);
-        setError('Projet non trouvé - Affichage des données de démonstration');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchProject();
+    const currentUser = authService.getCurrentUser();
+    setUser(currentUser);
+    
+    if (!currentUser) {
+      navigate('/login');
+      return;
     }
-  }, [id]);
-
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
-  };
-
-  // CORRECTION: Fonction améliorée pour vérifier la disponibilité du fichier
-  const hasDownloadableFile = () => {
-    if (!project) return false;
     
-    // Vérifier plusieurs propriétés possibles pour le fichier
-    const hasFile = project.file || project.file_name || project.file_path || project.download_url;
-    console.log('📁 Vérification fichier:', { 
-      file: project.file, 
-      file_name: project.file_name,
-      file_path: project.file_path,
-      download_url: project.download_url,
-      hasFile 
-    });
-    
-    return !!hasFile;
-  };
+    loadProject();
+    checkIfFavorite();
+  }, [id, navigate]);
 
-  // CORRECTION: Fonction pour obtenir le nom du fichier à télécharger
-  const getDownloadFileName = () => {
-    if (!project) return null;
-    
-    // Essayer différentes propriétés possibles
-    return project.file || project.file_name || project.file_path || `projet-${project.id}.zip`;
-  };
-
-  const handleDownload = async () => {
-    // CORRECTION: Vérification améliorée
-    if (!hasDownloadableFile()) {
-      alert('Aucun fichier disponible pour ce projet. Un fichier simulé va être généré.');
-      // Continuer avec le téléchargement simulé même sans fichier
-    }
-
-    setDownloading(true);
-
+  const loadProject = async () => {
     try {
-      console.log('📥 Début du téléchargement du projet:', project.title);
+      setLoading(true);
+      const token = authService.getAccessToken();
       
-      const fileName = getDownloadFileName();
-      console.log('📄 Nom du fichier à télécharger:', fileName);
+      // Charger le projet avec plus de détails
+      const endpoints = [
+        `http://localhost:8000/api/projects/${id}/`,
+        `http://localhost:8000/api/projects/projects/${id}/`,
+        `http://localhost:8000/api/project/${id}/`
+      ];
       
-      // Vérifier si le fichier est un ZIP
-      const isZipFile = fileName.toLowerCase().endsWith('.zip');
-      console.log('🔍 Est un fichier ZIP:', isZipFile);
+      let projectData = null;
       
-      // Essayer d'abord le téléchargement via le service
-      try {
-        console.log('🔄 Tentative de téléchargement via API...');
-        await projectService.downloadProjectFile(project.id, fileName);
-        console.log('✅ Téléchargement API réussi');
-        return; // Sortir si le téléchargement API réussit
-        
-      } catch (apiError) {
-        console.warn('⚠️ Échec téléchargement API, passage au simulé:', apiError);
-        // Continuer avec le téléchargement simulé
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            projectData = data;
+            break;
+          }
+        } catch (error) {
+          continue;
+        }
       }
       
-      // CORRECTION: Téléchargement simulé amélioré
-      console.log('🔄 Lancement du téléchargement simulé...');
-      await simulateZipDownload();
+      if (projectData) {
+        setProject(projectData);
+        
+        // Vérifier si un fichier ZIP est disponible
+        checkZipAvailability(projectData, token);
+        
+        // Charger des projets similaires
+        if (projectData.technologies || projectData.category) {
+          loadSimilarProjects(projectData);
+        }
+        
+        // Incrémenter les vues
+        incrementViews();
+      } else {
+        throw new Error('Projet non trouvé');
+      }
+    } catch (error) {
+      console.error('Erreur chargement projet:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkZipAvailability = async (projectData, token) => {
+    try {
+      // Vérifier d'abord dans les données du projet
+      let zipFile = projectData.zip_file || projectData.zip || projectData.file;
+      
+      if (zipFile) {
+        setZipAvailable(true);
+        return;
+      }
+      
+      // Si pas trouvé, essayer une requête spécifique
+      const response = await fetch(`http://localhost:8000/api/projects/${id}/download/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.zip_file || data.download_url) {
+          setZipAvailable(true);
+          // Mettre à jour le projet avec l'URL du ZIP
+          setProject(prev => ({
+            ...prev,
+            zip_file: data.zip_file || data.download_url
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Erreur vérification ZIP:', error);
+    }
+  };
+
+  const loadSimilarProjects = async (projectData) => {
+    try {
+      const token = authService.getAccessToken();
+      const techs = projectData.technologies ? encodeURIComponent(projectData.technologies.substring(0, 50)) : '';
+      const category = projectData.category ? encodeURIComponent(projectData.category) : '';
+      
+      const response = await fetch(
+        `http://localhost:8000/api/projects/?${techs ? `technologies=${techs}` : ''}${category ? `&category=${category}` : ''}&exclude=${id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Extraire les projets selon la structure
+        const projects = data.results || data.projects || data.data || data;
+        setSimilarProjects(projects.filter(p => p.id !== parseInt(id)).slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Erreur chargement projets similaires:', error);
+    }
+  };
+
+  const incrementViews = async () => {
+    try {
+      const token = authService.getAccessToken();
+      await fetch(`http://localhost:8000/api/projects/${id}/increment-views/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (error) {
+      // Ignorer l'erreur, ce n'est pas critique
+    }
+  };
+
+  const checkIfFavorite = () => {
+    // Vérifier si le projet est dans les favoris
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    setIsFavorite(favorites.includes(parseInt(id)));
+  };
+
+  const toggleFavorite = () => {
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    const projectId = parseInt(id);
+    
+    if (isFavorite) {
+      const newFavorites = favorites.filter(favId => favId !== projectId);
+      localStorage.setItem('favorites', JSON.stringify(newFavorites));
+      setIsFavorite(false);
+    } else {
+      favorites.push(projectId);
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+      setIsFavorite(true);
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    if (!project || downloading) return;
+    
+    setDownloading(true);
+    
+    try {
+      const token = authService.getAccessToken();
+      
+      // 1. Essayer plusieurs endpoints pour le téléchargement
+      const downloadEndpoints = [
+        `http://localhost:8000/api/projects/${id}/download/`,
+        `http://localhost:8000/api/projects/${id}/download-zip/`,
+        `http://localhost:8000/api/projects/${id}/zip/`
+      ];
+      
+      let downloadUrl = null;
+      
+      for (const endpoint of downloadEndpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            downloadUrl = data.download_url || data.zip_file || data.url;
+            if (downloadUrl) break;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+      
+      // 2. Si pas d'URL spécifique, essayer le champ zip_file du projet
+      if (!downloadUrl && project.zip_file) {
+        downloadUrl = project.zip_file;
+      }
+      
+      // 3. Si toujours pas d'URL, essayer directement le fichier media
+      if (!downloadUrl) {
+        // Construire l'URL du fichier basée sur le pattern Django
+        downloadUrl = `http://localhost:8000/media/projects/project_${id}/project.zip`;
+      }
+      
+      console.log('URL de téléchargement:', downloadUrl);
+      
+      // 4. Construire l'URL complète
+      let finalUrl = downloadUrl;
+      if (!downloadUrl.startsWith('http')) {
+        if (downloadUrl.startsWith('/media/')) {
+          finalUrl = `http://localhost:8000${downloadUrl}`;
+        } else if (downloadUrl.startsWith('media/')) {
+          finalUrl = `http://localhost:8000/${downloadUrl}`;
+        } else {
+          finalUrl = `http://localhost:8000/media/${downloadUrl}`;
+        }
+      }
+      
+      // 5. Télécharger le fichier avec différentes méthodes
+      
+      // Méthode 1: Redirection directe (la plus simple)
+      window.open(finalUrl, '_blank');
+      
+      // OU Méthode 2: Créer un lien et le cliquer
+      /*
+      const link = document.createElement('a');
+      link.href = finalUrl;
+      link.download = project.title 
+        ? `${project.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.zip`
+        : `project-${id}.zip`;
+      link.target = '_blank';
+      
+      // Ajouter le token si nécessaire
+      if (!finalUrl.includes('?')) {
+        link.href = `${finalUrl}?token=${token}`;
+      }
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      */
+      
+      // 6. Enregistrer le téléchargement
+      try {
+        await fetch(`http://localhost:8000/api/projects/${id}/increment-downloads/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Mettre à jour localement le compteur
+        setProject(prev => ({
+          ...prev,
+          downloads: (prev.downloads || 0) + 1
+        }));
+      } catch (statsError) {
+        console.warn('Erreur incrémentation des téléchargements:', statsError);
+      }
       
     } catch (error) {
-      console.error('❌ Erreur générale de téléchargement:', error);
-      alert('Erreur lors du téléchargement. Veuillez réessayer.');
+      console.error('Erreur lors du téléchargement:', error);
+      
+      // Essayer une méthode alternative
+      try {
+        // Méthode alternative: Téléchargement via blob
+        const token = authService.getAccessToken();
+        const response = await fetch(`http://localhost:8000/api/projects/${id}/download/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `project-${id}.zip`;
+          link.click();
+          window.URL.revokeObjectURL(url);
+        } else {
+          throw new Error('Téléchargement échoué');
+        }
+      } catch (altError) {
+        console.error('Erreur méthode alternative:', altError);
+        alert('Impossible de télécharger le fichier. Le créateur n\'a peut-être pas déposé de fichier ZIP, ou le fichier a été supprimé.');
+      }
     } finally {
       setDownloading(false);
     }
   };
 
-  // CORRECTION: Simulation de téléchargement ZIP améliorée
-  const simulateZipDownload = async () => {
+  const shareProject = () => {
+    const shareUrl = window.location.href;
+    const title = project.title;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: title,
+        text: `Découvrez ce projet : ${title}`,
+        url: shareUrl,
+      });
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Lien copié dans le presse-papier !');
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Date inconnue';
     try {
-      console.log('🎯 Création du contenu simulé...');
-      
-      // Créer un contenu simulé pour le ZIP
-      const projectStructure = {
-        'README.md': `# ${project.title}\n\n## Description\n${project.description}\n\n## Auteur\n${project.author_name}\n\n## Cohort\n${project.cohort}\n\n## Technologies\n${project.technologies}\n\n## Structure du projet\n- src/ : Code source\n- public/ : Fichiers publics\n- package.json : Dépendances\n- README.md : Documentation\n\nGénéré le: ${new Date().toLocaleString()}`,
-        
-        'package.json': JSON.stringify({
-          name: project.title?.toLowerCase().replace(/\s+/g, '-') || 'projet',
-          version: "1.0.0",
-          description: project.description || "Projet Simplon",
-          main: "index.js",
-          scripts: {
-            start: "node index.js",
-            dev: "nodemon index.js"
-          },
-          dependencies: {
-            express: "^4.18.0"
-          },
-          author: project.author_name || "Auteur",
-          license: "MIT"
-        }, null, 2),
-        
-        'src/index.js': `// ${project.title}\n// Auteur: ${project.author_name}\n// Cohort: ${project.cohort}\n\nconsole.log("Bienvenue dans le projet ${project.title}");\n\n// Technologies utilisées: ${project.technologies}\n\nfunction init() {\n    console.log("Projet initialisé avec succès!");\n}\n\ninit();`,
-        
-        'src/utils.js': `// Utilitaires pour ${project.title}\n\nexport function formatDate(date) {\n    return new Date(date).toLocaleDateString('fr-FR');\n}\n\nexport function logMessage(message) {\n    console.log(\`[\${new Date().toISOString()}] \${message}\`);\n}`,
-        
-        'public/index.html': `<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>${project.title}</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            margin: 40px;\n            background: #f5f5f5;\n        }\n        .container {\n            background: white;\n            padding: 20px;\n            border-radius: 8px;\n            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n        }\n    </style>\n</head>\n<body>\n    <div class="container">\n        <h1>${project.title}</h1>\n        <p><strong>Auteur:</strong> ${project.author_name}</p>\n        <p><strong>Cohort:</strong> ${project.cohort}</p>\n        <p><strong>Description:</strong> ${project.description}</p>\n        <p><strong>Technologies:</strong> ${project.technologies}</p>\n        <p><em>Projet généré via Simplon Plateforme - ${new Date().toLocaleDateString('fr-FR')}</em></p>\n    </div>\n</body>\n</html>`
-      };
-
-      // Convertir la structure en texte pour le téléchargement
-      const zipContent = `Structure du projet: ${project.title}\n\nCeci est une simulation du contenu ZIP qui contiendrait:\n${Object.keys(projectStructure).map(file => `- ${file}`).join('\n')}\n\nEn production, ce serait une véritable archive ZIP contenant le code source complet.`;
-      
-      const blob = new Blob([zipContent], { type: 'application/zip' });
-      const url = window.URL.createObjectURL(blob);
-      
-      const fileName = getDownloadFileName();
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Nettoyer
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      console.log('✅ Téléchargement simulé réussi:', fileName);
-      
-    } catch (simError) {
-      console.error('❌ Erreur téléchargement simulé:', simError);
-      
-      // Fallback: téléchargement simple en texte
-      const content = `Projet: ${project.title}\nAuteur: ${project.author_name}\nCohorte: ${project.cohort}\nTechnologies: ${project.technologies}\nDescription: ${project.description}\n\nTéléchargé le: ${new Date().toLocaleString()}\n\nNote: Le fichier ZIP original n'est pas disponible. Ceci est une version texte.`;
-      
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${project.title?.replace(/\s+/g, '-').toLowerCase() || 'projet'}-details.txt`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      return new Date(dateString).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return 'Date invalide';
     }
   };
 
-  // CORRECTION: Fonction pour formater l'affichage de la cohorte
-  const formatCohortDisplay = (cohort) => {
-    if (!cohort || cohort === 'Cohorte non spécifiée') {
-      return 'Cohorte non spécifiée';
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'published': { label: '✅ Publié', color: 'bg-green-100 text-green-800 border border-green-200' },
+      'pending': { label: '⏳ En attente', color: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
+      'draft': { label: '📝 Brouillon', color: 'bg-gray-100 text-gray-800 border border-gray-200' },
+      'approved': { label: '✅ Approuvé', color: 'bg-blue-100 text-blue-800 border border-blue-200' },
+      'rejected': { label: '❌ Rejeté', color: 'bg-red-100 text-red-800 border border-red-200' }
+    };
+    
+    const statusInfo = statusMap[status?.toLowerCase()] || statusMap.draft;
+    
+    return (
+      <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+        {statusInfo.label}
+      </span>
+    );
+  };
+
+  const getTechnologies = () => {
+    if (!project?.technologies) return [];
+    if (Array.isArray(project.technologies)) return project.technologies;
+    if (typeof project.technologies === 'string') {
+      return project.technologies.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0);
     }
-    return cohort;
-  };
-
-  // Fonction pour obtenir l'extension du fichier
-  const getFileExtension = (filename) => {
-    if (!filename) return 'ZIP';
-    return filename.split('.').pop().toUpperCase();
-  };
-
-  // Fonction pour formater la taille du fichier
-  const formatFileSize = (size) => {
-    if (!size) return 'Taille inconnue';
-    return size;
+    return [];
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-        <div className="text-xl text-gray-600">Chargement du projet...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#E30613] border-t-transparent mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-8 w-8 bg-[#001F3F] rounded-full animate-pulse"></div>
+            </div>
+          </div>
+          <p className="mt-6 text-lg font-medium text-gray-700">Chargement du projet</p>
+          <p className="mt-2 text-sm text-gray-500">Nous préparons tous les détails...</p>
+        </div>
       </div>
     );
   }
 
-  if (error && !project) {
+  if (!project) {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-50">
-        <div className="text-xl text-red-600 mb-4">{error}</div>
-        <Link to="/explore" className="mt-4 text-blue-600 hover:underline">
-          Retour à l'exploration des projets
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex min-h-screen w-full flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b border-white/20 bg-[#001F3F] px-6 py-4 shadow-md sm:px-8">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold leading-normal text-white">Simplon.co</h1>
-            <p className="text-sm font-medium leading-normal text-[#CE0033]">Plateforme Projets</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-6">🔍</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Projet non trouvé</h1>
+          <p className="text-gray-600 mb-8">
+            Le projet que vous recherchez n'existe pas ou a été déplacé.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate('/explore')}
+              className="w-full px-6 py-3 bg-gradient-to-r from-[#001F3F] to-[#003265] text-white rounded-xl hover:opacity-90 transition-all font-medium"
+            >
+              Explorer les projets
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+            >
+              ← Retour
+            </button>
           </div>
         </div>
-        
-        <nav className="hidden items-center gap-4 md:flex">
-          <Link to="/explore" className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-[#CE0033] hover:text-white">
-            <span className="material-symbols-outlined">search</span>
-            Explorer
-          </Link>
-          <Link to="/upload" className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-[#CE0033] hover:text-white">
-            <span className="material-symbols-outlined">add_circle</span>
-            Déposer
-          </Link>
-          <Link to="/profile" className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-gray-300 transition-colors hover:bg-[#CE0033] hover:text-white">
-            <span className="material-symbols-outlined">person</span>
-            Mon Profil
-          </Link>
-        </nav>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <img 
-              className="h-10 w-10 rounded-full object-cover" 
-              src={user?.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuAPeb9MrqjVper9mslE4WfxBuzHpDmE8mzymVCiLJC2y9I1g3buUNfhpn0qg4RZXQWMg5cFxzeZ6ql1LusrJKSWs2L2XyXOkUOAVpT6vWttZ-DrwK96f0mkyG1XL0Wsi-3OxBj2AH_3W8I1iJdnRA7OHBj7aHPFgTRbdk65D4uHNO6vmz12eQctHqpz3xjLR3f7l36wnwJhmlBnAEflTxoton0Ix6cgqizCuLlyPWQmW4oOVhO_AKH4aSDXrEjn5CoDci6EWXbo59w"} 
-              alt="Profil" 
-            />
-            <div className="hidden flex-col sm:flex">
-              <p className="text-sm font-semibold text-white">{user?.username || 'Utilisateur'}</p>
-              <p className="text-xs text-gray-300">{user?.cohort || ''}</p>
-              <button 
-                onClick={handleLogout}
-                className="text-xs text-[#CE0033] hover:underline mt-1"
+      </div>
+    );
+  }
+
+  const technologies = getTechnologies();
+  const isOwner = user && user.id && (user.id === project.author_id || user.id === project.author?.id);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-gray-600 hover:text-[#001F3F] transition-colors"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+              <span className="font-medium">Retour</span>
+            </button>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleFavorite}
+                className={`p-2 rounded-full ${isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
+                title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               >
-                Se déconnecter
+                <span className="material-symbols-outlined">
+                  {isFavorite ? 'favorite' : 'favorite_border'}
+                </span>
+              </button>
+              
+              <button
+                onClick={shareProject}
+                className="p-2 rounded-full text-gray-400 hover:text-[#001F3F] hover:bg-gray-100"
+                title="Partager"
+              >
+                <span className="material-symbols-outlined">share</span>
               </button>
             </div>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Contenu principal dynamique */}
-      <main className="w-full flex-1 p-6 sm:p-8 lg:p-12">
-        <div className="mx-auto max-w-6xl">
-          {/* Message d'erreur si données mockées */}
-          {error && (
-            <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-yellow-600">warning</span>
-                <p className="text-yellow-700">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Titre et auteur */}
-          <div className="mb-8">
-            <h1 className="text-simplon-navy dark:text-white text-4xl font-black leading-tight tracking-tight">
-              {project.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">
-                Par <span className="font-semibold text-gray-700 dark:text-gray-300">{project.author_name}</span>
-              </p>
-              
-              {/* CORRECTION: Affichage robuste de la cohorte */}
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-purple-500 text-sm">school</span>
-                <span className="text-purple-600 dark:text-purple-400 font-medium">
-                  {formatCohortDisplay(project.cohort)}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* En-tête */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                {getStatusBadge(project.status)}
+                <span className="text-sm text-gray-500">
+                  {project.views || 0} vues • {project.downloads || 0} téléchargements
                 </span>
               </div>
-            </div>
-          </div>
-          
-          {/* Technologies */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            {project.technologies && project.technologies.split(',').map((tech, index) => (
-              <div key={index} className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-simplon-navy px-4">
-                <p className="text-white text-sm font-medium leading-normal">{tech.trim()}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Description */}
-          <div className="space-y-6 mb-10">
-            <h2 className="text-2xl font-bold text-simplon-navy dark:text-white">Description du Projet</h2>
-            <p className="text-gray-700 dark:text-gray-300 text-base font-normal leading-relaxed whitespace-pre-line">
-              {project.description}
-            </p>
-          </div>
-
-          {/* Téléchargement AMÉLIORÉ */}
-          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 mb-12 shadow-sm">
-            <h2 className="text-2xl font-bold text-simplon-navy dark:text-white mb-4">
-              {hasDownloadableFile() ? 'Code Source' : 'Détails du Projet'}
-            </h2>
-            
-            {hasDownloadableFile() ? (
-              <>
-                <div className="flex items-center gap-3 mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <span className="material-symbols-outlined text-blue-500">folder_zip</span>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800 dark:text-gray-200">{getDownloadFileName()}</p>
-                    <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      <span>Format: {getFileExtension(getDownloadFileName())}</span>
-                      <span>•</span>
-                      <span>Taille: {formatFileSize(project.file_size)}</span>
-                    </div>
+              
+              <h1 className="text-3xl lg:text-4xl font-bold text-[#001F3F] mb-3">
+                {project.title}
+              </h1>
+              
+              <div className="flex flex-wrap items-center gap-4 text-gray-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                    {project.author_name?.charAt(0) || 'U'}
+                  </div>
+                  <div>
+                    <p className="font-medium">{project.author_name || 'Auteur inconnu'}</p>
+                    <p className="text-xs text-gray-500">{project.cohort || 'Sans cohorte'}</p>
                   </div>
                 </div>
                 
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Le code complet du projet est disponible au téléchargement sous forme d'archive ZIP. 
-                  Cette archive contient tous les fichiers sources, la documentation et les ressources du projet.
-                </p>
-              </>
-            ) : (
-              <div className="mb-6">
-                <div className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-4">
-                  <span className="material-symbols-outlined text-yellow-600">info</span>
-                  <div>
-                    <p className="font-semibold text-yellow-800 dark:text-yellow-200">Aucun fichier original disponible</p>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                      Un fichier de démonstration sera généré avec la structure du projet.
-                    </p>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">calendar_today</span>
+                  <span className="text-sm">{formatDate(project.created_at)}</span>
                 </div>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Les détails complets du projet sont disponibles au téléchargement sous forme d'archive simulée.
-                </p>
+                
+                {project.category && (
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">category</span>
+                    <span className="text-sm capitalize">{project.category}</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
             
-            <button 
-              onClick={handleDownload}
-              disabled={downloading}
-              className={`flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-bold text-white shadow-md transition-all duration-200 ${
-                downloading 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-[#CE0033] hover:bg-[#B30026] hover:scale-105 active:scale-100'
-              }`}
-            >
-              {downloading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  <span>Téléchargement...</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">download</span>
-                  <span>
-                    {hasDownloadableFile() 
-                      ? `Télécharger le ZIP (${getFileExtension(getDownloadFileName())})` 
-                      : 'Télécharger les Détails (ZIP simulé)'
-                    }
-                  </span>
-                </>
+            {/* Actions */}
+            <div className="flex flex-wrap gap-3">
+              {isOwner && (
+                <Link
+                  to={`/upload?edit=${project.id}`}
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:opacity-90 transition-all flex items-center gap-2 font-medium"
+                >
+                  <span className="material-symbols-outlined">edit</span>
+                  Modifier
+                </Link>
               )}
-            </button>
-            
-            {!hasDownloadableFile() && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-                💡 Ce fichier est généré automatiquement. En production, il contiendrait le code source réel du projet.
-              </p>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <div className="flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-700">
-            <button 
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-red-600 hover:text-red-800 font-medium"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-              Retour
-            </button>
-            
-            {/* <Link 
-              to="/explore"
-              className="flex items-center gap-2 bg-[#CE0033] text-white px-6 py-2 rounded-lg hover:bg-[#B30026] transition-colors"
-            >
-              <span className="material-symbols-outlined">explore</span>
-              Explorer d'autres projets
-            </Link> */}
+              
+              <button
+                onClick={handleDownloadZip}
+                disabled={downloading}
+                className={`px-5 py-2.5 rounded-lg transition-all flex items-center gap-2 font-medium ${
+                  zipAvailable 
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:opacity-90'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+                title={zipAvailable ? "Télécharger le projet" : "Aucun fichier ZIP disponible"}
+              >
+                <span className="material-symbols-outlined">
+                  {downloading ? 'downloading' : 'download'}
+                </span>
+                {downloading ? 'Téléchargement...' : 'Télécharger le projet'}
+              </button>
+            </div>
           </div>
         </div>
-      </main>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Colonne principale */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Image du projet */}
+            <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+              {project.image ? (
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  className="w-full h-80 lg:h-96 object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://via.placeholder.com/800x400/001F3F/ffffff?text=${encodeURIComponent(project.title)}`;
+                  }}
+                />
+              ) : (
+                <div className="w-full h-80 lg:h-96 bg-gradient-to-br from-[#001F3F] to-[#003265] flex items-center justify-center">
+                  <div className="text-center p-8">
+                    <span className="material-symbols-outlined text-white text-6xl mb-4">
+                      code
+                    </span>
+                    <p className="text-white text-lg font-medium">{project.title}</p>
+                    <p className="text-white/70 mt-2">Projet de développement</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Onglets - MAJ: Seulement 2 onglets */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="border-b border-gray-200">
+                <nav className="flex">
+                  {['description', 'technologies'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                        activeTab === tab
+                          ? 'text-[#E30613] border-b-2 border-[#E30613]'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {tab === 'description' && '📋 Description'}
+                      {tab === 'technologies' && '🛠️ Technologies'}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+              
+              <div className="p-6">
+                {activeTab === 'description' && (
+                  <div className="prose max-w-none">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">À propos de ce projet</h3>
+                    <div className="space-y-4 text-gray-700">
+                      {project.description ? (
+                        project.description.split('\n').map((paragraph, index) => (
+                          <p key={index} className="leading-relaxed">{paragraph}</p>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 italic">Aucune description fournie pour ce projet.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'technologies' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-6">Stack technique</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {technologies.map((tech, index) => (
+                        <div
+                          key={index}
+                          className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 text-center hover:border-blue-300 transition-colors"
+                        >
+                          <div className="text-2xl mb-2">
+                            {tech.toLowerCase().includes('react') && '⚛️'}
+                            {tech.toLowerCase().includes('node') && '🟢'}
+                            {tech.toLowerCase().includes('python') && '🐍'}
+                            {tech.toLowerCase().includes('django') && '🐳'}
+                            {tech.toLowerCase().includes('js') && '📜'}
+                            {!tech.toLowerCase().includes('react') && 
+                             !tech.toLowerCase().includes('node') && 
+                             !tech.toLowerCase().includes('python') && 
+                             !tech.toLowerCase().includes('django') && 
+                             !tech.toLowerCase().includes('js') && '💻'}
+                          </div>
+                          <span className="font-medium text-gray-800">{tech}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Liens externes */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined">link</span>
+                Ressources
+              </h3>
+              <div className="space-y-3">
+                {project.github_url && (
+                  <a
+                    href={project.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium">Repository GitHub</p>
+                        <p className="text-xs text-gray-500">Code source</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-gray-400 group-hover:text-gray-600">open_in_new</span>
+                  </a>
+                )}
+                
+                {project.demo_url && (
+                  <a
+                    href={project.demo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 bg-gradient-to-r from-[#001F3F] to-[#003265] text-white hover:opacity-90 rounded-lg transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <span className="material-symbols-outlined">rocket_launch</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">Démo en ligne</p>
+                        <p className="text-xs text-white/70">Voir en action</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined">open_in_new</span>
+                  </a>
+                )}
+                
+                {/* Bouton de téléchargement ZIP */}
+                <button
+                  onClick={handleDownloadZip}
+                  disabled={downloading}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-all group ${
+                    zipAvailable
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:opacity-90'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                  title={zipAvailable ? "Télécharger le projet" : "Aucun fichier ZIP disponible"}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      zipAvailable ? 'bg-white/20' : 'bg-gray-200'
+                    }`}>
+                      <span className="material-symbols-outlined">
+                        {downloading ? 'downloading' : 'download'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {zipAvailable 
+                          ? (downloading ? 'Téléchargement...' : 'Télécharger le ZIP') 
+                          : 'ZIP non disponible'}
+                      </p>
+                      <p className="text-xs opacity-70">
+                        {zipAvailable ? 'Archive complète' : 'Fichier manquant'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined">
+                    {downloading ? 'downloading' : 'download'}
+                  </span>
+                </button>
+                
+                {!project.github_url && !project.demo_url && !zipAvailable && (
+                  <div className="text-center py-4">
+                    <span className="material-symbols-outlined text-gray-400 text-4xl mb-2">link_off</span>
+                    <p className="text-gray-500 text-sm">Aucune ressource disponible</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Informations */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined">info</span>
+                Informations
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Statut</span>
+                  {getStatusBadge(project.status)}
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Cohorte</span>
+                  <span className="font-medium">{project.cohort || 'Non spécifiée'}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Date création</span>
+                  <span className="font-medium">{formatDate(project.created_at)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Dernière mise à jour</span>
+                  <span className="font-medium">{formatDate(project.updated_at)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-600">Fichier ZIP</span>
+                  <span className={`font-medium ${zipAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                    {zipAvailable ? 'Disponible' : 'Indisponible'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Projets similaires */}
+            {similarProjects.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined">auto_awesome</span>
+                  Projets similaires
+                </h3>
+                <div className="space-y-3">
+                  {similarProjects.map(similar => (
+                    <div
+                      key={similar.id}
+                      onClick={() => navigate(`/project/${similar.id}`)}
+                      className="group p-3 border border-gray-200 hover:border-[#E30613] rounded-lg cursor-pointer transition-all hover:shadow-md"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
+                          <span className="material-symbols-outlined text-blue-600 text-sm">code</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 truncate group-hover:text-[#E30613]">
+                            {similar.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 truncate">
+                            {similar.technologies?.split(',').slice(0, 2).join(', ')}
+                          </p>
+                        </div>
+                        <span className="material-symbols-outlined text-gray-400 group-hover:text-[#E30613] text-sm">
+                          arrow_forward
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

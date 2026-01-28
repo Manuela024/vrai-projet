@@ -1,0 +1,43 @@
+// travail-separé\test-auth.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth Service - SÉPARÉ</title>
+    <script type="module">
+        import authService from './src/services/auth.js';
+        
+        // Test isolé
+        async function testAuth() {
+            console.log('🔍 Test du service auth...');
+            
+            // Test 1: Vérification API
+            const apiOk = await authService.checkAPI();
+            console.log(`API ${apiOk ? '✅ OK' : '❌ Hors ligne'}`);
+            
+            // Test 2: Vérification stockage
+            const token = authService.getAccessToken();
+            const user = authService.getCurrentUser();
+            
+            console.log(`Token présent: ${!!token}`);
+            console.log(`Utilisateur: ${user ? user.username : 'Aucun'}`);
+            console.log(`Admin: ${authService.isAdmin() ? 'Oui' : 'Non'}`);
+            
+            return { apiOk, hasToken: !!token, user: user };
+        }
+        
+        testAuth().then(result => {
+            document.getElementById('result').innerHTML = `
+                <h3>Résultat du test:</h3>
+                <p>API: ${result.apiOk ? '✅ Connectée' : '❌ Déconnectée'}</p>
+                <p>Token: ${result.hasToken ? '✅ Présent' : '❌ Absent'}</p>
+                <p>Utilisateur: ${result.user ? '✅ ' + result.user.username : '❌ Aucun'}</p>
+            `;
+        });
+    </script>
+</head>
+<body>
+    <h1>Test du Service Auth - SÉPARÉ</h1>
+    <div id="result">Test en cours...</div>
+    <p style="color: gray;">Ce test est complètement séparé de votre projet principal.</p>
+</body>
+</html>

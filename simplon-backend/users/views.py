@@ -5574,76 +5574,2028 @@
 #         'timestamp': timezone.now()
 #     })
 
-# users/views.py - VERSION COMPLÈTE ET SIMPLIFIÉE
-from rest_framework import generics, permissions, status, viewsets
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from rest_framework.views import APIView
-from django.contrib.auth.models import User
-from django.utils import timezone
-from django.core.mail import send_mail
-from django.conf import settings
-from datetime import timedelta
-import secrets
-import traceback
-import logging
-import json
+# # users/views.py - VERSION COMPLÈTE ET SIMPLIFIÉE
+# from rest_framework import generics, permissions, status, viewsets
+# from rest_framework.response import Response
+# from rest_framework.decorators import api_view, permission_classes, action
+# from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+# from rest_framework.views import APIView
+# from django.contrib.auth.models import User
+# from django.utils import timezone
+# from django.core.mail import send_mail
+# from django.conf import settings
+# from datetime import timedelta
+# import secrets
+# import traceback
+# import logging
+# import json
+# from projects.models import Project
+# from projects.serializers import ProjectSerializer
+# from rest_framework import generics, permissions, status
+# from rest_framework.response import Response
 
-# ============ MODÈLES & SÉRIALIZERS ============
-from .models import MatriculeAutorise, UserProfile, ProfileUpdateHistory, Notification
-from .serializers import (
-    UserSerializer,
-    UserProfileSerializer,
-    ExtendedProfileUpdateSerializer,
-    ProfileUpdateHistorySerializer,
-    NotificationSerializer,
-    UserWithProfileSerializer,
-    PasswordChangeSerializer,
-    AvatarUploadSerializer,
-    UserCreateSerializer,
-    QuickLoginSerializer  # <-- AJOUTÉ
-)
+# # ============ MODÈLES & SÉRIALIZERS ============
+# from .models import MatriculeAutorise, UserProfile, ProfileUpdateHistory, Notification
+# from .serializers import (
+#     UserSerializer,
+#     UserProfileSerializer,
+#     ExtendedProfileUpdateSerializer,
+#     ProfileUpdateHistorySerializer,
+#     NotificationSerializer,
+#     UserWithProfileSerializer,
+#     PasswordChangeSerializer,
+#     AvatarUploadSerializer,
+#     UserCreateSerializer,
+#     QuickLoginSerializer  # <-- AJOUTÉ
+# )
+# from projects.models import Project
+
+# logger = logging.getLogger(__name__)
+
+# # ============================================
+# # 1. VUE PRINCIPALE POUR LE PROFIL UTILISATEUR
+# # ============================================
+
+# class UserProfileView(generics.RetrieveUpdateAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = UserSerializer
+    
+#     def get_object(self):
+#         return self.request.user
+    
+#     def get(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance)
+#         return Response(serializer.data)
+    
+#     def update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         partial = kwargs.pop('partial', False)
+        
+#         serializer = self.get_serializer(instance, data=request.data, partial=partial)
+#         serializer.is_valid(raise_exception=True)
+#         self.perform_update(serializer)
+        
+#         return Response({
+#             'status': 'success',
+#             'message': 'Profil mis à jour avec succès',
+#             'data': serializer.data
+#         })
+
+# # ============================================
+# # 2. VUE POUR LE PROFIL ÉTENDU
+# # ============================================
+
+# class UserExtendedProfileView(generics.RetrieveUpdateAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+    
+#     def get_serializer_class(self):
+#         if self.request.method in ['PUT', 'PATCH']:
+#             return ExtendedProfileUpdateSerializer
+#         return UserProfileSerializer
+    
+#     def get_object(self):
+#         profile, created = UserProfile.objects.get_or_create(user=self.request.user)
+#         return profile
+    
+#     def get(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = UserProfileSerializer(instance, context={'request': request})
+#         return Response(serializer.data)
+    
+#     def update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         partial = kwargs.pop('partial', False)
+        
+#         serializer = ExtendedProfileUpdateSerializer(instance, data=request.data, partial=partial)
+#         serializer.is_valid(raise_exception=True)
+        
+#         for field, value in serializer.validated_data.items():
+#             setattr(instance, field, value)
+        
+#         instance.save()
+        
+#         response_serializer = UserProfileSerializer(instance, context={'request': request})
+        
+#         return Response({
+#             'status': 'success',
+#             'message': 'Profil étendu mis à jour avec succès',
+#             'data': response_serializer.data
+#         })
+
+# # ============================================
+# # 3. VUE POUR LA PHOTO DE PROFIL
+# # ============================================
+
+# class UserProfileImageView(APIView):
+#     permission_classes = [permissions.IsAuthenticated]
+    
+#     def get(self, request):
+#         try:
+#             profile = UserProfile.objects.get(user=request.user)
+#             avatar_url = None
+#             if profile.avatar:
+#                 avatar_url = request.build_absolute_uri(profile.avatar.url)
+            
+#             return Response({
+#                 'avatar_url': avatar_url,
+#                 'has_avatar': profile.avatar is not None
+#             })
+#         except UserProfile.DoesNotExist:
+#             return Response({
+#                 'avatar_url': None,
+#                 'has_avatar': False
+#             })
+    
+#     def post(self, request):
+#         serializer = AvatarUploadSerializer(data=request.data)
+#         if serializer.is_valid():
+#             profile, created = UserProfile.objects.get_or_create(user=request.user)
+            
+#             if profile.avatar:
+#                 profile.avatar.delete(save=False)
+            
+#             profile.avatar = serializer.validated_data['avatar']
+#             profile.save()
+            
+#             avatar_url = request.build_absolute_uri(profile.avatar.url) if profile.avatar else None
+            
+#             return Response({
+#                 'status': 'success',
+#                 'message': 'Photo de profil mise à jour avec succès',
+#                 'avatar_url': avatar_url
+#             })
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# # ============================================
+# # 4. VIEWSET POUR ADMIN
+# # ============================================
+
+# class AdminUserViewSet(viewsets.ModelViewSet):
+#     """
+#     ViewSet pour la gestion admin des utilisateurs
+#     """
+#     permission_classes = [permissions.IsAdminUser]
+#     queryset = User.objects.all().order_by('-date_joined')
+    
+#     def get_serializer_class(self):
+#         if self.action in ['create', 'update', 'partial_update']:
+#             return UserCreateSerializer
+#         return UserWithProfileSerializer
+    
+#     @action(detail=False, methods=['get'])
+#     def stats(self, request):
+#         """Statistiques admin"""
+#         total_users = User.objects.count()
+#         active_today = User.objects.filter(last_login__date=timezone.now().date()).count()
+#         new_this_week = User.objects.filter(date_joined__gte=timezone.now()-timedelta(days=7)).count()
+        
+#         return Response({
+#             'total_users': total_users,
+#             'active_today': active_today,
+#             'new_this_week': new_this_week,
+#             'with_profile': UserProfile.objects.count(),
+#             'generated_at': timezone.now()
+#         })
+
+# # ============================================
+# # 5. AUTRES VUES ESSENTIELLES
+# # ============================================
+
+# class UserProfileCompleteView(generics.RetrieveAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = UserWithProfileSerializer
+    
+#     def get_object(self):
+#         return self.request.user
+
+# class UserProfileHistoryView(generics.ListAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = ProfileUpdateHistorySerializer
+    
+#     def get_queryset(self):
+#         return ProfileUpdateHistory.objects.filter(
+#             user=self.request.user
+#         ).order_by('-updated_at')
+
+# class UserNotificationsView(generics.ListAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = NotificationSerializer
+    
+#     def get_queryset(self):
+#         return Notification.objects.filter(
+#             user=self.request.user
+#         ).order_by('-created_at')
+
+# class ChangePasswordView(generics.UpdateAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = PasswordChangeSerializer
+
+# # ============================================
+# # 6. VUES D'AUTHENTIFICATION
+# # ============================================
+
+# class RequestLoginView(generics.GenericAPIView):
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         matricule = request.data.get('matricule')
+#         email = request.data.get('email')
+        
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=matricule,
+#                 est_actif=True
+#             )
+            
+#             token = secrets.token_urlsafe(32)
+#             expiration_time = timezone.now() + timedelta(minutes=5)
+            
+#             matricule_autorise.activation_token = token
+#             matricule_autorise.token_expiration = expiration_time
+#             matricule_autorise.save()
+            
+#             return Response({
+#                 "message": "✅ Lien d'activation envoyé !",
+#                 "status": "success",
+#                 "expires_in": "5 minutes"
+#             }, status=status.HTTP_200_OK)
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             return Response({
+#                 "message": "❌ Matricule non autorisé ou introuvable.",
+#                 "status": "error"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+# class SetupPasswordView(generics.GenericAPIView):
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         token = request.data.get('token')
+#         matricule = request.data.get('matricule')
+#         email = request.data.get('email')
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+        
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=matricule,
+#                 est_actif=True
+#             )
+            
+#             if not matricule_autorise.activation_token or matricule_autorise.activation_token != token:
+#                 return Response({
+#                     "message": "❌ Lien d'activation invalide ou déjà utilisé.",
+#                     "status": "error"
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             if User.objects.filter(username=username).exists():
+#                 return Response({
+#                     "message": "❌ Ce nom d'utilisateur est déjà pris.",
+#                     "status": "error"
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             user, created = User.objects.get_or_create(
+#                 username=matricule,
+#                 defaults={
+#                     'email': email,
+#                     'password': password,
+#                     'first_name': '',
+#                     'last_name': ''
+#                 }
+#             )
+            
+#             if not created:
+#                 user.email = email
+#                 user.set_password(password)
+#                 user.save()
+            
+#             matricule_autorise.date_activation = timezone.now()
+#             matricule_autorise.activation_token = None
+#             matricule_autorise.token_expiration = None
+#             matricule_autorise.save()
+            
+#             return Response({
+#                 "message": "✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.",
+#                 "status": "success",
+#                 "username": username
+#             }, status=status.HTTP_200_OK)
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             return Response({
+#                 "message": "❌ Matricule non autorisé ou introuvable.",
+#                 "status": "error"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+# class QuickLoginView(generics.GenericAPIView):
+#     permission_classes = [permissions.AllowAny]
+#     serializer_class = QuickLoginSerializer  # <-- AJOUTEZ CETTE LIGNE
+    
+#     def post(self, request):
+#         # Valider les données avec le serializer
+#         serializer = self.get_serializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+        
+#         matricule = serializer.validated_data.get('matricule')
+#         username = serializer.validated_data.get('username')
+#         password = serializer.validated_data.get('password')
+        
+#         login_identifier = username or matricule
+        
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=login_identifier,
+#                 est_actif=True,
+#                 date_activation__isnull=False
+#             )
+#         except MatriculeAutorise.DoesNotExist:
+#             return Response({
+#                 "error": "❌ Compte non activé."
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         from django.contrib.auth import authenticate
+#         user = authenticate(username=login_identifier, password=password)
+        
+#         if user is not None:
+#             from rest_framework_simplejwt.tokens import RefreshToken
+#             refresh = RefreshToken.for_user(user)
+            
+#             return Response({
+#                 "access": str(refresh.access_token),
+#                 "refresh": str(refresh),
+#                 "user": {
+#                     "id": user.id,
+#                     "username": user.username,
+#                     "email": user.email,
+#                     "first_name": user.first_name,
+#                     "last_name": user.last_name
+#                 },
+#                 "message": "✅ Connexion réussie !"
+#             })
+#         else:
+#             return Response({
+#                 "error": "❌ Identifiant ou mot de passe incorrect"
+#             }, status=status.HTTP_401_UNAUTHORIZED)
+
+# # ============================================
+# # 7. ENDPOINTS UTILITAIRES
+# # ============================================
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_complete_profile(request):
+#     """Récupère toutes les informations du profil"""
+#     user = request.user
+    
+#     base_serializer = UserSerializer(user)
+#     base_data = base_serializer.data
+    
+#     try:
+#         profile = UserProfile.objects.get(user=user)
+#         extended_serializer = UserProfileSerializer(profile, context={'request': request})
+#         extended_data = extended_serializer.data
+#     except UserProfile.DoesNotExist:
+#         extended_data = None
+    
+#     projects_count = Project.objects.filter(author=user).count()
+#     unread_notifications = Notification.objects.filter(user=user, is_read=False).count()
+    
+#     return Response({
+#         'base_profile': base_data,
+#         'extended_profile': extended_data,
+#         'stats': {
+#             'projects_count': projects_count,
+#             'unread_notifications': unread_notifications
+#         },
+#         'timestamp': timezone.now()
+#     })
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def get_all_users_simple(request):
+#     """Endpoint simple pour récupérer tous les utilisateurs"""
+#     try:
+#         users = User.objects.all().order_by('-date_joined')
+        
+#         users_data = []
+#         for user in users:
+#             users_data.append({
+#                 'id': user.id,
+#                 'username': user.username,
+#                 'email': user.email,
+#                 'first_name': user.first_name,
+#                 'last_name': user.last_name,
+#                 'is_active': user.is_active,
+#                 'date_joined': user.date_joined,
+#                 'last_login': user.last_login,
+#             })
+        
+#         return Response({
+#             'status': 'success',
+#             'count': len(users_data),
+#             'users': users_data,
+#             'timestamp': timezone.now()
+#         })
+        
+#     except Exception as e:
+#         return Response({
+#             'status': 'error',
+#             'message': str(e)
+#         }, status=500)
+
+# @api_view(['GET'])
+# @permission_classes([IsAdminUser])
+# def get_all_users_admin(request):
+#     """Endpoint admin pour récupérer tous les utilisateurs"""
+#     try:
+#         users = User.objects.all().order_by('-date_joined')
+        
+#         users_data = []
+#         for user in users:
+#             try:
+#                 profile = UserProfile.objects.get(user=user)
+#                 profile_data = {
+#                     'avatar': request.build_absolute_uri(profile.avatar.url) if profile.avatar else None,
+#                     'bio': profile.bio,
+#                 }
+#             except UserProfile.DoesNotExist:
+#                 profile_data = None
+            
+#             users_data.append({
+#                 'id': user.id,
+#                 'username': user.username,
+#                 'email': user.email,
+#                 'first_name': user.first_name,
+#                 'last_name': user.last_name,
+#                 'is_active': user.is_active,
+#                 'profile': profile_data,
+#                 'projects_count': user.project_set.count() if hasattr(user, 'project_set') else 0,
+#             })
+        
+#         return Response({
+#             'status': 'success',
+#             'count': len(users_data),
+#             'users': users_data,
+#             'requested_by': request.user.username,
+#             'timestamp': timezone.now()
+#         })
+        
+#     except Exception as e:
+#         return Response({
+#             'status': 'error',
+#             'message': str(e)
+#         }, status=500)
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def health_check(request):
+#     """Endpoint de vérification de santé de l'API"""
+#     return Response({
+#         'status': 'healthy',
+#         'timestamp': timezone.now(),
+#         'version': '1.0.0'
+#     })
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def user_status(request):
+#     """Vérifie le statut de l'utilisateur connecté"""
+#     user = request.user
+#     return Response({
+#         'is_authenticated': True,
+#         'user': {
+#             'id': user.id,
+#             'username': user.username,
+#             'email': user.email
+#         },
+#         'timestamp': timezone.now()
+#     })
+
+#     # ============================================
+# # 8. VUE DE CONNEXION UNIVERSELLE
+# # ============================================
+
+# class UniversalLoginView(generics.GenericAPIView):
+#     """
+#     Vue unique pour la connexion de tous les utilisateurs
+#     - Admins: se connectent avec username + password
+#     - Apprenants: se connectent avec matricule + password
+#     """
+#     permission_classes = [permissions.AllowAny]
+#     serializer_class = QuickLoginSerializer
+    
+#     def post(self, request):
+#         identifier = request.data.get('identifier', '').strip()
+#         password = request.data.get('password', '')
+        
+#         if not identifier or not password:
+#             return Response({
+#                 "error": "Identifiant et mot de passe requis"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         # 🎯 DÉTECTION AUTOMATIQUE DU TYPE D'UTILISATEUR
+        
+#         # Tentative 1: Vérifier si c'est un admin (via username)
+#         user = None
+#         user_type = None
+        
+#         try:
+#             # Chercher l'utilisateur par username
+#             user = User.objects.get(username=identifier)
+            
+#             # Vérifier si c'est un admin
+#             if user.is_staff or user.is_superuser:
+#                 user_type = 'admin'
+#             else:
+#                 user_type = 'apprenant'  # C'est un utilisateur standard
+                
+#         except User.DoesNotExist:
+#             # Tentative 2: Vérifier si c'est un matricule d'apprenant
+#             try:
+#                 matricule_autorise = MatriculeAutorise.objects.get(
+#                     matricule=identifier,
+#                     est_actif=True
+#                 )
+                
+#                 # Le matricule existe et est actif
+#                 # Chercher l'utilisateur avec ce matricule comme username
+#                 try:
+#                     user = User.objects.get(username=identifier)
+#                     user_type = 'apprenant'
+#                 except User.DoesNotExist:
+#                     return Response({
+#                         "error": "Compte non activé pour ce matricule. Veuillez d'abord activer votre compte."
+#                     }, status=status.HTTP_400_BAD_REQUEST)
+                    
+#             except MatriculeAutorise.DoesNotExist:
+#                 # Aucun utilisateur ou matricule trouvé
+#                 return Response({
+#                     "error": "Identifiant ou mot de passe incorrect"
+#                 }, status=status.HTTP_401_UNAUTHORIZED)
+        
+#         # 🎯 AUTHENTIFICATION
+#         from django.contrib.auth import authenticate
+#         authenticated_user = authenticate(
+#             username=identifier, 
+#             password=password
+#         )
+        
+#         if authenticated_user is not None:
+#             from rest_framework_simplejwt.tokens import RefreshToken
+#             refresh = RefreshToken.for_user(authenticated_user)
+            
+#             # 🎯 PRÉPARER LA RÉPONSE AVEC LES INFORMATIONS DE REDIRECTION
+#             is_admin = authenticated_user.is_staff or authenticated_user.is_superuser
+            
+#             # Déterminer le dashboard approprié
+#             redirect_to = "/admin" if is_admin else "/dashboard"
+#             user_role = "admin" if is_admin else "apprenant"
+            
+#             return Response({
+#                 "access": str(refresh.access_token),
+#                 "refresh": str(refresh),
+#                 "user": {
+#                     "id": authenticated_user.id,
+#                     "username": authenticated_user.username,
+#                     "email": authenticated_user.email,
+#                     "first_name": authenticated_user.first_name,
+#                     "last_name": authenticated_user.last_name,
+#                     "role": user_role,
+#                     "is_staff": authenticated_user.is_staff,
+#                     "is_superuser": authenticated_user.is_superuser,
+#                 },
+#                 "redirect_to": redirect_to,
+#                 "message": f"Connexion réussie en tant que {user_role}"
+#             })
+#         else:
+#             return Response({
+#                 "error": "Identifiant ou mot de passe incorrect"
+#             }, status=status.HTTP_401_UNAUTHORIZED)
+
+
+#             # AJOUTER CETTE VUE À users/views.py (à la fin du fichier)
+
+
+# class UserProjectsAPIView(generics.ListAPIView):
+#     """
+#     API pour récupérer les projets d'un utilisateur spécifique
+#     """
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = ProjectSerializer
+    
+#     def get_queryset(self):
+#         # Récupérer l'ID utilisateur depuis les paramètres ou le token
+#         user_id = self.kwargs.get('user_id')
+        
+#         if user_id:
+#             # Si un user_id est fourni dans l'URL
+#             return Project.objects.filter(author_id=user_id).order_by('-created_at')
+#         else:
+#             # Sinon, utiliser l'utilisateur connecté
+#             return Project.objects.filter(author=self.request.user).order_by('-created_at')
+    
+#     def list(self, request, *args, **kwargs):
+#         try:
+#             queryset = self.get_queryset()
+            
+#             # Filtrer par statut si demandé
+#             status_filter = request.query_params.get('status')
+#             if status_filter:
+#                 queryset = queryset.filter(status=status_filter)
+            
+#             # Pagination simple
+#             page = int(request.query_params.get('page', 1))
+#             per_page = int(request.query_params.get('per_page', 10))
+#             start = (page - 1) * per_page
+#             end = start + per_page
+            
+#             total = queryset.count()
+#             projects = queryset[start:end]
+            
+#             serializer = self.get_serializer(projects, many=True)
+            
+#             return Response({
+#                 'status': 'success',
+#                 'user_id': self.request.user.id if not self.kwargs.get('user_id') else self.kwargs.get('user_id'),
+#                 'username': self.request.user.username,
+#                 'count': total,
+#                 'page': page,
+#                 'per_page': per_page,
+#                 'total_pages': (total + per_page - 1) // per_page,
+#                 'projects': serializer.data
+#             })
+            
+#         except Exception as e:
+#             logger.error(f"Erreur UserProjectsAPIView: {str(e)}")
+#             return Response({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# class UserProjectsCountView(generics.GenericAPIView):
+#     """
+#     API pour compter les projets d'un utilisateur
+#     """
+#     permission_classes = [permissions.IsAuthenticated]
+    
+#     def get(self, request, *args, **kwargs):
+#         try:
+#             user_id = kwargs.get('user_id')
+            
+#             if user_id:
+#                 count = Project.objects.filter(author_id=user_id).count()
+#                 user = User.objects.get(id=user_id)
+#                 username = user.username
+#             else:
+#                 count = Project.objects.filter(author=request.user).count()
+#                 username = request.user.username
+#                 user_id = request.user.id
+            
+#             # Compter par statut
+#             status_counts = {}
+#             for status_choice in ['draft', 'pending', 'approved', 'rejected']:
+#                 if user_id:
+#                     status_counts[status_choice] = Project.objects.filter(
+#                         author_id=user_id,
+#                         status=status_choice
+#                     ).count()
+#                 else:
+#                     status_counts[status_choice] = Project.objects.filter(
+#                         author=request.user,
+#                         status=status_choice
+#                     ).count()
+            
+#             return Response({
+#                 'status': 'success',
+#                 'user_id': user_id,
+#                 'username': username,
+#                 'total_projects': count,
+#                 'status_counts': status_counts,
+#                 'requested_at': timezone.now()
+#             })
+            
+#         except User.DoesNotExist:
+#             return Response({
+#                 'status': 'error',
+#                 'message': 'Utilisateur non trouvé'
+#             }, status=status.HTTP_404_NOT_FOUND)
+#         except Exception as e:
+#             logger.error(f"Erreur UserProjectsCountView: {str(e)}")
+#             return Response({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+#         # Ajoute ce code dans simplon-backend/users/views.py
+
+# class UserProjectsAPIView(generics.ListAPIView):
+#     """API pour récupérer les projets d'un utilisateur"""
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = ProjectSerializer
+    
+#     def get_queryset(self):
+#         user_id = self.kwargs.get('user_id')
+        
+#         if user_id:
+#             return Project.objects.filter(author_id=user_id).order_by('-created_at')
+#         else:
+#             return Project.objects.filter(author=self.request.user).order_by('-created_at')
+    
+#     def list(self, request, *args, **kwargs):
+#         try:
+#             queryset = self.get_queryset()
+#             serializer = self.get_serializer(queryset, many=True)
+            
+#             return Response({
+#                 'status': 'success',
+#                 'user_id': self.request.user.id,
+#                 'count': len(serializer.data),
+#                 'projects': serializer.data
+#             })
+#         except Exception as e:
+#             return Response({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# class UserProjectsCountView(generics.GenericAPIView):
+#     """API pour compter les projets d'un utilisateur"""
+#     permission_classes = [permissions.IsAuthenticated]
+    
+#     def get(self, request, *args, **kwargs):
+#         try:
+#             user_id = kwargs.get('user_id') or request.user.id
+            
+#             count = Project.objects.filter(author_id=user_id).count()
+            
+#             # Compter par statut
+#             status_counts = {
+#                 'draft': Project.objects.filter(author_id=user_id, status='draft').count(),
+#                 'pending': Project.objects.filter(author_id=user_id, status='pending').count(),
+#                 'approved': Project.objects.filter(author_id=user_id, status='approved').count(),
+#                 'rejected': Project.objects.filter(author_id=user_id, status='rejected').count(),
+#             }
+            
+#             return Response({
+#                 'status': 'success',
+#                 'user_id': user_id,
+#                 'total_projects': count,
+#                 'status_counts': status_counts
+#             })
+#         except Exception as e:
+#             return Response({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# # users/views.py - FICHIER UNIFIÉ ET DÉFINITIF
+# from django.contrib.auth.models import User
+# from django.contrib.auth import authenticate
+# from django.db.models import Count, Q
+# from django.utils import timezone
+# from datetime import timedelta
+# from rest_framework import viewsets, permissions, status, generics
+# from rest_framework.decorators import api_view, permission_classes, action
+# from rest_framework.response import Response
+# from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+# from rest_framework.views import APIView
+# from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+# import json
+# import logging
+
+# from projects.models import Project
+# from projects.serializers import ProjectSerializer
+# from .models import MatriculeAutorise, UserProfile, Notification, ProfileUpdateHistory
+# from .serializers import (
+#     UserCreateSerializer, UserWithProfileSerializer,
+#     UserStatsSerializer, UserProfileSerializer,
+#     NotificationSerializer, ProfileUpdateHistorySerializer,
+#     UserSerializer, ExtendedProfileUpdateSerializer,
+#     PasswordChangeSerializer, AvatarUploadSerializer,
+#     QuickLoginSerializer
+# )
+
+# logger = logging.getLogger(__name__)
+
+# # ============ VUES D'AUTHENTIFICATION ============
+
+# class UniversalLoginView(APIView):
+#     """
+#     Vue de login universelle (username/email/matricule + password)
+#     """
+#     permission_classes = [AllowAny]
+    
+#     def post(self, request):
+#         identifier = request.data.get('identifier', '').strip()
+#         password = request.data.get('password', '')
+        
+#         if not identifier or not password:
+#             return Response({
+#                 'success': False,
+#                 'message': 'Identifiant et mot de passe requis'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         # Chercher l'utilisateur par différents critères
+#         user = None
+        
+#         # 1. Par username
+#         user = User.objects.filter(username=identifier).first()
+        
+#         # 2. Par email
+#         if not user:
+#             user = User.objects.filter(email=identifier).first()
+        
+#         # 3. Par matricule (chercher dans MatriculeAutorise puis User)
+#         if not user:
+#             try:
+#                 matricule_auth = MatriculeAutorise.objects.filter(
+#                     matricule=identifier,
+#                     est_actif=True
+#                 ).first()
+#                 if matricule_auth:
+#                     # Chercher l'utilisateur avec ce matricule comme username
+#                     user = User.objects.filter(username=identifier).first()
+#             except Exception as e:
+#                 logger.error(f"Erreur recherche matricule: {e}")
+        
+#         if not user:
+#             return Response({
+#                 'success': False,
+#                 'message': 'Identifiant non trouvé'
+#             }, status=status.HTTP_404_NOT_FOUND)
+        
+#         # Authentifier avec le mot de passe
+#         auth_user = authenticate(username=user.username, password=password)
+        
+#         if not auth_user:
+#             return Response({
+#                 'success': False,
+#                 'message': 'Mot de passe incorrect'
+#             }, status=status.HTTP_401_UNAUTHORIZED)
+        
+#         if not auth_user.is_active:
+#             return Response({
+#                 'success': False,
+#                 'message': 'Compte désactivé'
+#             }, status=status.HTTP_403_FORBIDDEN)
+        
+#         # Générer les tokens JWT
+#         refresh = RefreshToken.for_user(auth_user)
+        
+#         # Mettre à jour la dernière connexion
+#         auth_user.last_login = timezone.now()
+#         auth_user.save()
+        
+#         # Récupérer le profil
+#         try:
+#             profile = UserProfile.objects.get(user=auth_user)
+#             profile_data = UserProfileSerializer(profile).data
+#         except UserProfile.DoesNotExist:
+#             profile_data = {}
+        
+#         # Données utilisateur complètes
+#         user_data = {
+#             'id': auth_user.id,
+#             'username': auth_user.username,
+#             'email': auth_user.email,
+#             'first_name': auth_user.first_name,
+#             'last_name': auth_user.last_name,
+#             'full_name': f"{auth_user.first_name or ''} {auth_user.last_name or ''}".strip() or auth_user.username,
+#             'is_staff': auth_user.is_staff,
+#             'is_superuser': auth_user.is_superuser,
+#             'is_active': auth_user.is_active,
+#             'date_joined': auth_user.date_joined,
+#             'last_login': auth_user.last_login,
+#             'role': 'admin' if auth_user.is_staff else 'user',
+#             'profile': profile_data,
+#             'profile_complete': bool(auth_user.first_name and auth_user.last_name and auth_user.email),
+#         }
+        
+#         return Response({
+#             'success': True,
+#             'message': 'Connexion réussie',
+#             'user': user_data,
+#             'tokens': {
+#                 'access': str(refresh.access_token),
+#                 'refresh': str(refresh)
+#             }
+#         })
+
+# class QuickLoginView(APIView):
+#     """
+#     Login rapide pour la démo
+#     """
+#     permission_classes = [AllowAny]
+    
+#     def post(self, request):
+#         username = request.data.get('username', 'admin')
+        
+#         try:
+#             user = User.objects.get(username=username)
+            
+#             # Pour la démo, on accepte n'importe quel mot de passe simple
+#             password = request.data.get('password', '123')
+#             valid_passwords = ['admin123', '123', 'password', 'simplon']
+            
+#             if password not in valid_passwords:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Mot de passe incorrect (essayez: 123)'
+#                 }, status=status.HTTP_401_UNAUTHORIZED)
+            
+#             if not user.is_active:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Compte désactivé'
+#                 }, status=status.HTTP_403_FORBIDDEN)
+            
+#             # Générer les tokens
+#             refresh = RefreshToken.for_user(user)
+            
+#             user.last_login = timezone.now()
+#             user.save()
+            
+#             user_data = {
+#                 'id': user.id,
+#                 'username': user.username,
+#                 'email': user.email,
+#                 'first_name': user.first_name,
+#                 'last_name': user.last_name,
+#                 'is_staff': user.is_staff,
+#                 'is_superuser': user.is_superuser,
+#                 'role': 'admin' if user.is_staff else 'user'
+#             }
+            
+#             return Response({
+#                 'success': True,
+#                 'message': 'Connexion rapide réussie',
+#                 'user': user_data,
+#                 'tokens': {
+#                     'access': str(refresh.access_token),
+#                     'refresh': str(refresh)
+#                 }
+#             })
+            
+#         except User.DoesNotExist:
+#             return Response({
+#                 'success': False,
+#                 'message': f'Utilisateur {username} non trouvé'
+#             }, status=status.HTTP_404_NOT_FOUND)
+
+# # ============ VUES DE PROFIL ============
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_current_user(request):
+#     """
+#     Récupère l'utilisateur courant - ENDPOINT SIMPLE POUR FRONTEND
+#     """
+#     user = request.user
+    
+#     try:
+#         profile = UserProfile.objects.get(user=user)
+#         profile_data = UserProfileSerializer(profile).data
+#     except UserProfile.DoesNotExist:
+#         profile_data = {}
+    
+#     projects_count = Project.objects.filter(author=user).count()
+    
+#     return Response({
+#         'id': user.id,
+#         'username': user.username,
+#         'email': user.email,
+#         'first_name': user.first_name,
+#         'last_name': user.last_name,
+#         'full_name': f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username,
+#         'is_staff': user.is_staff,
+#         'is_superuser': user.is_superuser,
+#         'is_active': user.is_active,
+#         'date_joined': user.date_joined,
+#         'last_login': user.last_login,
+#         'role': 'admin' if user.is_staff else 'user',
+#         'profile_complete': bool(user.first_name and user.last_name and user.email),
+#         'profile': profile_data,
+#         'projects_count': projects_count,
+#         'has_password': user.has_usable_password()
+#     })
+
+# class UserProfileView(generics.RetrieveUpdateAPIView):
+#     """
+#     Vue pour le profil utilisateur de base
+#     """
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = UserSerializer
+    
+#     def get_object(self):
+#         return self.request.user
+
+# class UserExtendedProfileView(generics.RetrieveUpdateAPIView):
+#     """
+#     Vue pour le profil utilisateur étendu
+#     """
+#     permission_classes = [IsAuthenticated]
+    
+#     def get_serializer_class(self):
+#         if self.request.method in ['PUT', 'PATCH']:
+#             return ExtendedProfileUpdateSerializer
+#         return UserProfileSerializer
+    
+#     def get_object(self):
+#         profile, created = UserProfile.objects.get_or_create(user=self.request.user)
+#         return profile
+    
+#     def get(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = UserProfileSerializer(instance)
+#         return Response(serializer.data)
+    
+#     def update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         partial = kwargs.pop('partial', False)
+        
+#         serializer = ExtendedProfileUpdateSerializer(instance, data=request.data, partial=partial)
+#         serializer.is_valid(raise_exception=True)
+        
+#         for field, value in serializer.validated_data.items():
+#             setattr(instance, field, value)
+        
+#         instance.save()
+        
+#         # Historiser la modification
+#         ProfileUpdateHistory.objects.create(
+#             user=request.user,
+#             changes=json.dumps(serializer.validated_data),
+#             ip_address=request.META.get('REMOTE_ADDR'),
+#             user_agent=request.META.get('HTTP_USER_AGENT', '')
+#         )
+        
+#         response_serializer = UserProfileSerializer(instance)
+#         return Response(response_serializer.data)
+
+# class UserProfileCompleteView(APIView):
+#     """
+#     Vérifie si le profil est complet
+#     """
+#     permission_classes = [IsAuthenticated]
+    
+#     def get(self, request):
+#         user = request.user
+        
+#         required_fields = {
+#             'first_name': bool(user.first_name),
+#             'last_name': bool(user.last_name),
+#             'email': bool(user.email),
+#         }
+        
+#         try:
+#             profile = UserProfile.objects.get(user=user)
+#             required_fields['cohort'] = bool(profile.cohort)
+#         except UserProfile.DoesNotExist:
+#             required_fields['cohort'] = False
+        
+#         all_complete = all(required_fields.values())
+#         completed_fields = sum(required_fields.values())
+#         total_fields = len(required_fields)
+        
+#         return Response({
+#             'is_complete': all_complete,
+#             'progress': {
+#                 'completed': completed_fields,
+#                 'total': total_fields,
+#                 'percentage': int((completed_fields / total_fields) * 100)
+#             },
+#             'missing_fields': [field for field, is_set in required_fields.items() if not is_set]
+#         })
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_complete_profile(request):
+#     """
+#     Profil complet avec toutes les données
+#     """
+#     user = request.user
+    
+#     try:
+#         profile = UserProfile.objects.get(user=user)
+#         profile_data = UserProfileSerializer(profile).data
+#     except UserProfile.DoesNotExist:
+#         profile_data = {}
+    
+#     projects = Project.objects.filter(author=user)
+#     projects_data = ProjectSerializer(projects, many=True).data
+    
+#     notifications = Notification.objects.filter(user=user, is_read=False)
+#     notifications_data = NotificationSerializer(notifications, many=True).data
+    
+#     return Response({
+#         'user': {
+#             'id': user.id,
+#             'username': user.username,
+#             'email': user.email,
+#             'first_name': user.first_name,
+#             'last_name': user.last_name,
+#             'full_name': f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username,
+#             'is_staff': user.is_staff,
+#             'is_superuser': user.is_superuser,
+#             'is_active': user.is_active,
+#             'date_joined': user.date_joined,
+#             'last_login': user.last_login,
+#             'role': 'admin' if user.is_staff else 'user'
+#         },
+#         'profile': profile_data,
+#         'projects': projects_data,
+#         'unread_notifications': notifications_data,
+#         'unread_count': notifications.count()
+#     })
+
+# class UserProfileImageView(APIView):
+#     """
+#     Gestion de l'avatar utilisateur
+#     """
+#     permission_classes = [IsAuthenticated]
+    
+#     def get(self, request):
+#         try:
+#             profile = UserProfile.objects.get(user=request.user)
+#             if profile.avatar:
+#                 avatar_url = request.build_absolute_uri(profile.avatar.url)
+#                 return Response({
+#                     'avatar_url': avatar_url,
+#                     'has_avatar': True
+#                 })
+#         except UserProfile.DoesNotExist:
+#             pass
+        
+#         return Response({
+#             'avatar_url': None,
+#             'has_avatar': False
+#         })
+    
+#     def post(self, request):
+#         serializer = AvatarUploadSerializer(data=request.data)
+#         if serializer.is_valid():
+#             profile, created = UserProfile.objects.get_or_create(user=request.user)
+            
+#             if profile.avatar:
+#                 profile.avatar.delete(save=False)
+            
+#             profile.avatar = serializer.validated_data['avatar']
+#             profile.save()
+            
+#             avatar_url = request.build_absolute_uri(profile.avatar.url) if profile.avatar else None
+            
+#             return Response({
+#                 'success': True,
+#                 'message': 'Photo de profil mise à jour',
+#                 'avatar_url': avatar_url
+#             })
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+#     def delete(self, request):
+#         try:
+#             profile = UserProfile.objects.get(user=request.user)
+#             if profile.avatar:
+#                 profile.avatar.delete()
+#                 profile.save()
+#                 return Response({
+#                     'success': True,
+#                     'message': 'Avatar supprimé'
+#                 })
+#         except UserProfile.DoesNotExist:
+#             pass
+        
+#         return Response({
+#             'success': False,
+#             'message': 'Pas d\'avatar à supprimer'
+#         })
+
+# class UserProfileHistoryView(generics.ListAPIView):
+#     """
+#     Historique des modifications du profil
+#     """
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = ProfileUpdateHistorySerializer
+    
+#     def get_queryset(self):
+#         return ProfileUpdateHistory.objects.filter(
+#             user=self.request.user
+#         ).order_by('-updated_at')
+
+# class ChangePasswordView(APIView):
+#     """
+#     Changement de mot de passe
+#     """
+#     permission_classes = [IsAuthenticated]
+    
+#     def post(self, request):
+#         old_password = request.data.get('old_password')
+#         new_password = request.data.get('new_password')
+#         confirm_password = request.data.get('confirm_password')
+        
+#         if not all([old_password, new_password, confirm_password]):
+#             return Response({
+#                 'success': False,
+#                 'message': 'Tous les champs sont requis'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         if new_password != confirm_password:
+#             return Response({
+#                 'success': False,
+#                 'message': 'Les nouveaux mots de passe ne correspondent pas'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         user = request.user
+#         if not user.check_password(old_password):
+#             return Response({
+#                 'success': False,
+#                 'message': 'Ancien mot de passe incorrect'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         user.set_password(new_password)
+#         user.save()
+        
+#         return Response({
+#             'success': True,
+#             'message': 'Mot de passe changé avec succès'
+#         })
+
+# # ============ VUES DE PROJETS ============
+
+# class UserProjectsAPIView(generics.ListAPIView):
+#     """
+#     API pour récupérer les projets d'un utilisateur
+#     """
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = ProjectSerializer
+    
+#     def get_queryset(self):
+#         user_id = self.kwargs.get('user_id')
+        
+#         if user_id:
+#             # Vérifier les permissions
+#             if self.request.user.is_staff:
+#                 return Project.objects.filter(author_id=user_id).order_by('-created_at')
+#             elif self.request.user.id == user_id:
+#                 return Project.objects.filter(author_id=user_id).order_by('-created_at')
+#             else:
+#                 return Project.objects.none()
+#         else:
+#             # Utilisateur courant
+#             return Project.objects.filter(author=self.request.user).order_by('-created_at')
+    
+#     def list(self, request, *args, **kwargs):
+#         queryset = self.get_queryset()
+        
+#         # Filtrer par statut
+#         status_filter = request.query_params.get('status')
+#         if status_filter:
+#             queryset = queryset.filter(status=status_filter)
+        
+#         # Pagination
+#         page = int(request.query_params.get('page', 1))
+#         per_page = int(request.query_params.get('per_page', 10))
+#         start = (page - 1) * per_page
+#         end = start + per_page
+        
+#         total = queryset.count()
+#         projects = queryset[start:end]
+        
+#         serializer = self.get_serializer(projects, many=True)
+        
+#         return Response({
+#             'success': True,
+#             'user_id': self.kwargs.get('user_id') or request.user.id,
+#             'username': request.user.username,
+#             'count': total,
+#             'page': page,
+#             'per_page': per_page,
+#             'total_pages': (total + per_page - 1) // per_page,
+#             'projects': serializer.data
+#         })
+
+# class UserProjectsCountView(APIView):
+#     """
+#     Compte les projets d'un utilisateur par statut
+#     """
+#     permission_classes = [IsAuthenticated]
+    
+#     def get(self, request, user_id=None):
+#         if user_id:
+#             if request.user.is_staff or request.user.id == user_id:
+#                 target_user_id = user_id
+#             else:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Permission refusée'
+#                 }, status=status.HTTP_403_FORBIDDEN)
+#         else:
+#             target_user_id = request.user.id
+        
+#         try:
+#             user = User.objects.get(id=target_user_id)
+#         except User.DoesNotExist:
+#             return Response({
+#                 'success': False,
+#                 'message': 'Utilisateur non trouvé'
+#             }, status=status.HTTP_404_NOT_FOUND)
+        
+#         projects = Project.objects.filter(author=user)
+        
+#         counts = {
+#             'total': projects.count(),
+#             'draft': projects.filter(status='draft').count(),
+#             'pending': projects.filter(status='pending').count(),
+#             'approved': projects.filter(status='approved').count(),
+#             'published': projects.filter(status='publié').count(),
+#             'rejected': projects.filter(status='rejected').count()
+#         }
+        
+#         return Response({
+#             'success': True,
+#             'user': {
+#                 'id': user.id,
+#                 'username': user.username
+#             },
+#             'counts': counts
+#         })
+
+# # ============ VUES ADMIN ============
+
+# class AdminUserViewSet(viewsets.ModelViewSet):
+#     """
+#     ViewSet pour la gestion admin des utilisateurs
+#     """
+#     permission_classes = [IsAdminUser]
+#     queryset = User.objects.all().order_by('-date_joined')
+    
+#     def get_serializer_class(self):
+#         if self.action == 'create':
+#             return UserCreateSerializer
+#         elif self.action in ['retrieve', 'update', 'partial_update']:
+#             return UserWithProfileSerializer
+#         return UserCreateSerializer
+    
+#     @action(detail=True, methods=['post'])
+#     def activate(self, request, pk=None):
+#         """Activer/désactiver un utilisateur"""
+#         user = self.get_object()
+#         user.is_active = not user.is_active
+#         user.save()
+        
+#         status_text = "activé" if user.is_active else "désactivé"
+#         return Response({
+#             'success': True,
+#             'message': f'Utilisateur {status_text}',
+#             'is_active': user.is_active
+#         })
+    
+#     @action(detail=False, methods=['get'])
+#     def stats(self, request):
+#         """Statistiques admin"""
+#         now = timezone.now()
+#         last_week = now - timedelta(days=7)
+        
+#         total_users = User.objects.count()
+#         active_today = User.objects.filter(last_login__date=now.date()).count()
+#         new_this_week = User.objects.filter(date_joined__gte=last_week).count()
+#         with_profile = UserProfile.objects.count()
+        
+#         return Response({
+#             'total_users': total_users,
+#             'active_today': active_today,
+#             'new_this_week': new_this_week,
+#             'with_profile': with_profile,
+#             'without_profile': total_users - with_profile,
+#             'generated_at': now.isoformat()
+#         })
+
+# # ============ NOTIFICATIONS ============
+
+# class UserNotificationsView(APIView):
+#     """
+#     Gestion des notifications utilisateur
+#     """
+#     permission_classes = [IsAuthenticated]
+    
+#     def get(self, request):
+#         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        
+#         # Marquer comme lues si demandé
+#         mark_read = request.query_params.get('mark_read', 'false').lower() == 'true'
+#         if mark_read:
+#             notifications.update(is_read=True)
+        
+#         # Pagination
+#         page = int(request.query_params.get('page', 1))
+#         page_size = int(request.query_params.get('page_size', 20))
+#         start = (page - 1) * page_size
+#         end = start + page_size
+        
+#         total = notifications.count()
+#         paginated_notifications = notifications[start:end]
+        
+#         serializer = NotificationSerializer(paginated_notifications, many=True)
+        
+#         unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
+        
+#         return Response({
+#             'success': True,
+#             'notifications': serializer.data,
+#             'unread_count': unread_count,
+#             'pagination': {
+#                 'page': page,
+#                 'page_size': page_size,
+#                 'total': total,
+#                 'total_pages': (total + page_size - 1) // page_size
+#             }
+#         })
+    
+#     def post(self, request):
+#         # Marquer toutes comme lues
+#         if request.data.get('mark_all_read', False):
+#             Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+#             return Response({
+#                 'success': True,
+#                 'message': 'Toutes les notifications marquées comme lues'
+#             })
+        
+#         # Marquer une notification spécifique comme lue
+#         notification_id = request.data.get('notification_id')
+#         if notification_id:
+#             try:
+#                 notification = Notification.objects.get(id=notification_id, user=request.user)
+#                 notification.is_read = True
+#                 notification.save()
+#                 return Response({
+#                     'success': True,
+#                     'message': 'Notification marquée comme lue'
+#                 })
+#             except Notification.DoesNotExist:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Notification non trouvée'
+#                 }, status=status.HTTP_404_NOT_FOUND)
+        
+#         return Response({
+#             'success': False,
+#             'message': 'Action non spécifiée'
+#         }, status=status.HTTP_400_BAD_REQUEST)
+
+# # ============ VUES UTILITAIRES ============
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def get_all_users_simple(request):
+#     """Liste simple de tous les utilisateurs"""
+#     users = User.objects.filter(is_active=True).values('id', 'username', 'email', 'first_name', 'last_name')
+#     return Response(list(users))
+
+# @api_view(['GET'])
+# @permission_classes([IsAdminUser])
+# def get_all_users_admin(request):
+#     """Liste complète de tous les utilisateurs (admin)"""
+#     users = User.objects.all().order_by('-date_joined')
+#     serializer = UserWithProfileSerializer(users, many=True)
+#     return Response(serializer.data)
+
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def health_check(request):
+#     """Vérification de santé de l'API"""
+#     users_count = User.objects.count()
+#     active_users = User.objects.filter(is_active=True).count()
+    
+#     return Response({
+#         'status': 'healthy',
+#         'timestamp': timezone.now().isoformat(),
+#         'database': {
+#             'total_users': users_count,
+#             'active_users': active_users
+#         }
+#     })
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def user_status(request):
+#     """Statut de l'utilisateur courant"""
+#     user = request.user
+    
+#     last_project = Project.objects.filter(author=user).order_by('-created_at').first()
+#     unread_notifications = Notification.objects.filter(user=user, is_read=False).count()
+    
+#     return Response({
+#         'user': {
+#             'id': user.id,
+#             'username': user.username,
+#             'is_active': user.is_active,
+#             'is_authenticated': True
+#         },
+#         'last_activity': {
+#             'project': ProjectSerializer(last_project).data if last_project else None,
+#             'login': user.last_login
+#         },
+#         'notifications': {
+#             'unread': unread_notifications
+#         }
+#     })
+
+# # ============ VUES SPÉCIALES (activation par matricule) ============
+
+# class RequestLoginView(APIView):
+#     """
+#     Demande de connexion pour activation par matricule
+#     """
+#     permission_classes = [AllowAny]
+    
+#     def post(self, request):
+#         matricule = request.data.get('matricule')
+#         email = request.data.get('email')
+        
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=matricule,
+#                 est_actif=True
+#             )
+            
+#             token = matricule_autorise.generate_activation_token(minutes=5)
+            
+#             return Response({
+#                 "success": True,
+#                 "message": "Lien d'activation envoyé !",
+#                 "expires_in": "5 minutes"
+#             })
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             return Response({
+#                 "success": False,
+#                 "message": "Matricule non autorisé ou introuvable."
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+# class SetupPasswordView(APIView):
+#     """
+#     Configuration du mot de passe après activation
+#     """
+#     permission_classes = [AllowAny]
+    
+#     def post(self, request):
+#         token = request.data.get('token')
+#         matricule = request.data.get('matricule')
+#         email = request.data.get('email')
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+        
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=matricule,
+#                 est_actif=True
+#             )
+            
+#             if not matricule_autorise.activation_token or matricule_autorise.activation_token != token:
+#                 return Response({
+#                     "success": False,
+#                     "message": "Lien d'activation invalide ou déjà utilisé."
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             if User.objects.filter(username=username).exists():
+#                 return Response({
+#                     "success": False,
+#                     "message": "Ce nom d'utilisateur est déjà pris."
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             user, created = User.objects.get_or_create(
+#                 username=matricule,
+#                 defaults={
+#                     'email': email,
+#                     'password': password,
+#                     'first_name': '',
+#                     'last_name': ''
+#                 }
+#             )
+            
+#             if not created:
+#                 user.email = email
+#                 user.set_password(password)
+#                 user.save()
+            
+#             matricule_autorise.date_activation = timezone.now()
+#             matricule_autorise.activation_token = None
+#             matricule_autorise.token_expiration = None
+#             matricule_autorise.save()
+            
+#             return Response({
+#                 "success": True,
+#                 "message": "Compte créé avec succès !",
+#                 "username": username
+#             })
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             return Response({
+#                 "success": False,
+#                 "message": "Matricule non autorisé ou introuvable."
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# users/views.py - FICHIER UNIFIÉ ET DÉFINITIF - VERSION CORRIGÉE
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from django.db.models import Count, Q
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework import viewsets, permissions, status, generics
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+import json
+import logging
+
 from projects.models import Project
+from projects.serializers import ProjectSerializer
+from .models import MatriculeAutorise, UserProfile, Notification, ProfileUpdateHistory
+from .serializers import (
+    UserCreateSerializer, UserWithProfileSerializer,
+    UserStatsSerializer, UserProfileSerializer,
+    NotificationSerializer, ProfileUpdateHistorySerializer,
+    UserSerializer, ExtendedProfileUpdateSerializer,
+    PasswordChangeSerializer, AvatarUploadSerializer,
+    QuickLoginSerializer
+)
 
 logger = logging.getLogger(__name__)
 
-# ============================================
-# 1. VUE PRINCIPALE POUR LE PROFIL UTILISATEUR
-# ============================================
+# ============ VUES D'AUTHENTIFICATION ============
+
+# class UniversalLoginView(APIView):
+#     """
+#     Vue de login universelle (username/email/matricule + password)
+#     Version corrigée avec serializer et gestion d'erreurs
+#     """
+#     permission_classes = [AllowAny]
+    
+#     def post(self, request):
+#         try:
+#             # VALIDATION AVEC SERIALIZER - CORRECTION AJOUTÉE
+#             serializer = QuickLoginSerializer(data=request.data)
+#             if not serializer.is_valid():
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Données de connexion invalides',
+#                     'errors': serializer.errors
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             validated_data = serializer.validated_data
+#             identifier = validated_data.get('identifier', '').strip()
+#             password = validated_data.get('password', '')
+            
+#             if not identifier or not password:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Identifiant et mot de passe requis'
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             # Chercher l'utilisateur par différents critères
+#             user = None
+            
+#             # 1. Par username
+#             user = User.objects.filter(username=identifier).first()
+            
+#             # 2. Par email
+#             if not user:
+#                 user = User.objects.filter(email=identifier).first()
+            
+#             # 3. Par matricule (chercher dans MatriculeAutorise puis User)
+#             if not user:
+#                 try:
+#                     matricule_auth = MatriculeAutorise.objects.filter(
+#                         matricule=identifier,
+#                         est_actif=True
+#                     ).first()
+#                     if matricule_auth:
+#                         # Chercher l'utilisateur avec ce matricule comme username
+#                         user = User.objects.filter(username=identifier).first()
+#                 except Exception as e:
+#                     logger.error(f"Erreur recherche matricule: {e}")
+            
+#             if not user:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Identifiant non trouvé'
+#                 }, status=status.HTTP_404_NOT_FOUND)
+            
+#             # Authentifier avec le mot de passe
+#             auth_user = authenticate(username=user.username, password=password)
+            
+#             if not auth_user:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Mot de passe incorrect'
+#                 }, status=status.HTTP_401_UNAUTHORIZED)
+            
+#             if not auth_user.is_active:
+#                 return Response({
+#                     'success': False,
+#                     'message': 'Compte désactivé'
+#                 }, status=status.HTTP_403_FORBIDDEN)
+            
+#             # Générer les tokens JWT
+#             refresh = RefreshToken.for_user(auth_user)
+            
+#             # Mettre à jour la dernière connexion
+#             auth_user.last_login = timezone.now()
+#             auth_user.save()
+            
+#             # Récupérer le profil
+#             try:
+#                 profile = UserProfile.objects.get(user=auth_user)
+#                 profile_data = UserProfileSerializer(profile).data
+#             except UserProfile.DoesNotExist:
+#                 profile_data = {}
+            
+#             # Données utilisateur complètes
+#             user_data = {
+#                 'id': auth_user.id,
+#                 'username': auth_user.username,
+#                 'email': auth_user.email,
+#                 'first_name': auth_user.first_name,
+#                 'last_name': auth_user.last_name,
+#                 'full_name': f"{auth_user.first_name or ''} {auth_user.last_name or ''}".strip() or auth_user.username,
+#                 'is_staff': auth_user.is_staff,
+#                 'is_superuser': auth_user.is_superuser,
+#                 'is_active': auth_user.is_active,
+#                 'date_joined': auth_user.date_joined,
+#                 'last_login': auth_user.last_login,
+#                 'role': 'admin' if auth_user.is_staff else 'user',
+#                 'profile': profile_data,
+#                 'profile_complete': bool(auth_user.first_name and auth_user.last_name and auth_user.email),
+#             }
+            
+#             return Response({
+#                 'success': True,
+#                 'message': 'Connexion réussie',
+#                 'user': user_data,
+#                 'tokens': {
+#                     'access': str(refresh.access_token),
+#                     'refresh': str(refresh)
+#                 }
+#             })
+            
+#         except Exception as e:
+#             logger.error(f"Erreur UniversalLoginView: {str(e)}", exc_info=True)
+#             return Response({
+#                 'success': False,
+#                 'message': 'Erreur serveur lors de la connexion',
+#                 'error': str(e) if settings.DEBUG else None
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UniversalLoginView(APIView):
+    """
+    Vue de login universelle (username/email/matricule + password)
+    Version corrigée qui fonctionne avec QuickLoginSerializer
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        try:
+            identifier = request.data.get('identifier', '').strip()
+            password = request.data.get('password', '')
+            
+            # Déterminer le type d'identifiant
+            serializer_data = {'password': password}
+            
+            if '@' in identifier:
+                # C'est un email, utiliser comme username temporairement
+                serializer_data['username'] = identifier
+            elif identifier.isdigit() or len(identifier) == 8:  # Supposition: matricule
+                serializer_data['matricule'] = identifier
+            else:
+                serializer_data['username'] = identifier
+            
+            # Validation avec serializer
+            serializer = QuickLoginSerializer(data=serializer_data)
+            if not serializer.is_valid():
+                return Response({
+                    'success': False,
+                    'message': 'Données de connexion invalides',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            username = validated_data.get('username')
+            matricule = validated_data.get('matricule')
+            
+            # Recherche utilisateur
+            user = None
+            
+            # Si username fourni
+            if username:
+                user = User.objects.filter(username=username).first()
+                if not user:
+                    user = User.objects.filter(email=username).first()
+            
+            # Si matricule fourni
+            if not user and matricule:
+                try:
+                    matricule_auth = MatriculeAutorise.objects.filter(
+                        matricule=matricule,
+                        est_actif=True
+                    ).first()
+                    if matricule_auth:
+                        user = User.objects.filter(username=matricule).first()
+                except Exception as e:
+                    logger.error(f"Erreur recherche matricule: {e}")
+            
+            if not user:
+                return Response({
+                    'success': False,
+                    'message': 'Identifiant non trouvé'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Authentification
+            auth_user = authenticate(username=user.username, password=password)
+            
+            if not auth_user:
+                return Response({
+                    'success': False,
+                    'message': 'Mot de passe incorrect'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if not auth_user.is_active:
+                return Response({
+                    'success': False,
+                    'message': 'Compte désactivé'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Génération tokens
+            refresh = RefreshToken.for_user(auth_user)
+            
+            # Mise à jour dernière connexion
+            auth_user.last_login = timezone.now()
+            auth_user.save()
+            
+            # Récupération profil
+            try:
+                profile = UserProfile.objects.get(user=auth_user)
+                profile_data = UserProfileSerializer(profile).data
+            except UserProfile.DoesNotExist:
+                profile_data = {}
+            
+            # Construction réponse
+            user_data = {
+                'id': auth_user.id,
+                'username': auth_user.username,
+                'email': auth_user.email,
+                'first_name': auth_user.first_name,
+                'last_name': auth_user.last_name,
+                'full_name': f"{auth_user.first_name or ''} {auth_user.last_name or ''}".strip() or auth_user.username,
+                'is_staff': auth_user.is_staff,
+                'is_superuser': auth_user.is_superuser,
+                'is_active': auth_user.is_active,
+                'date_joined': auth_user.date_joined,
+                'last_login': auth_user.last_login,
+                'role': 'admin' if auth_user.is_staff else 'user',
+                'profile': profile_data,
+                'profile_complete': bool(auth_user.first_name and auth_user.last_name and auth_user.email),
+            }
+            
+            return Response({
+                'success': True,
+                'message': 'Connexion réussie',
+                'user': user_data,
+                'tokens': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh)
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Erreur UniversalLoginView: {str(e)}", exc_info=True)
+            return Response({
+                'success': False,
+                'message': 'Erreur serveur lors de la connexion',
+                'error': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class QuickLoginView(APIView):
+    """
+    Login rapide pour la démo
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        username = request.data.get('username', 'admin')
+        
+        try:
+            user = User.objects.get(username=username)
+            
+            # Pour la démo, on accepte n'importe quel mot de passe simple
+            password = request.data.get('password', '123')
+            valid_passwords = ['admin123', '123', 'password', 'simplon']
+            
+            if password not in valid_passwords:
+                return Response({
+                    'success': False,
+                    'message': 'Mot de passe incorrect (essayez: 123)'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if not user.is_active:
+                return Response({
+                    'success': False,
+                    'message': 'Compte désactivé'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Générer les tokens
+            refresh = RefreshToken.for_user(user)
+            
+            user.last_login = timezone.now()
+            user.save()
+            
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'role': 'admin' if user.is_staff else 'user'
+            }
+            
+            return Response({
+                'success': True,
+                'message': 'Connexion rapide réussie',
+                'user': user_data,
+                'tokens': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh)
+                }
+            })
+            
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'Utilisateur {username} non trouvé'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+# ============ VUES DE PROFIL ============
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user(request):
+    """
+    Récupère l'utilisateur courant - ENDPOINT SIMPLE POUR FRONTEND
+    """
+    user = request.user
+    
+    try:
+        profile = UserProfile.objects.get(user=user)
+        profile_data = UserProfileSerializer(profile).data
+    except UserProfile.DoesNotExist:
+        profile_data = {}
+    
+    projects_count = Project.objects.filter(author=user).count()
+    
+    return Response({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'full_name': f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username,
+        'is_staff': user.is_staff,
+        'is_superuser': user.is_superuser,
+        'is_active': user.is_active,
+        'date_joined': user.date_joined,
+        'last_login': user.last_login,
+        'role': 'admin' if user.is_staff else 'user',
+        'profile_complete': bool(user.first_name and user.last_name and user.email),
+        'profile': profile_data,
+        'projects_count': projects_count,
+        'has_password': user.has_usable_password()
+    })
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    """
+    Vue pour le profil utilisateur de base
+    """
+    permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
     
     def get_object(self):
         return self.request.user
-    
-    def get(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-    
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        partial = kwargs.pop('partial', False)
-        
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        
-        return Response({
-            'status': 'success',
-            'message': 'Profil mis à jour avec succès',
-            'data': serializer.data
-        })
-
-# ============================================
-# 2. VUE POUR LE PROFIL ÉTENDU
-# ============================================
 
 class UserExtendedProfileView(generics.RetrieveUpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    """
+    Vue pour le profil utilisateur étendu
+    """
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -5656,7 +7608,7 @@ class UserExtendedProfileView(generics.RetrieveUpdateAPIView):
     
     def get(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = UserProfileSerializer(instance, context={'request': request})
+        serializer = UserProfileSerializer(instance)
         return Response(serializer.data)
     
     def update(self, request, *args, **kwargs):
@@ -5671,37 +7623,115 @@ class UserExtendedProfileView(generics.RetrieveUpdateAPIView):
         
         instance.save()
         
-        response_serializer = UserProfileSerializer(instance, context={'request': request})
+        # Historiser la modification
+        ProfileUpdateHistory.objects.create(
+            user=request.user,
+            changes=json.dumps(serializer.validated_data),
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        response_serializer = UserProfileSerializer(instance)
+        return Response(response_serializer.data)
+
+class UserProfileCompleteView(APIView):
+    """
+    Vérifie si le profil est complet
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        required_fields = {
+            'first_name': bool(user.first_name),
+            'last_name': bool(user.last_name),
+            'email': bool(user.email),
+        }
+        
+        try:
+            profile = UserProfile.objects.get(user=user)
+            required_fields['cohort'] = bool(profile.cohort)
+        except UserProfile.DoesNotExist:
+            required_fields['cohort'] = False
+        
+        all_complete = all(required_fields.values())
+        completed_fields = sum(required_fields.values())
+        total_fields = len(required_fields)
         
         return Response({
-            'status': 'success',
-            'message': 'Profil étendu mis à jour avec succès',
-            'data': response_serializer.data
+            'is_complete': all_complete,
+            'progress': {
+                'completed': completed_fields,
+                'total': total_fields,
+                'percentage': int((completed_fields / total_fields) * 100)
+            },
+            'missing_fields': [field for field, is_set in required_fields.items() if not is_set]
         })
 
-# ============================================
-# 3. VUE POUR LA PHOTO DE PROFIL
-# ============================================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_complete_profile(request):
+    """
+    Profil complet avec toutes les données
+    """
+    user = request.user
+    
+    try:
+        profile = UserProfile.objects.get(user=user)
+        profile_data = UserProfileSerializer(profile).data
+    except UserProfile.DoesNotExist:
+        profile_data = {}
+    
+    projects = Project.objects.filter(author=user)
+    projects_data = ProjectSerializer(projects, many=True).data
+    
+    notifications = Notification.objects.filter(user=user, is_read=False)
+    notifications_data = NotificationSerializer(notifications, many=True).data
+    
+    return Response({
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'full_name': f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'is_active': user.is_active,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login,
+            'role': 'admin' if user.is_staff else 'user'
+        },
+        'profile': profile_data,
+        'projects': projects_data,
+        'unread_notifications': notifications_data,
+        'unread_count': notifications.count()
+    })
 
 class UserProfileImageView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    """
+    Gestion de l'avatar utilisateur
+    """
+    permission_classes = [IsAuthenticated]
     
     def get(self, request):
         try:
             profile = UserProfile.objects.get(user=request.user)
-            avatar_url = None
             if profile.avatar:
                 avatar_url = request.build_absolute_uri(profile.avatar.url)
-            
-            return Response({
-                'avatar_url': avatar_url,
-                'has_avatar': profile.avatar is not None
-            })
+                return Response({
+                    'avatar_url': avatar_url,
+                    'has_avatar': True
+                })
         except UserProfile.DoesNotExist:
-            return Response({
-                'avatar_url': None,
-                'has_avatar': False
-            })
+            pass
+        
+        return Response({
+            'avatar_url': None,
+            'has_avatar': False
+        })
     
     def post(self, request):
         serializer = AvatarUploadSerializer(data=request.data)
@@ -5717,56 +7747,35 @@ class UserProfileImageView(APIView):
             avatar_url = request.build_absolute_uri(profile.avatar.url) if profile.avatar else None
             
             return Response({
-                'status': 'success',
-                'message': 'Photo de profil mise à jour avec succès',
+                'success': True,
+                'message': 'Photo de profil mise à jour',
                 'avatar_url': avatar_url
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# ============================================
-# 4. VIEWSET POUR ADMIN
-# ============================================
-
-class AdminUserViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet pour la gestion admin des utilisateurs
-    """
-    permission_classes = [permissions.IsAdminUser]
-    queryset = User.objects.all().order_by('-date_joined')
     
-    def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return UserCreateSerializer
-        return UserWithProfileSerializer
-    
-    @action(detail=False, methods=['get'])
-    def stats(self, request):
-        """Statistiques admin"""
-        total_users = User.objects.count()
-        active_today = User.objects.filter(last_login__date=timezone.now().date()).count()
-        new_this_week = User.objects.filter(date_joined__gte=timezone.now()-timedelta(days=7)).count()
+    def delete(self, request):
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            if profile.avatar:
+                profile.avatar.delete()
+                profile.save()
+                return Response({
+                    'success': True,
+                    'message': 'Avatar supprimé'
+                })
+        except UserProfile.DoesNotExist:
+            pass
         
         return Response({
-            'total_users': total_users,
-            'active_today': active_today,
-            'new_this_week': new_this_week,
-            'with_profile': UserProfile.objects.count(),
-            'generated_at': timezone.now()
+            'success': False,
+            'message': 'Pas d\'avatar à supprimer'
         })
 
-# ============================================
-# 5. AUTRES VUES ESSENTIELLES
-# ============================================
-
-class UserProfileCompleteView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = UserWithProfileSerializer
-    
-    def get_object(self):
-        return self.request.user
-
 class UserProfileHistoryView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    """
+    Historique des modifications du profil
+    """
+    permission_classes = [IsAuthenticated]
     serializer_class = ProfileUpdateHistorySerializer
     
     def get_queryset(self):
@@ -5774,25 +7783,331 @@ class UserProfileHistoryView(generics.ListAPIView):
             user=self.request.user
         ).order_by('-updated_at')
 
-class UserNotificationsView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = NotificationSerializer
+class ChangePasswordView(APIView):
+    """
+    Changement de mot de passe
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not all([old_password, new_password, confirm_password]):
+            return Response({
+                'success': False,
+                'message': 'Tous les champs sont requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_password:
+            return Response({
+                'success': False,
+                'message': 'Les nouveaux mots de passe ne correspondent pas'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = request.user
+        if not user.check_password(old_password):
+            return Response({
+                'success': False,
+                'message': 'Ancien mot de passe incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Mot de passe changé avec succès'
+        })
+
+# ============ VUES DE PROJETS ============
+
+class UserProjectsAPIView(generics.ListAPIView):
+    """
+    API pour récupérer les projets d'un utilisateur
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectSerializer
     
     def get_queryset(self):
-        return Notification.objects.filter(
-            user=self.request.user
-        ).order_by('-created_at')
+        user_id = self.kwargs.get('user_id')
+        
+        if user_id:
+            # Vérifier les permissions
+            if self.request.user.is_staff:
+                return Project.objects.filter(author_id=user_id).order_by('-created_at')
+            elif self.request.user.id == user_id:
+                return Project.objects.filter(author_id=user_id).order_by('-created_at')
+            else:
+                return Project.objects.none()
+        else:
+            # Utilisateur courant
+            return Project.objects.filter(author=self.request.user).order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        # Filtrer par statut
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Pagination
+        page = int(request.query_params.get('page', 1))
+        per_page = int(request.query_params.get('per_page', 10))
+        start = (page - 1) * per_page
+        end = start + per_page
+        
+        total = queryset.count()
+        projects = queryset[start:end]
+        
+        serializer = self.get_serializer(projects, many=True)
+        
+        return Response({
+            'success': True,
+            'user_id': self.kwargs.get('user_id') or request.user.id,
+            'username': request.user.username,
+            'count': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+            'projects': serializer.data
+        })
 
-class ChangePasswordView(generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = PasswordChangeSerializer
+class UserProjectsCountView(APIView):
+    """
+    Compte les projets d'un utilisateur par statut
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, user_id=None):
+        if user_id:
+            if request.user.is_staff or request.user.id == user_id:
+                target_user_id = user_id
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Permission refusée'
+                }, status=status.HTTP_403_FORBIDDEN)
+        else:
+            target_user_id = request.user.id
+        
+        try:
+            user = User.objects.get(id=target_user_id)
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Utilisateur non trouvé'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        projects = Project.objects.filter(author=user)
+        
+        counts = {
+            'total': projects.count(),
+            'draft': projects.filter(status='draft').count(),
+            'pending': projects.filter(status='pending').count(),
+            'approved': projects.filter(status='approved').count(),
+            'published': projects.filter(status='publié').count(),
+            'rejected': projects.filter(status='rejected').count()
+        }
+        
+        return Response({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username
+            },
+            'counts': counts
+        })
 
-# ============================================
-# 6. VUES D'AUTHENTIFICATION
-# ============================================
+# ============ VUES ADMIN ============
 
-class RequestLoginView(generics.GenericAPIView):
-    permission_classes = [permissions.AllowAny]
+class AdminUserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour la gestion admin des utilisateurs
+    """
+    permission_classes = [IsAdminUser]
+    queryset = User.objects.all().order_by('-date_joined')
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserCreateSerializer
+        elif self.action in ['retrieve', 'update', 'partial_update']:
+            return UserWithProfileSerializer
+        return UserCreateSerializer
+    
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        """Activer/désactiver un utilisateur"""
+        user = self.get_object()
+        user.is_active = not user.is_active
+        user.save()
+        
+        status_text = "activé" if user.is_active else "désactivé"
+        return Response({
+            'success': True,
+            'message': f'Utilisateur {status_text}',
+            'is_active': user.is_active
+        })
+    
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Statistiques admin"""
+        now = timezone.now()
+        last_week = now - timedelta(days=7)
+        
+        total_users = User.objects.count()
+        active_today = User.objects.filter(last_login__date=now.date()).count()
+        new_this_week = User.objects.filter(date_joined__gte=last_week).count()
+        with_profile = UserProfile.objects.count()
+        
+        return Response({
+            'total_users': total_users,
+            'active_today': active_today,
+            'new_this_week': new_this_week,
+            'with_profile': with_profile,
+            'without_profile': total_users - with_profile,
+            'generated_at': now.isoformat()
+        })
+
+# ============ NOTIFICATIONS ============
+
+class UserNotificationsView(APIView):
+    """
+    Gestion des notifications utilisateur
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        
+        # Marquer comme lues si demandé
+        mark_read = request.query_params.get('mark_read', 'false').lower() == 'true'
+        if mark_read:
+            notifications.update(is_read=True)
+        
+        # Pagination
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
+        start = (page - 1) * page_size
+        end = start + page_size
+        
+        total = notifications.count()
+        paginated_notifications = notifications[start:end]
+        
+        serializer = NotificationSerializer(paginated_notifications, many=True)
+        
+        unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
+        
+        return Response({
+            'success': True,
+            'notifications': serializer.data,
+            'unread_count': unread_count,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total': total,
+                'total_pages': (total + page_size - 1) // page_size
+            }
+        })
+    
+    def post(self, request):
+        # Marquer toutes comme lues
+        if request.data.get('mark_all_read', False):
+            Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+            return Response({
+                'success': True,
+                'message': 'Toutes les notifications marquées comme lues'
+            })
+        
+        # Marquer une notification spécifique comme lue
+        notification_id = request.data.get('notification_id')
+        if notification_id:
+            try:
+                notification = Notification.objects.get(id=notification_id, user=request.user)
+                notification.is_read = True
+                notification.save()
+                return Response({
+                    'success': True,
+                    'message': 'Notification marquée comme lue'
+                })
+            except Notification.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': 'Notification non trouvée'
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response({
+            'success': False,
+            'message': 'Action non spécifiée'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+# ============ VUES UTILITAIRES ============
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_users_simple(request):
+    """Liste simple de tous les utilisateurs"""
+    users = User.objects.filter(is_active=True).values('id', 'username', 'email', 'first_name', 'last_name')
+    return Response(list(users))
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_all_users_admin(request):
+    """Liste complète de tous les utilisateurs (admin)"""
+    users = User.objects.all().order_by('-date_joined')
+    serializer = UserWithProfileSerializer(users, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """Vérification de santé de l'API"""
+    users_count = User.objects.count()
+    active_users = User.objects.filter(is_active=True).count()
+    
+    return Response({
+        'status': 'healthy',
+        'timestamp': timezone.now().isoformat(),
+        'database': {
+            'total_users': users_count,
+            'active_users': active_users
+        }
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_status(request):
+    """Statut de l'utilisateur courant"""
+    user = request.user
+    
+    last_project = Project.objects.filter(author=user).order_by('-created_at').first()
+    unread_notifications = Notification.objects.filter(user=user, is_read=False).count()
+    
+    return Response({
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'is_active': user.is_active,
+            'is_authenticated': True
+        },
+        'last_activity': {
+            'project': ProjectSerializer(last_project).data if last_project else None,
+            'login': user.last_login
+        },
+        'notifications': {
+            'unread': unread_notifications
+        }
+    })
+
+# ============ VUES SPÉCIALES (activation par matricule) ============
+
+class RequestLoginView(APIView):
+    """
+    Demande de connexion pour activation par matricule
+    """
+    permission_classes = [AllowAny]
     
     def post(self, request):
         matricule = request.data.get('matricule')
@@ -5804,27 +8119,25 @@ class RequestLoginView(generics.GenericAPIView):
                 est_actif=True
             )
             
-            token = secrets.token_urlsafe(32)
-            expiration_time = timezone.now() + timedelta(minutes=5)
-            
-            matricule_autorise.activation_token = token
-            matricule_autorise.token_expiration = expiration_time
-            matricule_autorise.save()
+            token = matricule_autorise.generate_activation_token(minutes=5)
             
             return Response({
-                "message": "✅ Lien d'activation envoyé !",
-                "status": "success",
+                "success": True,
+                "message": "Lien d'activation envoyé !",
                 "expires_in": "5 minutes"
-            }, status=status.HTTP_200_OK)
+            })
             
         except MatriculeAutorise.DoesNotExist:
             return Response({
-                "message": "❌ Matricule non autorisé ou introuvable.",
-                "status": "error"
+                "success": False,
+                "message": "Matricule non autorisé ou introuvable."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-class SetupPasswordView(generics.GenericAPIView):
-    permission_classes = [permissions.AllowAny]
+class SetupPasswordView(APIView):
+    """
+    Configuration du mot de passe après activation
+    """
+    permission_classes = [AllowAny]
     
     def post(self, request):
         token = request.data.get('token')
@@ -5841,14 +8154,14 @@ class SetupPasswordView(generics.GenericAPIView):
             
             if not matricule_autorise.activation_token or matricule_autorise.activation_token != token:
                 return Response({
-                    "message": "❌ Lien d'activation invalide ou déjà utilisé.",
-                    "status": "error"
+                    "success": False,
+                    "message": "Lien d'activation invalide ou déjà utilisé."
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             if User.objects.filter(username=username).exists():
                 return Response({
-                    "message": "❌ Ce nom d'utilisateur est déjà pris.",
-                    "status": "error"
+                    "success": False,
+                    "message": "Ce nom d'utilisateur est déjà pris."
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             user, created = User.objects.get_or_create(
@@ -5872,298 +8185,13 @@ class SetupPasswordView(generics.GenericAPIView):
             matricule_autorise.save()
             
             return Response({
-                "message": "✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.",
-                "status": "success",
+                "success": True,
+                "message": "Compte créé avec succès !",
                 "username": username
-            }, status=status.HTTP_200_OK)
+            })
             
         except MatriculeAutorise.DoesNotExist:
             return Response({
-                "message": "❌ Matricule non autorisé ou introuvable.",
-                "status": "error"
+                "success": False,
+                "message": "Matricule non autorisé ou introuvable."
             }, status=status.HTTP_400_BAD_REQUEST)
-
-class QuickLoginView(generics.GenericAPIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = QuickLoginSerializer  # <-- AJOUTEZ CETTE LIGNE
-    
-    def post(self, request):
-        # Valider les données avec le serializer
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        matricule = serializer.validated_data.get('matricule')
-        username = serializer.validated_data.get('username')
-        password = serializer.validated_data.get('password')
-        
-        login_identifier = username or matricule
-        
-        try:
-            matricule_autorise = MatriculeAutorise.objects.get(
-                matricule=login_identifier,
-                est_actif=True,
-                date_activation__isnull=False
-            )
-        except MatriculeAutorise.DoesNotExist:
-            return Response({
-                "error": "❌ Compte non activé."
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        from django.contrib.auth import authenticate
-        user = authenticate(username=login_identifier, password=password)
-        
-        if user is not None:
-            from rest_framework_simplejwt.tokens import RefreshToken
-            refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name
-                },
-                "message": "✅ Connexion réussie !"
-            })
-        else:
-            return Response({
-                "error": "❌ Identifiant ou mot de passe incorrect"
-            }, status=status.HTTP_401_UNAUTHORIZED)
-
-# ============================================
-# 7. ENDPOINTS UTILITAIRES
-# ============================================
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_complete_profile(request):
-    """Récupère toutes les informations du profil"""
-    user = request.user
-    
-    base_serializer = UserSerializer(user)
-    base_data = base_serializer.data
-    
-    try:
-        profile = UserProfile.objects.get(user=user)
-        extended_serializer = UserProfileSerializer(profile, context={'request': request})
-        extended_data = extended_serializer.data
-    except UserProfile.DoesNotExist:
-        extended_data = None
-    
-    projects_count = Project.objects.filter(author=user).count()
-    unread_notifications = Notification.objects.filter(user=user, is_read=False).count()
-    
-    return Response({
-        'base_profile': base_data,
-        'extended_profile': extended_data,
-        'stats': {
-            'projects_count': projects_count,
-            'unread_notifications': unread_notifications
-        },
-        'timestamp': timezone.now()
-    })
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def get_all_users_simple(request):
-    """Endpoint simple pour récupérer tous les utilisateurs"""
-    try:
-        users = User.objects.all().order_by('-date_joined')
-        
-        users_data = []
-        for user in users:
-            users_data.append({
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_active': user.is_active,
-                'date_joined': user.date_joined,
-                'last_login': user.last_login,
-            })
-        
-        return Response({
-            'status': 'success',
-            'count': len(users_data),
-            'users': users_data,
-            'timestamp': timezone.now()
-        })
-        
-    except Exception as e:
-        return Response({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
-def get_all_users_admin(request):
-    """Endpoint admin pour récupérer tous les utilisateurs"""
-    try:
-        users = User.objects.all().order_by('-date_joined')
-        
-        users_data = []
-        for user in users:
-            try:
-                profile = UserProfile.objects.get(user=user)
-                profile_data = {
-                    'avatar': request.build_absolute_uri(profile.avatar.url) if profile.avatar else None,
-                    'bio': profile.bio,
-                }
-            except UserProfile.DoesNotExist:
-                profile_data = None
-            
-            users_data.append({
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_active': user.is_active,
-                'profile': profile_data,
-                'projects_count': user.project_set.count() if hasattr(user, 'project_set') else 0,
-            })
-        
-        return Response({
-            'status': 'success',
-            'count': len(users_data),
-            'users': users_data,
-            'requested_by': request.user.username,
-            'timestamp': timezone.now()
-        })
-        
-    except Exception as e:
-        return Response({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def health_check(request):
-    """Endpoint de vérification de santé de l'API"""
-    return Response({
-        'status': 'healthy',
-        'timestamp': timezone.now(),
-        'version': '1.0.0'
-    })
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_status(request):
-    """Vérifie le statut de l'utilisateur connecté"""
-    user = request.user
-    return Response({
-        'is_authenticated': True,
-        'user': {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email
-        },
-        'timestamp': timezone.now()
-    })
-
-    # ============================================
-# 8. VUE DE CONNEXION UNIVERSELLE
-# ============================================
-
-class UniversalLoginView(generics.GenericAPIView):
-    """
-    Vue unique pour la connexion de tous les utilisateurs
-    - Admins: se connectent avec username + password
-    - Apprenants: se connectent avec matricule + password
-    """
-    permission_classes = [permissions.AllowAny]
-    serializer_class = QuickLoginSerializer
-    
-    def post(self, request):
-        identifier = request.data.get('identifier', '').strip()
-        password = request.data.get('password', '')
-        
-        if not identifier or not password:
-            return Response({
-                "error": "Identifiant et mot de passe requis"
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # 🎯 DÉTECTION AUTOMATIQUE DU TYPE D'UTILISATEUR
-        
-        # Tentative 1: Vérifier si c'est un admin (via username)
-        user = None
-        user_type = None
-        
-        try:
-            # Chercher l'utilisateur par username
-            user = User.objects.get(username=identifier)
-            
-            # Vérifier si c'est un admin
-            if user.is_staff or user.is_superuser:
-                user_type = 'admin'
-            else:
-                user_type = 'apprenant'  # C'est un utilisateur standard
-                
-        except User.DoesNotExist:
-            # Tentative 2: Vérifier si c'est un matricule d'apprenant
-            try:
-                matricule_autorise = MatriculeAutorise.objects.get(
-                    matricule=identifier,
-                    est_actif=True
-                )
-                
-                # Le matricule existe et est actif
-                # Chercher l'utilisateur avec ce matricule comme username
-                try:
-                    user = User.objects.get(username=identifier)
-                    user_type = 'apprenant'
-                except User.DoesNotExist:
-                    return Response({
-                        "error": "Compte non activé pour ce matricule. Veuillez d'abord activer votre compte."
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                    
-            except MatriculeAutorise.DoesNotExist:
-                # Aucun utilisateur ou matricule trouvé
-                return Response({
-                    "error": "Identifiant ou mot de passe incorrect"
-                }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # 🎯 AUTHENTIFICATION
-        from django.contrib.auth import authenticate
-        authenticated_user = authenticate(
-            username=identifier, 
-            password=password
-        )
-        
-        if authenticated_user is not None:
-            from rest_framework_simplejwt.tokens import RefreshToken
-            refresh = RefreshToken.for_user(authenticated_user)
-            
-            # 🎯 PRÉPARER LA RÉPONSE AVEC LES INFORMATIONS DE REDIRECTION
-            is_admin = authenticated_user.is_staff or authenticated_user.is_superuser
-            
-            # Déterminer le dashboard approprié
-            redirect_to = "/admin" if is_admin else "/dashboard"
-            user_role = "admin" if is_admin else "apprenant"
-            
-            return Response({
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": {
-                    "id": authenticated_user.id,
-                    "username": authenticated_user.username,
-                    "email": authenticated_user.email,
-                    "first_name": authenticated_user.first_name,
-                    "last_name": authenticated_user.last_name,
-                    "role": user_role,
-                    "is_staff": authenticated_user.is_staff,
-                    "is_superuser": authenticated_user.is_superuser,
-                },
-                "redirect_to": redirect_to,
-                "message": f"Connexion réussie en tant que {user_role}"
-            })
-        else:
-            return Response({
-                "error": "Identifiant ou mot de passe incorrect"
-            }, status=status.HTTP_401_UNAUTHORIZED)

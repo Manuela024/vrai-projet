@@ -1714,6 +1714,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { projectService } from '../services/projects';
 import authService from '../services/auth';
 
+
+
 console.log('🔧 Import projectService dans', 
   (new Error().stack?.split('\n')[2] || '').trim() || 'Unknown location'
 );

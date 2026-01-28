@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Direct de VOTRE API Django</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { margin: 5px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button.secondary { background: #6c757d; }
+        button.secondary:hover { background: #545b62; }
+        input { margin: 5px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow: auto; font-family: 'Courier New', monospace; }
+        .result { margin-top: 10px; }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .status { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 12px; }
+        .online { background: #28a745; color: white; }
+        .offline { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Direct de VOTRE API Django</h1>
+        <p>Backend: <span id="backend-status" class="status offline">Déconnecté</span></p>
+        <p><strong>Ce test est COMPLÈTEMENT SÉPARÉ</strong> - aucun risque pour votre projet.</p>
+        
+        <div class="test">
+            <h2>1. 📊 Test de santé de l'API</h2>
+            <button onclick="testHealth()">Tester /api/users/health/</button>
+            <button onclick="testApiRoot()">Tester racine API</button>
+            <div class="result" id="health-result"></div>
+        </div>
+        
+        <div class="test">
+            <h2>2. 🔐 Test d'authentification</h2>
+            <p>Essayez avec: admin / admin123 ou autre utilisateur</p>
+            <input type="text" id="login-ident" placeholder="Username/Email/Matricule" value="admin">
+            <input type="password" id="login-pass" placeholder="Password" value="admin123">
+            <button onclick="testLogin()">Tester connexion</button>
+            <button onclick="testQuickLogin()" class="secondary">Connexion rapide (demo)</button>
+            <div class="result" id="login-result"></div>
+        </div>
+        
+        <div class="test">
+            <h2>3. 👤 Test utilisateur courant</h2>
+            <button onclick="testCurrentUser()">GET /api/users/auth/me/</button>
+            <button onclick="testCompleteProfile()" class="secondary">Profil complet</button>
+            <div class="result" id="user-result"></div>
+        </div>
+        
+        <div class="test">
+            <h2>4. 🎯 Test des projets</h2>
+            <button onclick="testProjects()">GET /api/users/projects/user/</button>
+            <button onclick="testAllProjects()" class="secondary">Tous les projets</button>
+            <div class="result" id="projects-result"></div>
+        </div>
+        
+        <div class="test">
+            <h2>5. 📋 Liste de tous les endpoints</h2>
+            <button onclick="testAllEndpoints()">Tester tous les endpoints</button>
+            <div class="result" id="endpoints-result"></div>
+        </div>
+        
+        <div class="test">
+            <h2>6. 💾 Tester le service auth complet</h2>
+            <button onclick="testAuthService()">Tester le service JavaScript</button>
+            <button onclick="clearStorage()" class="secondary">Effacer localStorage</button>
+            <div class="result" id="auth-service-result"></div>
+        </div>
+
+        <div class="test warning">
+            <h2>📝 Instructions</h2>
+            <ol>
+                <li>Vérifiez que Django est démarré sur <code>http://localhost:8000</code></li>
+                <li>Cliquez d'abord sur "Test de santé de l'API"</li>
+                <li>Si l'API répond, testez l'authentification</li>
+                <li>Notez la structure des réponses</li>
+                <li>Testez le service JavaScript</li>
+            </ol>
+            <p><strong>URLs testées:</strong> http://localhost:8000/api/users/...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        // Mettre à jour le statut
+        function updateStatus(online) {
+            const statusEl = document.getElementById('backend-status');
+            statusEl.textContent = online ? 'En ligne' : 'Déconnecté';
+            statusEl.className = 'status ' + (online ? 'online' : 'offline');
+        }
+        
+        // Test de santé
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '🔄 Test en cours...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/health/`);
+                const data = await response.json();
+                
+                updateStatus(response.ok);
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok ? 'success' : 'error'}">
+                        <strong>Status: ${response.status} ${response.statusText}</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        ${response.ok ? '✅ API fonctionnelle !' : '❌ Problème avec l\'API'}
+                    </div>
+                `;
+            } catch (error) {
+                updateStatus(false);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur: ${error.message}<br>
+                        <strong>Vérifiez que:</strong>
+                        <ul>
+                            <li>Django est démarré: <code>python manage.py runserver</code></li>
+                            <li>Le port 8000 est accessible</li>
+                            <li>Vous n'avez pas d'erreurs dans le terminal Django</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+        
+        // Racine API
+        async function testApiRoot() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '🔄 Test de la racine API...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok ? 'success' : 'error'}">
+                        <strong>Racine API:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+        
+        // Test de connexion
+        async function testLogin() {
+            const identifier = document.getElementById('login-ident').value;
+            const password = document.getElementById('login-pass').value;
+            const resultDiv = document.getElementById('login-result');
+            
+            resultDiv.innerHTML = '🔄 Tentative de connexion...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/auth/login/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, password })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok && data.success ? 'success' : 'error'}">
+                        <strong>${response.ok && data.success ? '✅ Succès' : '❌ Échec'}</strong><br>
+                        Status: ${response.status}<br>
+                        Message: ${data.message || 'Pas de message'}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+                // Si succès, stocker le token pour les tests suivants
+                if (response.ok && data.success && data.tokens) {
+                    localStorage.setItem('test_token', data.tokens.access);
+                    localStorage.setItem('test_user', JSON.stringify(data.user));
+                    console.log('✅ Token stocké:', data.tokens.access.substring(0, 20) + '...');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+            }
+        }
+        
+        // Connexion rapide
+        async function testQuickLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '🔄 Connexion rapide...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/auth/quick-login/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: '123' })
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok && data.success ? 'success' : 'error'}">
+                        <strong>${response.ok && data.success ? '✅ Succès' : '❌ Échec'}</strong><br>
+                        ${data.message}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+        
+        // Utilisateur courant
+        async function testCurrentUser() {
+            const resultDiv = document.getElementById('user-result');
+            resultDiv.innerHTML = '🔄 Récupération utilisateur...';
+            
+            const token = localStorage.getItem('test_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="warning">⚠️ Connectez-vous d\'abord pour obtenir un token</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/auth/me/`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok ? 'success' : 'error'}">
+                        <strong>${response.ok ? '✅ Succès' : '❌ Échec'}</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+        
+        // Profil complet
+        async function testCompleteProfile() {
+            const resultDiv = document.getElementById('user-result');
+            resultDiv.innerHTML = '🔄 Récupération profil complet...';
+            
+            const token = localStorage.getItem('test_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="warning">⚠️ Connectez-vous d\'abord</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/profile/complete-data/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok ? 'success' : 'error'}">
+                        <strong>${response.ok ? '✅ Succès' : '❌ Échec'}</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+        
+        // Projets utilisateur
+        async function testProjects() {
+            const resultDiv = document.getElementById('projects-result');
+            resultDiv.innerHTML = '🔄 Récupération projets...';
+            
+            const token = localStorage.getItem('test_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="warning">⚠️ Connectez-vous d\'abord</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users/projects/user/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok ? 'success' : 'error'}">
+                        <strong>${response.ok ? '✅ Succès' : '❌ Échec'}</strong><br>
+                        Nombre de projets: ${data.count || data.projects?.length || 0}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+        
+        // Tous les projets (sans auth)
+        async function testAllProjects() {
+            const resultDiv = document.getElementById('projects-result');
+            resultDiv.innerHTML = '🔄 Récupération tous les projets...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/projects/`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="${response.ok ? 'success' : 'error'}">
+                        <strong>${response.ok ? '✅ Succès' : '❌ Échec'}</strong><br>
+                        Nombre de projets: ${Array.isArray(data) ? data.length : 'N/A'}<br>
+                        <pre>${JSON.stringify(Array.isArray(data) ? data.slice(0, 3) : data, null, 2)}</pre>
+                        ${Array.isArray(data) && data.length > 3 ? `<p>... et ${data.length - 3} autres projets</p>` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+        
+        // Tous les endpoints
+        async function testAllEndpoints() {
+            const resultDiv = document.getElementById('endpoints-result');
+            resultDiv.innerHTML = '🔄 Test de tous les endpoints...';
+            
+            const endpoints = [
+                { url: '/api/users/auth/login/', method: 'POST', name: 'Login', requiresBody: true },
+                { url: '/api/users/auth/me/', method: 'GET', name: 'Current User', requiresAuth: true },
+                { url: '/api/users/profile/', method: 'GET', name: 'Profile', requiresAuth: true },
+                { url: '/api/users/projects/user/', method: 'GET', name: 'User Projects', requiresAuth: true },
+                { url: '/api/users/health/', method: 'GET', name: 'Health' },
+                { url: '/api/users/all/', method: 'GET', name: 'All Users' },
+                { url: '/api/projects/', method: 'GET', name: 'All Projects' }
+            ];
+            
+            let html = '<table style="width:100%; border-collapse:collapse;">';
+            html += '<tr><th>Endpoint</th><th>Status</th><th>Résultat</th></tr>';
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const token = localStorage.getItem('test_token');
+                    const headers = { 'Accept': 'application/json' };
+                    
+                    if (endpoint.requiresAuth && token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    
+                    const options = {
+                        method: endpoint.method,
+                        headers: headers
+                    };
+                    
+                    if (endpoint.requiresBody) {
+                        options.body = JSON.stringify({ identifier: 'test', password: 'test' });
+                        options.headers['Content-Type'] = 'application/json';
+                    }
+                    
+                    const response = await fetch(API_BASE + endpoint.url, options);
+                    
+                    html += `
+                        <tr>
+                            <td><code>${endpoint.method} ${endpoint.url}</code></td>
+                            <td><span class="status ${response.ok ? 'online' : 'offline'}">${response.status}</span></td>
+                            <td>${response.ok ? '✅ OK' : '❌ ' + response.statusText}</td>
+                        </tr>
+                    `;
+                } catch (error) {
+                    html += `
+                        <tr>
+                            <td><code>${endpoint.method} ${endpoint.url}</code></td>
+                            <td><span class="status offline">ERR</span></td>
+                            <td>❌ ${error.message.substring(0, 30)}...</td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            html += '</table>';
+            resultDiv.innerHTML = html;
+        }
+        
+        // Tester le service auth
+        async function testAuthService() {
+            const resultDiv = document.getElementById('auth-service-result');
+            resultDiv.innerHTML = '<h3>Test du service auth.js</h3>';
+            
+            // Simuler le service auth
+            const auth = {
+                async login(ident, pass) {
+                    try {
+                        const response = await fetch(`${API_BASE}/api/users/auth/login/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ identifier: ident, password: pass })
+                        });
+                        return await response.json();
+                    } catch (error) {
+                        return { success: false, message: error.message };
+                    }
+                },
+                
+                getToken() {
+                    return localStorage.getItem('test_token');
+                },
+                
+                getUser() {
+                    try {
+                        return JSON.parse(localStorage.getItem('test_user') || 'null');
+                    } catch {
+                        return null;
+                    }
+                }
+            };
+            
+            // Test 1: Connexion
+            resultDiv.innerHTML += '1. Test connexion...<br>';
+            const loginResult = await auth.login('admin', 'admin123');
+            
+            if (loginResult.success) {
+                resultDiv.innerHTML += `✅ Login réussi: ${loginResult.user.username}<br>`;
+                resultDiv.innerHTML += `🔑 Token: ${loginResult.tokens.access.substring(0, 20)}...<br>`;
+                
+                // Test 2: Récupération utilisateur avec token
+                resultDiv.innerHTML += '2. Test récupération utilisateur...<br>';
+                try {
+                    const userResponse = await fetch(`${API_BASE}/api/users/auth/me/`, {
+                        headers: { 'Authorization': `Bearer ${loginResult.tokens.access}` }
+                    });
+                    
+                    if (userResponse.ok) {
+                        resultDiv.innerHTML += '✅ Utilisateur récupéré avec succès<br>';
+                    } else {
+                        resultDiv.innerHTML += `❌ Erreur: ${userResponse.status}<br>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML += `❌ Erreur: ${error.message}<br>`;
+                }
+            } else {
+                resultDiv.innerHTML += `❌ Login échoué: ${loginResult.message}<br>`;
+            }
+            
+            resultDiv.innerHTML += '<br><strong>✅ Test du service auth terminé</strong>';
+        }
+        
+        // Effacer le stockage
+        function clearStorage() {
+            localStorage.removeItem('test_token');
+            localStorage.removeItem('test_user');
+            document.getElementById('auth-service-result').innerHTML = '✅ localStorage effacé';
+        }
+        
+        // Test automatique au chargement
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

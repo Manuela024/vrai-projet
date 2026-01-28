@@ -1,0 +1,1653 @@
+﻿
+
+# # users/views.py - VERSION COMPLÈTE ET CORRIGÉE
+# from rest_framework import generics, permissions, status
+# from rest_framework.response import Response
+# from rest_framework.decorators import api_view, permission_classes
+# from rest_framework.permissions import IsAuthenticated
+# from django.contrib.auth.models import User
+# from django.utils import timezone
+# from django.core.mail import send_mail
+# from django.conf import settings
+# from .models import MatriculeAutorise
+# from .serializers import UserSerializer
+# import secrets
+# from datetime import timedelta
+# from rest_framework.views import APIView
+# from projects.models import Project
+# import traceback
+
+# class UserProfileView(generics.RetrieveAPIView):
+#     """Vue pour récupérer le profil de l'utilisateur connecté"""
+#     permission_classes = [permissions.IsAuthenticated]
+#     serializer_class = UserSerializer
+    
+#     def get_object(self):
+#         return self.request.user
+
+# class RequestLoginView(generics.GenericAPIView):
+#     """Vue pour demander un lien d'activation par email"""
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         matricule = request.data.get('matricule')
+#         email = request.data.get('email')
+        
+#         print("=" * 70)
+#         print("🔐 DEMANDE D'INSCRIPTION REÇUE")
+#         print("=" * 70)
+#         print(f"📋 Matricule: {matricule}")
+#         print(f"📧 Email: {email}")
+        
+#         # Vérifier si le matricule est autorisé
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=matricule,
+#                 est_actif=True
+#             )
+            
+#             # Générer un token sécurisé valable 5 minutes
+#             token = secrets.token_urlsafe(32)
+#             expiration_time = timezone.now() + timedelta(minutes=5)
+            
+#             # Sauvegarder le token et son expiration
+#             matricule_autorise.activation_token = token
+#             matricule_autorise.token_expiration = expiration_time
+#             matricule_autorise.save()
+            
+#             activation_link = f"http://localhost:3001/setup-password?token={token}&matricule={matricule}&email={email}"
+            
+#             print(f"✅ MATRICULE AUTORISÉ: {matricule}")
+#             print(f"⏰ Token généré: {token}")
+#             print(f"🕒 Expire à: {expiration_time.strftime('%H:%M:%S')} (dans 5 minutes)")
+#             print("=" * 70)
+            
+#             # ==================== ENVOI EMAIL ====================
+#             print(f"📧 ENVOI EMAIL À: {email}")
+            
+#             subject = '🎯 Activez votre compte Simplon - Lien rapide!'
+            
+#             html_message = f"""
+#             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+#                 <div style="background: linear-gradient(135deg, #E30613, #B80505); color: white; padding: 25px; text-align: center;">
+#                     <h1 style="margin: 0; font-size: 28px;">🚀 Plateforme Simplon</h1>
+#                     <p style="margin: 5px 0 0 0; opacity: 0.9;">Activation de votre compte</p>
+#                 </div>
+                
+#                 <div style="padding: 30px; background: #ffffff;">
+#                     <h2 style="color: #E30613; margin-top: 0;">Bonjour,</h2>
+#                     <p style="font-size: 16px; line-height: 1.6; color: #333;">
+#                         Vous avez demandé à créer un compte sur la plateforme interne Simplon.
+#                     </p>
+                    
+#                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #E30613;">
+#                         <p style="margin: 0; font-size: 16px;">
+#                             <strong style="color: #E30613;">📋 Matricule :</strong> {matricule}<br>
+#                             <strong style="color: #E30613;">📧 Email :</strong> {email}
+#                         </p>
+#                     </div>
+                    
+#                     <p style="text-align: center; margin: 30px 0;">
+#                         <a href="{activation_link}" 
+#                            style="background: linear-gradient(135deg, #E30613, #B80505); 
+#                                   color: white; padding: 16px 35px; 
+#                                   text-decoration: none; border-radius: 8px; 
+#                                   font-size: 18px; font-weight: bold;
+#                                   display: inline-block; 
+#                                   box-shadow: 0 4px 15px rgba(227, 6, 19, 0.3);">
+#                             ✅ Activer mon compte
+#                         </a>
+#                     </p>
+                    
+#                     <div style="background: #fff3f3; padding: 15px; border-radius: 6px; margin: 20px 0; border: 2px solid #E30613;">
+#                         <p style="margin: 0; font-size: 14px; color: #d32f2f; text-align: center;">
+#                             <strong>⚠️ URGENT :</strong> Ce lien expirera dans <strong>5 MINUTES</strong><br>
+#                             <small>Expire à : {expiration_time.strftime('%H:%M:%S')}</small>
+#                         </p>
+#                     </div>
+                    
+#                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+#                         <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+#                             <strong>Lien alternatif :</strong> Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :
+#                         </p>
+#                         <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border: 1px solid #ddd;">
+#                             <code style="word-break: break-all; font-size: 12px; color: #333;">
+#                                 {activation_link}
+#                             </code>
+#                         </div>
+#                     </div>
+#                 </div>
+                
+#                 <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
+#                     <p style="margin: 0; font-size: 14px;">
+#                         <strong>© 2025 Simplon.co - Plateforme interne</strong>
+#                     </p>
+#                     <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">
+#                         Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+#                     </p>
+#                 </div>
+#             </div>
+#             """
+            
+#             plain_message = f"""ACTIVATION DE COMPTE - PLATEFORME SIMPLON
+
+# Bonjour,
+
+# Vous avez demandé à créer un compte sur la plateforme interne Simplon.
+
+# INFORMATIONS :
+# 📋 Matricule : {matricule}
+# 📧 Email : {email}
+
+# POUR ACTIVER VOTRE COMPTE :
+# Cliquez sur le lien suivant :
+# {activation_link}
+
+# ⚠️ URGENT :
+# Ce lien d'activation expirera dans 5 MINUTES!
+# Expire à : {expiration_time.strftime('%H:%M:%S')}
+
+# Si vous n'avez pas demandé cette inscription, vous pouvez ignorer cet email.
+
+# Cordialement,
+# L'équipe Simplon
+
+# ---
+# © 2025 Simplon.co - Plateforme interne
+# Cet email a été envoyé automatiquement.
+# """
+            
+#             # ENVOI EMAIL RÉEL
+#             try:
+#                 send_mail(
+#                     subject=subject,
+#                     message=plain_message,
+#                     from_email=settings.DEFAULT_FROM_EMAIL,
+#                     recipient_list=[email],
+#                     html_message=html_message,
+#                     fail_silently=False,
+#                 )
+                
+#                 print(f"✅ EMAIL RÉEL ENVOYÉ avec succès à: {email}")
+#                 print("⏰ Le lien expirera dans 5 minutes")
+#                 print("=" * 70)
+                
+#                 return Response({
+#                     "message": "✅ Lien d'activation envoyé ! ⏰ Valable 5 minutes - Vérifiez vite votre email!",
+#                     "status": "success",
+#                     "expires_in": "5 minutes"
+#                 }, status=status.HTTP_200_OK)
+                
+#             except Exception as e:
+#                 print(f"❌ ERREUR ENVOI EMAIL: {str(e)}")
+#                 print("=" * 70)
+#                 return Response({
+#                     "message": f"⚠️ Erreur d'envoi d'email. Utilisez ce lien (valable 5 minutes): {activation_link}",
+#                     "activation_link": activation_link,
+#                     "status": "success",
+#                     "expires_in": "5 minutes"
+#                 }, status=status.HTTP_200_OK)
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             print("❌ MATRICULE NON AUTORISÉ")
+#             print("=" * 70)
+#             return Response({
+#                 "message": "❌ Matricule non autorisé ou introuvable.",
+#                 "status": "error"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+# class SetupPasswordView(generics.GenericAPIView):
+#     """Vue pour finaliser la création du compte avec mot de passe"""
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         token = request.data.get('token')
+#         matricule = request.data.get('matricule')
+#         email = request.data.get('email')
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+        
+#         print("=" * 70)
+#         print(" VÉRIFICATION DU LIEN D'ACTIVATION - DEBUG")
+#         print("=" * 70)
+#         print(f" Matricule: {matricule}")
+#         print(f" Email: {email}")
+#         print(f" Token: {token}")
+#         print(f" Heure actuelle: {timezone.now()}")
+        
+#         try:
+#             # Vérifier le matricule
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=matricule,
+#                 est_actif=True
+#             )
+            
+#             print(f"✅ Matricule trouvé: {matricule_autorise.matricule}")
+#             print(f" Token stocké: {matricule_autorise.activation_token}")
+#             print(f" Expiration stockée: {matricule_autorise.token_expiration}")
+            
+#             # Vérifier si le token correspond
+#             if not matricule_autorise.activation_token or matricule_autorise.activation_token != token:
+#                 print("❌ TOKEN INVALIDE OU MANQUANT")
+#                 print(f"   Token attendu: {matricule_autorise.activation_token}")
+#                 print(f"   Token reçu: {token}")
+#                 return Response({
+#                     "message": "❌ Lien d'activation invalide ou déjà utilisé.",
+#                     "status": "error"
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             # Vérifier si le token est expiré
+#             if matricule_autorise.is_token_expired():
+#                 print("❌ TOKEN EXPIRÉ - DÉTAILS:")
+#                 time_diff = timezone.now() - matricule_autorise.token_expiration
+#                 print(f"   Temps écoulé depuis expiration: {time_diff}")
+#                 print(f"   Secondes écoulées: {time_diff.total_seconds()}s")
+#                 print(f"   Minutes écoulées: {time_diff.total_seconds() / 60}min")
+                
+#                 return Response({
+#                     "message": "❌ Le lien d'activation a expiré. Il n'était valable que 5 minutes. Veuillez demander un nouveau lien.",
+#                     "status": "error",
+#                     "expired": True
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             print("✅ TOKEN VALIDE ET NON EXPIRÉ")
+#             remaining_seconds = matricule_autorise.get_remaining_time()
+#             print(f"   Temps restant: {remaining_seconds} secondes")
+#             print(f"   Soit: {remaining_seconds / 60} minutes")
+            
+#             # Vérifier si le username est disponible
+#             if User.objects.filter(username=username).exists():
+#                 print("❌ Username déjà pris")
+#                 return Response({
+#                     "message": "❌ Ce nom d'utilisateur est déjà pris.",
+#                     "status": "error"
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             # Vérification email améliorée
+#             existing_user_with_email = User.objects.filter(email=email).first()
+#             if existing_user_with_email:
+#                 if existing_user_with_email.username != matricule:
+#                     print(f"❌ Email déjà utilisé par un autre matricule: {existing_user_with_email.username}")
+#                     return Response({
+#                         "message": "❌ Cet email est déjà associé à un autre compte.",
+#                         "status": "error"
+#                     }, status=status.HTTP_400_BAD_REQUEST)
+#                 else:
+#                     print(f"✅ Email réutilisé pour le même matricule: {matricule}")
+            
+#             # Créer ou mettre à jour l'utilisateur
+#             user, created = User.objects.get_or_create(
+#                 username=matricule,
+#                 defaults={
+#                     'email': email,
+#                     'password': password,
+#                     'first_name': '',
+#                     'last_name': ''
+#                 }
+#             )
+            
+#             if not created:
+#                 user.email = email
+#                 user.set_password(password)
+#                 user.save()
+#                 print(f"✅ COMPTE MIS À JOUR: {username}")
+#             else:
+#                 print(f"✅ NOUVEAU COMPTE CRÉÉ: {username}")
+            
+#             # Marquer le matricule comme activé
+#             matricule_autorise.date_activation = timezone.now()
+#             matricule_autorise.activation_token = None
+#             matricule_autorise.token_expiration = None
+#             matricule_autorise.save()
+            
+#             print(f"✅ COMPTE CRÉÉ/MIS À JOUR AVEC SUCCÈS!")
+#             print(f"Username: {username}")
+#             print(f" Email: {email}")
+#             print(f" ID: {user.id}")
+#             print("=" * 70)
+            
+#             return Response({
+#                 "message": "✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.",
+#                 "status": "success",
+#                 "username": username
+#             }, status=status.HTTP_200_OK)
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             print("❌ MATRICULE NON AUTORISÉ")
+#             print("=" * 70)
+#             return Response({
+#                 "message": "❌ Matricule non autorisé ou introuvable.",
+#                 "status": "error"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+#         except Exception as e:
+#             print(f"❌ ERREUR: {str(e)}")
+#             print("=" * 70)
+#             return Response({
+#                 "message": f"❌ Erreur: {str(e)}",
+#                 "status": "error"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+# class DirectLoginView(generics.GenericAPIView):
+#     """Vue pour connexion directe avec username/password"""
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+        
+#         print("=" * 70)
+#         print(f" TENTATIVE DE CONNEXION: {username}")
+        
+#         from django.contrib.auth import authenticate
+        
+#         user = authenticate(username=username, password=password)
+        
+#         if user is not None:
+#             from rest_framework_simplejwt.tokens import RefreshToken
+#             refresh = RefreshToken.for_user(user)
+            
+#             print(f"✅ CONNEXION RÉUSSIE: {user.username}")
+#             print(f" Email: {user.email}")
+#             print(f" ID: {user.id}")
+#             print("=" * 70)
+            
+#             return Response({
+#                 "access": str(refresh.access_token),
+#                 "refresh": str(refresh),
+#                 "user": {
+#                     "id": user.id,
+#                     "username": user.username,
+#                     "email": user.email,
+#                     "first_name": user.first_name,
+#                     "last_name": user.last_name
+#                 }
+#             })
+#         else:
+#             print("❌ IDENTIFIANTS INCORRECTS")
+#             print("=" * 70)
+#             return Response({
+#                 "error": "❌ Identifiants incorrects"
+#             }, status=status.HTTP_401_UNAUTHORIZED)
+
+# class QuickLoginView(generics.GenericAPIView):
+#     """Vue pour connexion rapide avec matricule/username"""
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         matricule = request.data.get('matricule')
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+        
+#         print("=" * 70)
+#         print("⚡ CONNEXION RAPIDE TENTATIVE - DEBUG DÉTAILLÉ")
+#         print("=" * 70)
+#         print(f"📋 Données reçues: {request.data}")
+#         print(f"📋 Matricule: {matricule}")
+#         print(f"👤 Username: {username}") 
+#         print(f"🔑 Password: {'*' * len(password) if password else 'None'}")
+        
+#         # Utiliser username OU matricule
+#         login_identifier = username or matricule
+        
+#         if not login_identifier:
+#             print("❌ ERREUR: Aucun identifiant fourni (username ou matricule)")
+#             return Response({
+#                 "error": "Identifiant manquant. Fournissez un username ou matricule.",
+#                 "code": "MISSING_IDENTIFIER"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         if not password:
+#             print("❌ ERREUR: Mot de passe manquant")
+#             return Response({
+#                 "error": "Mot de passe manquant.",
+#                 "code": "MISSING_PASSWORD"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Vérifier si le matricule est autorisé ET activé
+#         try:
+#             matricule_autorise = MatriculeAutorise.objects.get(
+#                 matricule=login_identifier,
+#                 est_actif=True,
+#                 date_activation__isnull=False
+#             )
+#             print(f"✅ MATRICULE AUTORISÉ ET ACTIVÉ: {login_identifier}")
+            
+#         except MatriculeAutorise.DoesNotExist:
+#             print(f"❌ MATRICULE NON ACTIVÉ OU INTROUVABLE: {login_identifier}")
+#             return Response({
+#                 "error": "❌ Compte non activé. Utilisez 'Activer mon compte' pour créer votre compte d'abord.",
+#                 "code": "ACCOUNT_NOT_ACTIVATED"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         # Authentifier avec Django
+#         from django.contrib.auth import authenticate
+#         user = authenticate(username=login_identifier, password=password)
+        
+#         print(f"🔐 RÉSULTAT AUTHENTIFICATION: {user}")
+        
+#         if user is not None:
+#             from rest_framework_simplejwt.tokens import RefreshToken
+#             refresh = RefreshToken.for_user(user)
+            
+#             print(f"✅ CONNEXION RAPIDE RÉUSSIE: {user.username}")
+#             print(f"📧 Email: {user.email}")
+#             print(f"🆔 ID: {user.id}")
+#             print("=" * 70)
+            
+#             return Response({
+#                 "access": str(refresh.access_token),
+#                 "refresh": str(refresh),
+#                 "user": {
+#                     "id": user.id,
+#                     "username": user.username,
+#                     "email": user.email,
+#                     "first_name": user.first_name,
+#                     "last_name": user.last_name
+#                 },
+#                 "message": "✅ Connexion réussie !"
+#             })
+#         else:
+#             print("❌ ÉCHEC AUTHENTIFICATION - Vérifier:")
+#             print(f"   - Identifiant: {login_identifier}")
+#             print(f"   - Utilisateur existe: {User.objects.filter(username=login_identifier).exists()}")
+            
+#             if User.objects.filter(username=login_identifier).exists():
+#                 print("   - ❌ Mot de passe incorrect")
+#                 return Response({
+#                     "error": "❌ Mot de passe incorrect",
+#                     "code": "INVALID_PASSWORD"
+#                 }, status=status.HTTP_401_UNAUTHORIZED)
+#             else:
+#                 print("   - ❌ Utilisateur non trouvé")
+#                 return Response({
+#                     "error": "❌ Identifiant non trouvé",
+#                     "code": "USER_NOT_FOUND"
+#                 }, status=status.HTTP_401_UNAUTHORIZED)
+
+# class ForgotPasswordView(APIView):
+#     """Vue pour demande de réinitialisation de mot de passe"""
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         email = request.data.get('email')
+#         print("=" * 70)
+#         print("🔐 DEMANDE RÉINITIALISATION MOT DE PASSE")
+#         print("=" * 70)
+#         print(f"📧 Email reçu: {email}")
+        
+#         try:
+#             user = User.objects.get(email=email)
+            
+#             print(f"✅ UTILISATEUR TROUVÉ: {user.username} (ID: {user.id})")
+            
+#             reset_token = secrets.token_urlsafe(32)
+#             expiration_time = timezone.now() + timedelta(minutes=15)
+            
+#             matricule_autorise, created = MatriculeAutorise.objects.get_or_create(
+#                 matricule=f"reset_{user.id}",
+#                 defaults={
+#                     'est_actif': True,
+#                     'date_activation': timezone.now()
+#                 }
+#             )
+            
+#             matricule_autorise.activation_token = reset_token
+#             matricule_autorise.token_expiration = expiration_time
+#             matricule_autorise.save()
+            
+#             print(f"✅ TOKEN STOCKÉ POUR L'UTILISATEUR: {user.username}")
+#             print(f"🔑 Token généré: {reset_token}")
+#             print(f"⏰ Expire à: {expiration_time}")
+            
+#             reset_link = f"http://localhost:3001/reset-password?token={reset_token}&email={email}"
+            
+#             print(f"✅ DEMANDE ACCEPTÉE POUR: {email}")
+#             print("=" * 70)
+            
+#             subject = '🔒 Réinitialisation de votre mot de passe - Plateforme Simplon'
+            
+#             html_message = f"""
+#             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+#                 <div style="background: linear-gradient(135deg, #E30613, #B80505); color: white; padding: 25px; text-align: center;">
+#                     <h1 style="margin: 0; font-size: 28px;">🔒 Plateforme Simplon</h1>
+#                     <p style="margin: 5px 0 0 0; opacity: 0.9;">Réinitialisation de mot de passe</p>
+#                 </div>
+                
+#                 <div style="padding: 30px; background: #ffffff;">
+#                     <h2 style="color: #E30613; margin-top: 0;">Bonjour,</h2>
+#                     <p style="font-size: 16px; line-height: 1.6; color: #333;">
+#                         Vous avez demandé à réinitialiser votre mot de passe pour la plateforme interne Simplon.
+#                     </p>
+                    
+#                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #E30613;">
+#                         <p style="margin: 0; font-size: 16px;">
+#                             <strong style="color: #E30613;">📧 Email :</strong> {email}<br>
+#                             <strong style="color: #E30613;">👤 Nom d'utilisateur :</strong> {user.username}<br>
+#                             <strong style="color: #E30613;">⏰ Lien valable :</strong> 15 minutes
+#                         </p>
+#                     </div>
+                    
+#                     <p style="text-align: center; margin: 30px 0;">
+#                         <a href="{reset_link}" 
+#                            style="background: linear-gradient(135deg, #E30613, #B80505); 
+#                                   color: white; padding: 16px 35px; 
+#                                   text-decoration: none; border-radius: 8px; 
+#                                   font-size: 18px; font-weight: bold;
+#                                   display: inline-block; 
+#                                   box-shadow: 0 4px 15px rgba(227, 6, 19, 0.3);">
+#                             🔑 Réinitialiser mon mot de passe
+#                         </a>
+#                     </p>
+                    
+#                     <div style="background: #fff3f3; padding: 15px; border-radius: 6px; margin: 20px 0; border: 2px solid #E30613;">
+#                         <p style="margin: 0; font-size: 14px; color: #d32f2f; text-align: center;">
+#                             <strong>⚠️ SÉCURITÉ :</strong> Ce lien expirera dans <strong>15 MINUTES</strong><br>
+#                             <small>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</small>
+#                         </p>
+#                     </div>
+                    
+#                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+#                         <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+#                             <strong>Lien alternatif :</strong> Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :
+#                         </p>
+#                         <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border: 1px solid #ddd;">
+#                             <code style="word-break: break-all; font-size: 12px; color: #333;">
+#                                 {reset_link}
+#                             </code>
+#                         </div>
+#                     </div>
+#                 </div>
+                
+#                 <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
+#                     <p style="margin: 0; font-size: 14px;">
+#                         <strong>© 2025 Simplon.co - Plateforme interne</strong>
+#                     </p>
+#                     <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">
+#                         Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+#                     </p>
+#                 </div>
+#             </div>
+#             """
+            
+#             plain_message = f"""RÉINITIALISATION DE MOT DE PASSE - PLATEFORME SIMPLON
+
+# Bonjour,
+
+# Vous avez demandé à réinitialiser votre mot de passe pour la plateforme interne Simplon.
+
+# INFORMATIONS :
+# 📧 Email : {email}
+# 👤 Nom d'utilisateur : {user.username}
+
+# POUR RÉINITIALISER VOTRE MOT DE PASSE :
+# Cliquez sur le lien suivant :
+# {reset_link}
+
+# ⚠️ SÉCURITÉ :
+# Ce lien de réinitialisation expirera dans 15 MINUTES!
+# Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
+
+# Cordialement,
+# L'équipe Simplon
+
+# ---
+# © 2025 Simplon.co - Plateforme interne
+# Cet email a été envoyé automatiquement.
+# """
+            
+#             try:
+#                 send_mail(
+#                     subject=subject,
+#                     message=plain_message,
+#                     from_email=settings.DEFAULT_FROM_EMAIL,
+#                     recipient_list=[email],
+#                     html_message=html_message,
+#                     fail_silently=False,
+#                 )
+                
+#                 print(f"✅ EMAIL DE RÉINITIALISATION ENVOYÉ À: {email}")
+#                 print("=" * 70)
+                
+#                 return Response({
+#                     "message": "✅ Si votre email est enregistré, un lien de réinitialisation a été envoyé. Vérifiez votre boîte mail (valable 15 minutes).",
+#                     "status": "success"
+#                 }, status=status.HTTP_200_OK)
+                
+#             except Exception as e:
+#                 print(f"❌ ERREUR ENVOI EMAIL: {str(e)}")
+#                 traceback.print_exc()
+#                 print("=" * 70)
+#                 return Response({
+#                     "message": "❌ Erreur d'envoi d'email. Veuillez réessayer.",
+#                     "status": "error"
+#                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+#         except User.DoesNotExist:
+#             print("❌ EMAIL NON TROUVÉ DANS LA BASE")
+#             print("=" * 70)
+#             return Response({
+#                 "message": "✅ Si votre email est enregistré, un lien de réinitialisation a été envoyé. Vérifiez votre boîte mail (valable 15 minutes).",
+#                 "status": "success"
+#             }, status=status.HTTP_200_OK)
+
+# class ResetPasswordView(generics.GenericAPIView):
+#     """Vue pour finaliser la réinitialisation du mot de passe"""
+#     permission_classes = [permissions.AllowAny]
+    
+#     def post(self, request):
+#         token = request.data.get('token')
+#         email = request.data.get('email')
+#         new_password = request.data.get('new_password')
+        
+#         print("=" * 70)
+#         print("🔐 TENTATIVE RÉINITIALISATION MOT DE PASSE")
+#         print("=" * 70)
+#         print(f"📧 Email: {email}")
+#         print(f"🎫 Token: {token}")
+#         print(f"🕒 Heure actuelle: {timezone.now()}")
+        
+#         try:
+#             user = User.objects.get(email=email)
+            
+#             print(f"✅ UTILISATEUR TROUVÉ: {user.username}")
+            
+#             # Chercher le token dans le matricule temporaire
+#             try:
+#                 matricule_autorise = MatriculeAutorise.objects.get(
+#                     matricule=f"reset_{user.id}",
+#                     est_actif=True
+#                 )
+                
+#                 print(f"🔑 Token stocké: {matricule_autorise.activation_token}")
+#                 print(f"⏰ Expiration stockée: {matricule_autorise.token_expiration}")
+                
+#                 # Vérifier si le token correspond et n'est pas expiré
+#                 if (not matricule_autorise.activation_token or 
+#                     matricule_autorise.activation_token != token or
+#                     matricule_autorise.is_token_expired()):
+                    
+#                     print("❌ TOKEN INVALIDE OU EXPIRÉ")
+#                     return Response({
+#                         "message": "❌ Lien de réinitialisation invalide ou expiré. Veuillez demander un nouveau lien.",
+#                         "status": "error",
+#                         "expired": True
+#                     }, status=status.HTTP_400_BAD_REQUEST)
+                
+#                 print("✅ TOKEN VALIDE ET NON EXPIRÉ")
+                
+#                 # Réinitialiser le mot de passe
+#                 user.set_password(new_password)
+#                 user.save()
+                
+#                 # Nettoyer le token après utilisation
+#                 matricule_autorise.activation_token = None
+#                 matricule_autorise.token_expiration = None
+#                 matricule_autorise.save()
+                
+#                 print(f"✅ MOT DE PASSE RÉINITIALISÉ POUR: {user.username}")
+#                 print("=" * 70)
+                
+#                 return Response({
+#                     "message": "✅ Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+#                     "status": "success"
+#                 }, status=status.HTTP_200_OK)
+                
+#             except MatriculeAutorise.DoesNotExist:
+#                 print("❌ TOKEN DE RÉINITIALISATION NON TROUVÉ")
+#                 return Response({
+#                     "message": "❌ Lien de réinitialisation invalide. Veuillez demander un nouveau lien.",
+#                     "status": "error"
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#         except User.DoesNotExist:
+#             print("❌ UTILISATEUR NON TROUVÉ")
+#             print("=" * 70)
+#             return Response({
+#                 "message": "❌ Erreur lors de la réinitialisation. Veuillez vérifier vos informations.",
+#                 "status": "error"
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+# # ⭐ VUE FONCTION POUR LE FRONTEND REACT - ENDPOINT users-with-projects
+# @api_view(['GET'])
+# # @permission_classes([IsAuthenticated])
+# def users_with_projects(request):
+#     """Retourne tous les utilisateurs Simplon avec leurs projets"""
+#     try:
+#         print("=" * 70)
+#         print("🔍 DÉBUT users_with_projects - DEBUG DÉTAILLÉ")
+#         print("=" * 70)
+        
+#         # 1. Filtrer uniquement les utilisateurs Simplon
+#         simplon_users = User.objects.filter(username__startswith='simplon_')
+#         print(f"✅ {simplon_users.count()} utilisateur(s) Simplon trouvé(s)")
+        
+#         users_data = []
+        
+#         for user in simplon_users:
+#             # 2. Récupérer les projets de cet utilisateur
+#             projects = Project.objects.filter(author=user)
+#             print(f"👤 {user.username}: {projects.count()} projet(s)")
+            
+#             projects_data = []
+            
+#             for project in projects:
+#                 project_dict = {
+#                     'id': project.id,
+#                     'title': project.title or "Sans titre",
+#                     'description': project.description or "",
+#                     'technologies': project.technologies or "",
+#                     'github_url': project.github_url or "",
+#                     'demo_url': project.demo_url or "",
+#                     'image': project.image.url if project.image else None,
+#                     'status': project.status or "draft",
+#                     'created_at': project.created_at,
+#                     'updated_at': project.updated_at,
+#                     'author': {
+#                         'id': user.id,
+#                         'username': user.username,
+#                         'first_name': user.first_name or "",
+#                         'last_name': user.last_name or "",
+#                         'email': user.email or ""
+#                     }
+#                 }
+#                 projects_data.append(project_dict)
+            
+#             user_dict = {
+#                 'id': user.id,
+#                 'username': user.username,
+#                 'email': user.email or "",
+#                 'first_name': user.first_name or "",
+#                 'last_name': user.last_name or "",
+#                 'date_joined': user.date_joined,
+#                 'is_active': user.is_active,
+#                 'projects_count': len(projects_data),
+#                 'projects': projects_data
+#             }
+            
+#             users_data.append(user_dict)
+        
+#         # 3. Trier par username
+#         users_data.sort(key=lambda x: x['username'])
+        
+#         print("=" * 70)
+#         print(f"✅ PRÊT POUR LE FRONTEND: {len(users_data)} utilisateur(s) avec projets")
+        
+#         for user in users_data:
+#             print(f"   👤 {user['username']} - {user['projects_count']} projet(s)")
+        
+#         print("=" * 70)
+        
+#         return Response({
+#             'count': len(users_data),
+#             'users': users_data
+#         })
+        
+#     except Exception as e:
+#         print("❌ ERREUR DANS users_with_projects:")
+#         print(f"   {str(e)}")
+#         traceback.print_exc()
+#         print("=" * 70)
+        
+#         return Response({
+#             'error': str(e),
+#             'message': 'Erreur serveur lors de la récupération des données',
+#             'traceback': traceback.format_exc(),
+#             'count': 0,
+#             'users': []
+#         }, status=500)
+
+# users/views.py - VERSION COMPLÈTE CORRIGÉE AVEC SUPPORT PATCH/PUT
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.models import User
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import MatriculeAutorise
+from .serializers import UserSerializer
+import secrets
+from datetime import timedelta
+from rest_framework.views import APIView
+from projects.models import Project
+import traceback
+
+class UserProfileView(generics.RetrieveUpdateAPIView):  # ⭐ CHANGÉ DE RetrieveAPIView À RetrieveUpdateAPIView
+    """
+    Vue pour récupérer et mettre à jour le profil de l'utilisateur connecté
+    Supporte GET (lecture), PATCH (mise à jour partielle), PUT (mise à jour complète)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer
+    
+    def get_object(self):
+        """Retourne l'utilisateur connecté"""
+        return self.request.user
+    
+    def get(self, request, *args, **kwargs):
+        """GET: Récupérer le profil"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        
+        print("=" * 70)
+        print("📱 GET PROFIL UTILISATEUR")
+        print("=" * 70)
+        print(f"👤 Utilisateur: {instance.username}")
+        print(f"📧 Email: {instance.email}")
+        print(f"🆔 ID: {instance.id}")
+        print("=" * 70)
+        
+        return Response(serializer.data)
+    
+    def patch(self, request, *args, **kwargs):
+        """PATCH: Mettre à jour partiellement le profil"""
+        instance = self.get_object()
+        
+        print("=" * 70)
+        print("🔄 PATCH PROFIL UTILISATEUR")
+        print("=" * 70)
+        print(f"👤 Utilisateur: {instance.username}")
+        print(f"📧 Ancien email: {instance.email}")
+        print(f"📋 Données reçues: {request.data}")
+        print("=" * 70)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        print(f"✅ MISE À JOUR RÉUSSIE POUR: {instance.username}")
+        print(f"📧 Nouvel email: {instance.email}")
+        print("=" * 70)
+        
+        return Response(serializer.data)
+    
+    def put(self, request, *args, **kwargs):
+        """PUT: Mettre à jour complètement le profil"""
+        instance = self.get_object()
+        
+        print("=" * 70)
+        print("🔄 PUT PROFIL UTILISATEUR")
+        print("=" * 70)
+        print(f"👤 Utilisateur: {instance.username}")
+        print(f"📋 Données reçues: {request.data}")
+        print("=" * 70)
+        
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        print(f"✅ MISE À JOUR COMPLÈTE RÉUSSIE POUR: {instance.username}")
+        print("=" * 70)
+        
+        return Response(serializer.data)
+
+class RequestLoginView(generics.GenericAPIView):
+    """Vue pour demander un lien d'activation par email"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        matricule = request.data.get('matricule')
+        email = request.data.get('email')
+        
+        print("=" * 70)
+        print("🔐 DEMANDE D'INSCRIPTION REÇUE")
+        print("=" * 70)
+        print(f"📋 Matricule: {matricule}")
+        print(f"📧 Email: {email}")
+        
+        # Vérifier si le matricule est autorisé
+        try:
+            matricule_autorise = MatriculeAutorise.objects.get(
+                matricule=matricule,
+                est_actif=True
+            )
+            
+            # Générer un token sécurisé valable 5 minutes
+            token = secrets.token_urlsafe(32)
+            expiration_time = timezone.now() + timedelta(minutes=5)
+            
+            # Sauvegarder le token et son expiration
+            matricule_autorise.activation_token = token
+            matricule_autorise.token_expiration = expiration_time
+            matricule_autorise.save()
+            
+            activation_link = f"http://localhost:3001/setup-password?token={token}&matricule={matricule}&email={email}"
+            
+            print(f"✅ MATRICULE AUTORISÉ: {matricule}")
+            print(f"⏰ Token généré: {token}")
+            print(f"🕒 Expire à: {expiration_time.strftime('%H:%M:%S')} (dans 5 minutes)")
+            print("=" * 70)
+            
+            # ==================== ENVOI EMAIL ====================
+            print(f"📧 ENVOI EMAIL À: {email}")
+            
+            subject = '🎯 Activez votre compte Simplon - Lien rapide!'
+            
+            html_message = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #E30613, #B80505); color: white; padding: 25px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">🚀 Plateforme Simplon</h1>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9;">Activation de votre compte</p>
+                </div>
+                
+                <div style="padding: 30px; background: #ffffff;">
+                    <h2 style="color: #E30613; margin-top: 0;">Bonjour,</h2>
+                    <p style="font-size: 16px; line-height: 1.6; color: #333;">
+                        Vous avez demandé à créer un compte sur la plateforme interne Simplon.
+                    </p>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #E30613;">
+                        <p style="margin: 0; font-size: 16px;">
+                            <strong style="color: #E30613;">📋 Matricule :</strong> {matricule}<br>
+                            <strong style="color: #E30613;">📧 Email :</strong> {email}
+                        </p>
+                    </div>
+                    
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="{activation_link}" 
+                           style="background: linear-gradient(135deg, #E30613, #B80505); 
+                                  color: white; padding: 16px 35px; 
+                                  text-decoration: none; border-radius: 8px; 
+                                  font-size: 18px; font-weight: bold;
+                                  display: inline-block; 
+                                  box-shadow: 0 4px 15px rgba(227, 6, 19, 0.3);">
+                            ✅ Activer mon compte
+                        </a>
+                    </p>
+                    
+                    <div style="background: #fff3f3; padding: 15px; border-radius: 6px; margin: 20px 0; border: 2px solid #E30613;">
+                        <p style="margin: 0; font-size: 14px; color: #d32f2f; text-align: center;">
+                            <strong>⚠️ URGENT :</strong> Ce lien expirera dans <strong>5 MINUTES</strong><br>
+                            <small>Expire à : {expiration_time.strftime('%H:%M:%S')}</small>
+                        </p>
+                    </div>
+                    
+                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+                            <strong>Lien alternatif :</strong> Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :
+                        </p>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border: 1px solid #ddd;">
+                            <code style="word-break: break-all; font-size: 12px; color: #333;">
+                                {activation_link}
+                            </code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>© 2025 Simplon.co - Plateforme interne</strong>
+                    </p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">
+                        Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                    </p>
+                </div>
+            </div>
+            """
+            
+            plain_message = f"""ACTIVATION DE COMPTE - PLATEFORME SIMPLON
+
+Bonjour,
+
+Vous avez demandé à créer un compte sur la plateforme interne Simplon.
+
+INFORMATIONS :
+📋 Matricule : {matricule}
+📧 Email : {email}
+
+POUR ACTIVER VOTRE COMPTE :
+Cliquez sur le lien suivant :
+{activation_link}
+
+⚠️ URGENT :
+Ce lien d'activation expirera dans 5 MINUTES!
+Expire à : {expiration_time.strftime('%H:%M:%S')}
+
+Si vous n'avez pas demandé cette inscription, vous pouvez ignorer cet email.
+
+Cordialement,
+L'équipe Simplon
+
+---
+© 2025 Simplon.co - Plateforme interne
+Cet email a été envoyé automatiquement.
+"""
+            
+            # ENVOI EMAIL RÉEL
+            try:
+                send_mail(
+                    subject=subject,
+                    message=plain_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                
+                print(f"✅ EMAIL RÉEL ENVOYÉ avec succès à: {email}")
+                print("⏰ Le lien expirera dans 5 minutes")
+                print("=" * 70)
+                
+                return Response({
+                    "message": "✅ Lien d'activation envoyé ! ⏰ Valable 5 minutes - Vérifiez vite votre email!",
+                    "status": "success",
+                    "expires_in": "5 minutes"
+                }, status=status.HTTP_200_OK)
+                
+            except Exception as e:
+                print(f"❌ ERREUR ENVOI EMAIL: {str(e)}")
+                print("=" * 70)
+                return Response({
+                    "message": f"⚠️ Erreur d'envoi d'email. Utilisez ce lien (valable 5 minutes): {activation_link}",
+                    "activation_link": activation_link,
+                    "status": "success",
+                    "expires_in": "5 minutes"
+                }, status=status.HTTP_200_OK)
+            
+        except MatriculeAutorise.DoesNotExist:
+            print("❌ MATRICULE NON AUTORISÉ")
+            print("=" * 70)
+            return Response({
+                "message": "❌ Matricule non autorisé ou introuvable.",
+                "status": "error"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class SetupPasswordView(generics.GenericAPIView):
+    """Vue pour finaliser la création du compte avec mot de passe"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        token = request.data.get('token')
+        matricule = request.data.get('matricule')
+        email = request.data.get('email')
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        print("=" * 70)
+        print(" VÉRIFICATION DU LIEN D'ACTIVATION - DEBUG")
+        print("=" * 70)
+        print(f" Matricule: {matricule}")
+        print(f" Email: {email}")
+        print(f" Token: {token}")
+        print(f" Heure actuelle: {timezone.now()}")
+        
+        try:
+            # Vérifier le matricule
+            matricule_autorise = MatriculeAutorise.objects.get(
+                matricule=matricule,
+                est_actif=True
+            )
+            
+            print(f"✅ Matricule trouvé: {matricule_autorise.matricule}")
+            print(f" Token stocké: {matricule_autorise.activation_token}")
+            print(f" Expiration stockée: {matricule_autorise.token_expiration}")
+            
+            # Vérifier si le token correspond
+            if not matricule_autorise.activation_token or matricule_autorise.activation_token != token:
+                print("❌ TOKEN INVALIDE OU MANQUANT")
+                print(f"   Token attendu: {matricule_autorise.activation_token}")
+                print(f"   Token reçu: {token}")
+                return Response({
+                    "message": "❌ Lien d'activation invalide ou déjà utilisé.",
+                    "status": "error"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérifier si le token est expiré
+            if matricule_autorise.is_token_expired():
+                print("❌ TOKEN EXPIRÉ - DÉTAILS:")
+                time_diff = timezone.now() - matricule_autorise.token_expiration
+                print(f"   Temps écoulé depuis expiration: {time_diff}")
+                print(f"   Secondes écoulées: {time_diff.total_seconds()}s")
+                print(f"   Minutes écoulées: {time_diff.total_seconds() / 60}min")
+                
+                return Response({
+                    "message": "❌ Le lien d'activation a expiré. Il n'était valable que 5 minutes. Veuillez demander un nouveau lien.",
+                    "status": "error",
+                    "expired": True
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            print("✅ TOKEN VALIDE ET NON EXPIRÉ")
+            remaining_seconds = matricule_autorise.get_remaining_time()
+            print(f"   Temps restant: {remaining_seconds} secondes")
+            print(f"   Soit: {remaining_seconds / 60} minutes")
+            
+            # Vérifier si le username est disponible
+            if User.objects.filter(username=username).exists():
+                print("❌ Username déjà pris")
+                return Response({
+                    "message": "❌ Ce nom d'utilisateur est déjà pris.",
+                    "status": "error"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérification email améliorée
+            existing_user_with_email = User.objects.filter(email=email).first()
+            if existing_user_with_email:
+                if existing_user_with_email.username != matricule:
+                    print(f"❌ Email déjà utilisé par un autre matricule: {existing_user_with_email.username}")
+                    return Response({
+                        "message": "❌ Cet email est déjà associé à un autre compte.",
+                        "status": "error"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    print(f"✅ Email réutilisé pour le même matricule: {matricule}")
+            
+            # Créer ou mettre à jour l'utilisateur
+            user, created = User.objects.get_or_create(
+                username=matricule,
+                defaults={
+                    'email': email,
+                    'password': password,
+                    'first_name': '',
+                    'last_name': ''
+                }
+            )
+            
+            if not created:
+                user.email = email
+                user.set_password(password)
+                user.save()
+                print(f"✅ COMPTE MIS À JOUR: {username}")
+            else:
+                print(f"✅ NOUVEAU COMPTE CRÉÉ: {username}")
+            
+            # Marquer le matricule comme activé
+            matricule_autorise.date_activation = timezone.now()
+            matricule_autorise.activation_token = None
+            matricule_autorise.token_expiration = None
+            matricule_autorise.save()
+            
+            print(f"✅ COMPTE CRÉÉ/MIS À JOUR AVEC SUCCÈS!")
+            print(f"Username: {username}")
+            print(f" Email: {email}")
+            print(f" ID: {user.id}")
+            print("=" * 70)
+            
+            return Response({
+                "message": "✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.",
+                "status": "success",
+                "username": username
+            }, status=status.HTTP_200_OK)
+            
+        except MatriculeAutorise.DoesNotExist:
+            print("❌ MATRICULE NON AUTORISÉ")
+            print("=" * 70)
+            return Response({
+                "message": "❌ Matricule non autorisé ou introuvable.",
+                "status": "error"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"❌ ERREUR: {str(e)}")
+            print("=" * 70)
+            return Response({
+                "message": f"❌ Erreur: {str(e)}",
+                "status": "error"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+class DirectLoginView(generics.GenericAPIView):
+    """Vue pour connexion directe avec username/password"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        print("=" * 70)
+        print(f" TENTATIVE DE CONNEXION: {username}")
+        
+        from django.contrib.auth import authenticate
+        
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            
+            print(f"✅ CONNEXION RÉUSSIE: {user.username}")
+            print(f" Email: {user.email}")
+            print(f" ID: {user.id}")
+            print("=" * 70)
+            
+            return Response({
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name
+                }
+            })
+        else:
+            print("❌ IDENTIFIANTS INCORRECTS")
+            print("=" * 70)
+            return Response({
+                "error": "❌ Identifiants incorrects"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+class QuickLoginView(generics.GenericAPIView):
+    """Vue pour connexion rapide avec matricule/username"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        matricule = request.data.get('matricule')
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        print("=" * 70)
+        print("⚡ CONNEXION RAPIDE TENTATIVE - DEBUG DÉTAILLÉ")
+        print("=" * 70)
+        print(f"📋 Données reçues: {request.data}")
+        print(f"📋 Matricule: {matricule}")
+        print(f"👤 Username: {username}") 
+        print(f"🔑 Password: {'*' * len(password) if password else 'None'}")
+        
+        # Utiliser username OU matricule
+        login_identifier = username or matricule
+        
+        if not login_identifier:
+            print("❌ ERREUR: Aucun identifiant fourni (username ou matricule)")
+            return Response({
+                "error": "Identifiant manquant. Fournissez un username ou matricule.",
+                "code": "MISSING_IDENTIFIER"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not password:
+            print("❌ ERREUR: Mot de passe manquant")
+            return Response({
+                "error": "Mot de passe manquant.",
+                "code": "MISSING_PASSWORD"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifier si le matricule est autorisé ET activé
+        try:
+            matricule_autorise = MatriculeAutorise.objects.get(
+                matricule=login_identifier,
+                est_actif=True,
+                date_activation__isnull=False
+            )
+            print(f"✅ MATRICULE AUTORISÉ ET ACTIVÉ: {login_identifier}")
+            
+        except MatriculeAutorise.DoesNotExist:
+            print(f"❌ MATRICULE NON ACTIVÉ OU INTROUVABLE: {login_identifier}")
+            return Response({
+                "error": "❌ Compte non activé. Utilisez 'Activer mon compte' pour créer votre compte d'abord.",
+                "code": "ACCOUNT_NOT_ACTIVATED"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Authentifier avec Django
+        from django.contrib.auth import authenticate
+        user = authenticate(username=login_identifier, password=password)
+        
+        print(f"🔐 RÉSULTAT AUTHENTIFICATION: {user}")
+        
+        if user is not None:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            
+            print(f"✅ CONNEXION RAPIDE RÉUSSIE: {user.username}")
+            print(f"📧 Email: {user.email}")
+            print(f"🆔 ID: {user.id}")
+            print("=" * 70)
+            
+            return Response({
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name
+                },
+                "message": "✅ Connexion réussie !"
+            })
+        else:
+            print("❌ ÉCHEC AUTHENTIFICATION - Vérifier:")
+            print(f"   - Identifiant: {login_identifier}")
+            print(f"   - Utilisateur existe: {User.objects.filter(username=login_identifier).exists()}")
+            
+            if User.objects.filter(username=login_identifier).exists():
+                print("   - ❌ Mot de passe incorrect")
+                return Response({
+                    "error": "❌ Mot de passe incorrect",
+                    "code": "INVALID_PASSWORD"
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                print("   - ❌ Utilisateur non trouvé")
+                return Response({
+                    "error": "❌ Identifiant non trouvé",
+                    "code": "USER_NOT_FOUND"
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+class ForgotPasswordView(APIView):
+    """Vue pour demande de réinitialisation de mot de passe"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        print("=" * 70)
+        print("🔐 DEMANDE RÉINITIALISATION MOT DE PASSE")
+        print("=" * 70)
+        print(f"📧 Email reçu: {email}")
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            print(f"✅ UTILISATEUR TROUVÉ: {user.username} (ID: {user.id})")
+            
+            reset_token = secrets.token_urlsafe(32)
+            expiration_time = timezone.now() + timedelta(minutes=15)
+            
+            matricule_autorise, created = MatriculeAutorise.objects.get_or_create(
+                matricule=f"reset_{user.id}",
+                defaults={
+                    'est_actif': True,
+                    'date_activation': timezone.now()
+                }
+            )
+            
+            matricule_autorise.activation_token = reset_token
+            matricule_autorise.token_expiration = expiration_time
+            matricule_autorise.save()
+            
+            print(f"✅ TOKEN STOCKÉ POUR L'UTILISATEUR: {user.username}")
+            print(f"🔑 Token généré: {reset_token}")
+            print(f"⏰ Expire à: {expiration_time}")
+            
+            reset_link = f"http://localhost:3001/reset-password?token={reset_token}&email={email}"
+            
+            print(f"✅ DEMANDE ACCEPTÉE POUR: {email}")
+            print("=" * 70)
+            
+            subject = '🔒 Réinitialisation de votre mot de passe - Plateforme Simplon'
+            
+            html_message = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #E30613, #B80505); color: white; padding: 25px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px;">🔒 Plateforme Simplon</h1>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9;">Réinitialisation de mot de passe</p>
+                </div>
+                
+                <div style="padding: 30px; background: #ffffff;">
+                    <h2 style="color: #E30613; margin-top: 0;">Bonjour,</h2>
+                    <p style="font-size: 16px; line-height: 1.6; color: #333;">
+                        Vous avez demandé à réinitialiser votre mot de passe pour la plateforme interne Simplon.
+                    </p>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #E30613;">
+                        <p style="margin: 0; font-size: 16px;">
+                            <strong style="color: #E30613;">📧 Email :</strong> {email}<br>
+                            <strong style="color: #E30613;">👤 Nom d'utilisateur :</strong> {user.username}<br>
+                            <strong style="color: #E30613;">⏰ Lien valable :</strong> 15 minutes
+                        </p>
+                    </div>
+                    
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_link}" 
+                           style="background: linear-gradient(135deg, #E30613, #B80505); 
+                                  color: white; padding: 16px 35px; 
+                                  text-decoration: none; border-radius: 8px; 
+                                  font-size: 18px; font-weight: bold;
+                                  display: inline-block; 
+                                  box-shadow: 0 4px 15px rgba(227, 6, 19, 0.3);">
+                            🔑 Réinitialiser mon mot de passe
+                        </a>
+                    </p>
+                    
+                    <div style="background: #fff3f3; padding: 15px; border-radius: 6px; margin: 20px 0; border: 2px solid #E30613;">
+                        <p style="margin: 0; font-size: 14px; color: #d32f2f; text-align: center;">
+                            <strong>⚠️ SÉCURITÉ :</strong> Ce lien expirera dans <strong>15 MINUTES</strong><br>
+                            <small>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</small>
+                        </p>
+                    </div>
+                    
+                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+                            <strong>Lien alternatif :</strong> Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :
+                        </p>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border: 1px solid #ddd;">
+                            <code style="word-break: break-all; font-size: 12px; color: #333;">
+                                {reset_link}
+                            </code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>© 2025 Simplon.co - Plateforme interne</strong>
+                    </p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">
+                        Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                    </p>
+                </div>
+            </div>
+            """
+            
+            plain_message = f"""RÉINITIALISATION DE MOT DE PASSE - PLATEFORME SIMPLON
+
+Bonjour,
+
+Vous avez demandé à réinitialiser votre mot de passe pour la plateforme interne Simplon.
+
+INFORMATIONS :
+📧 Email : {email}
+👤 Nom d'utilisateur : {user.username}
+
+POUR RÉINITIALISER VOTRE MOT DE PASSE :
+Cliquez sur le lien suivant :
+{reset_link}
+
+⚠️ SÉCURITÉ :
+Ce lien de réinitialisation expirera dans 15 MINUTES!
+Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
+
+Cordialement,
+L'équipe Simplon
+
+---
+© 2025 Simplon.co - Plateforme interne
+Cet email a été envoyé automatiquement.
+"""
+            
+            try:
+                send_mail(
+                    subject=subject,
+                    message=plain_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                
+                print(f"✅ EMAIL DE RÉINITIALISATION ENVOYÉ À: {email}")
+                print("=" * 70)
+                
+                return Response({
+                    "message": "✅ Si votre email est enregistré, un lien de réinitialisation a été envoyé. Vérifiez votre boîte mail (valable 15 minutes).",
+                    "status": "success"
+                }, status=status.HTTP_200_OK)
+                
+            except Exception as e:
+                print(f"❌ ERREUR ENVOI EMAIL: {str(e)}")
+                traceback.print_exc()
+                print("=" * 70)
+                return Response({
+                    "message": "❌ Erreur d'envoi d'email. Veuillez réessayer.",
+                    "status": "error"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        except User.DoesNotExist:
+            print("❌ EMAIL NON TROUVÉ DANS LA BASE")
+            print("=" * 70)
+            return Response({
+                "message": "✅ Si votre email est enregistré, un lien de réinitialisation a été envoyé. Vérifiez votre boîte mail (valable 15 minutes).",
+                "status": "success"
+            }, status=status.HTTP_200_OK)
+
+class ResetPasswordView(generics.GenericAPIView):
+    """Vue pour finaliser la réinitialisation du mot de passe"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        token = request.data.get('token')
+        email = request.data.get('email')
+        new_password = request.data.get('new_password')
+        
+        print("=" * 70)
+        print("🔐 TENTATIVE RÉINITIALISATION MOT DE PASSE")
+        print("=" * 70)
+        print(f"📧 Email: {email}")
+        print(f"🎫 Token: {token}")
+        print(f"🕒 Heure actuelle: {timezone.now()}")
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            print(f"✅ UTILISATEUR TROUVÉ: {user.username}")
+            
+            # Chercher le token dans le matricule temporaire
+            try:
+                matricule_autorise = MatriculeAutorise.objects.get(
+                    matricule=f"reset_{user.id}",
+                    est_actif=True
+                )
+                
+                print(f"🔑 Token stocké: {matricule_autorise.activation_token}")
+                print(f"⏰ Expiration stockée: {matricule_autorise.token_expiration}")
+                
+                # Vérifier si le token correspond et n'est pas expiré
+                if (not matricule_autorise.activation_token or 
+                    matricule_autorise.activation_token != token or
+                    matricule_autorise.is_token_expired()):
+                    
+                    print("❌ TOKEN INVALIDE OU EXPIRÉ")
+                    return Response({
+                        "message": "❌ Lien de réinitialisation invalide ou expiré. Veuillez demander un nouveau lien.",
+                        "status": "error",
+                        "expired": True
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                print("✅ TOKEN VALIDE ET NON EXPIRÉ")
+                
+                # Réinitialiser le mot de passe
+                user.set_password(new_password)
+                user.save()
+                
+                # Nettoyer le token après utilisation
+                matricule_autorise.activation_token = None
+                matricule_autorise.token_expiration = None
+                matricule_autorise.save()
+                
+                print(f"✅ MOT DE PASSE RÉINITIALISÉ POUR: {user.username}")
+                print("=" * 70)
+                
+                return Response({
+                    "message": "✅ Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+                    "status": "success"
+                }, status=status.HTTP_200_OK)
+                
+            except MatriculeAutorise.DoesNotExist:
+                print("❌ TOKEN DE RÉINITIALISATION NON TROUVÉ")
+                return Response({
+                    "message": "❌ Lien de réinitialisation invalide. Veuillez demander un nouveau lien.",
+                    "status": "error"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except User.DoesNotExist:
+            print("❌ UTILISATEUR NON TROUVÉ")
+            print("=" * 70)
+            return Response({
+                "message": "❌ Erreur lors de la réinitialisation. Veuillez vérifier vos informations.",
+                "status": "error"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+# ⭐ VUE FONCTION POUR LE FRONTEND REACT - ENDPOINT users-with-projects
+@api_view(['GET'])
+def users_with_projects(request):
+    """Retourne tous les utilisateurs Simplon avec leurs projets"""
+    try:
+        print("=" * 70)
+        print("🔍 DÉBUT users_with_projects - DEBUG DÉTAILLÉ")
+        print("=" * 70)
+        
+        # 1. Filtrer uniquement les utilisateurs Simplon
+        simplon_users = User.objects.filter(username__startswith='simplon_')
+        print(f"✅ {simplon_users.count()} utilisateur(s) Simplon trouvé(s)")
+        
+        users_data = []
+        
+        for user in simplon_users:
+            # 2. Récupérer les projets de cet utilisateur
+            projects = Project.objects.filter(author=user)
+            print(f"👤 {user.username}: {projects.count()} projet(s)")
+            
+            projects_data = []
+            
+            for project in projects:
+                project_dict = {
+                    'id': project.id,
+                    'title': project.title or "Sans titre",
+                    'description': project.description or "",
+                    'technologies': project.technologies or "",
+                    'github_url': project.github_url or "",
+                    'demo_url': project.demo_url or "",
+                    'image': project.image.url if project.image else None,
+                    'status': project.status or "draft",
+                    'created_at': project.created_at,
+                    'updated_at': project.updated_at,
+                    'author': {
+                        'id': user.id,
+                        'username': user.username,
+                        'first_name': user.first_name or "",
+                        'last_name': user.last_name or "",
+                        'email': user.email or ""
+                    }
+                }
+                projects_data.append(project_dict)
+            
+            user_dict = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email or "",
+                'first_name': user.first_name or "",
+                'last_name': user.last_name or "",
+                'date_joined': user.date_joined,
+                'is_active': user.is_active,
+                'projects_count': len(projects_data),
+                'projects': projects_data
+            }
+            
+            users_data.append(user_dict)
+        
+        # 3. Trier par username
+        users_data.sort(key=lambda x: x['username'])
+        
+        print("=" * 70)
+        print(f"✅ PRÊT POUR LE FRONTEND: {len(users_data)} utilisateur(s) avec projets")
+        
+        for user in users_data:
+            print(f"   👤 {user['username']} - {user['projects_count']} projet(s)")
+        
+        print("=" * 70)
+        
+        return Response({
+            'count': len(users_data),
+            'users': users_data
+        })
+        
+    except Exception as e:
+        print("❌ ERREUR DANS users_with_projects:")
+        print(f"   {str(e)}")
+        traceback.print_exc()
+        print("=" * 70)
+        
+        return Response({
+            'error': str(e),
+            'message': 'Erreur serveur lors de la récupération des données',
+            'traceback': traceback.format_exc(),
+            'count': 0,
+            'users': []
+        }, status=500)

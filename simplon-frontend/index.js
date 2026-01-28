@@ -8,3 +8,18 @@ export { default as Explore } from './Explore';
 export { default as Analytics } from './Analytics';
 export { default as Settings } from './Settings';
 export { default as Profile } from './Profile';
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { ThemeProvider } from './ThemeProvider';
+import App from './App';
+import './index.css';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  </React.StrictMode>
+);

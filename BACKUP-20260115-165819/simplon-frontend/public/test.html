@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html class="light" lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Simplon - Plateforme Projets</title>
+<!-- <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script> -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#E30613",
+              "background-light": "#FFFFFF",
+              "background-dark": "#001F3F",
+              "text-light": "#001F3F",
+              "text-dark": "#FFFFFF"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 sm:px-6 lg:px-8 xl:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col max-w-6xl flex-1">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-gray-800 px-6 sm:px-10 py-4">
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 text-primary">
+<svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z"></path>
+</svg>
+</div>
+<h2 class="text-xl font-bold tracking-[-0.015em]">Simplon</h2>
+</div>
+<nav class="hidden md:flex items-center gap-9">
+<a class="text-primary text-sm font-bold leading-normal" href="#">Accueil</a>
+<a class="text-sm font-medium leading-normal transition-colors hover:text-primary" href="#">Connexion</a>
+</nav>
+</header>
+<main class="flex-grow">
+<div class="@container">
+<div class="flex flex-col gap-10 px-4 py-16 @[864px]:flex-row @[864px]:items-center">
+<div class="flex flex-col gap-6 text-left @[864px]:w-1/2">
+<div class="flex flex-col gap-4">
+<h1 class="text-4xl font-black leading-tight tracking-tighter @[480px]:text-5xl">Centralisez, partagez et valorisez vos projets de code Simplon.</h1>
+<h2 class="text-base font-normal leading-normal text-gray-700 dark:text-gray-300">La plateforme pour stocker, gérer et partager les projets de code des stagiaires Simplon.</h2>
+</div>
+<button class="flex min-w-[84px] max-w-xs cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] transition-transform hover:scale-105">
+<span class="truncate">Découvrir les projets</span>
+</button>
+</div>
+<div class="w-full @[864px]:w-1/2">
+<div class="bg-center bg-no-repeat aspect-video bg-cover rounded-xl" data-alt="Abstract visual related to code and collaboration" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5gn_s7MnMEjAqOed9HXBakgtrfF69Ts5EyO8C_GtrO_utoIetn0OT7fG2AsVrXEHcGYlHEF15an6S0EXpRsZbc4dOVYEivws_857nIY3NI4ueCNyB70V95BhpvgFjZ1PrHVMXzLq6VoNLdoIAWLCndQ1PqyKkw9DuLcyhc7rRis-hqSZoA2qysiadY66jC39vTf0vOEBBJZG1kPA0Q9hYgmdKyzOgpvxoyESv8m5kEraot4wRpI-NF7lOyAbWf6rrqZYvpGWTnzE");'></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-10 px-4 py-16 bg-gray-50 dark:bg-background-dark/50 @container">
+<div class="flex flex-col gap-4 max-w-3xl mx-auto text-center">
+<h1 class="text-3xl font-bold leading-tight tracking-tight @[480px]:text-4xl">Une plateforme pour votre réussite</h1>
+<p class="text-base font-normal leading-normal text-gray-700 dark:text-gray-300">Tirez le meilleur parti de votre formation en centralisant vos travaux et en valorisant vos compétences.</p>
+</div>
+<div class="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6 p-0">
+<div class="flex flex-1 gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark p-6 flex-col text-center items-center">
+<div class="text-primary text-4xl">
+<span class="material-symbols-outlined !text-4xl">rocket_launch</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-lg font-bold leading-tight">Boostez votre apprentissage</h2>
+<p class="text-sm font-normal leading-normal text-gray-600 dark:text-gray-400">Centralisez tous vos projets pour suivre facilement votre progression et identifier vos points forts.</p>
+</div>
+</div>
+<div class="flex flex-1 gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark p-6 flex-col text-center items-center">
+<div class="text-primary text-4xl">
+<span class="material-symbols-outlined !text-4xl">groups</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-lg font-bold leading-tight">Développez votre réseau professionnel</h2>
+<p class="text-sm font-normal leading-normal text-gray-600 dark:text-gray-400">Partagez vos réalisations avec vos pairs et des recruteurs potentiels pour étendre vos opportunités.</p>
+</div>
+</div>
+<div class="flex flex-1 gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark p-6 flex-col text-center items-center">
+<div class="text-primary text-4xl">
+<span class="material-symbols-outlined !text-4xl">business_center</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-lg font-bold leading-tight">Créez votre portfolio numérique</h2>
+<p class="text-sm font-normal leading-normal text-gray-600 dark:text-gray-400">Utilisez la plateforme comme une vitrine de vos compétences pour présenter un portfolio convaincant.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="flex flex-col gap-6 px-5 py-10 text-center @container border-t border-gray-200 dark:border-gray-800 mt-16">
+<div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 @[480px]:flex-row @[480px]:justify-center">
+<a class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal min-w-40 transition-colors hover:text-primary" href="#">Mentions Légales</a>
+<a class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal min-w-40 transition-colors hover:text-primary" href="#">Contact</a>
+</div>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">© 2024 Simplon.co</p>
+</footer>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

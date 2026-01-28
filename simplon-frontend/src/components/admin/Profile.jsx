@@ -4583,14 +4583,1373 @@
 // export default Profile;
 
 
-// src/components/admin/Profile.jsx - VERSION CORRIGÉE POUR AUTHENTIFICATION
+// // src/components/admin/Profile.jsx - VERSION CORRIGÉE POUR AUTHENTIFICATION
+// import React, { useState, useEffect, useCallback, useRef } from 'react';
+// import axios from 'axios';
+// import { useNavigate } from 'react-router-dom';
+// import { 
+//   User, Mail, Phone, Camera, Save, Edit, X,
+//   FolderOpen, Eye, Github, Linkedin, Globe,
+//   GraduationCap, CheckCircle, Bell, Lock, Trash2, LogOut, AlertCircle
+// } from 'lucide-react';
+// import authService from '../../services/auth';
+
+// const Profile = () => {
+//   // États principaux
+//   const [user, setUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [editMode, setEditMode] = useState(false);
+//   const [activeTab, setActiveTab] = useState('profile');
+//   const [uploadingImage, setUploadingImage] = useState(false);
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [showBioModal, setShowBioModal] = useState(false);
+//   const [selectedImage, setSelectedImage] = useState(null);
+//   const [imagePreview, setImagePreview] = useState(null);
+//   const [message, setMessage] = useState({ text: '', type: '' });
+//   const [userStats, setUserStats] = useState({
+//     projectsCount: 0,
+//     totalDownloads: 0,
+//     totalViews: 0
+//   });
+//   const [apiStatus, setApiStatus] = useState('checking');
+//   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+//   const fileInputRef = useRef(null);
+//   const navigate = useNavigate();
+
+//   // Données du formulaire
+//   const [formData, setFormData] = useState({
+//     first_name: '',
+//     last_name: '',
+//     email: '',
+//     phone: '',
+//     bio: '',
+//     location: '',
+//     company: '',
+//     position: '',
+//     website: '',
+//     github: '',
+//     linkedin: '',
+//     twitter: '',
+//     cohort: '',
+//     specialite: '',
+//     date_entree: '',
+//     date_sortie: '',
+//   });
+
+//   // ✅ AFFICHER UN MESSAGE
+//   const showMessage = useCallback((text, type = 'info') => {
+//     setMessage({ text, type });
+//     setTimeout(() => setMessage({ text: '', type: '' }), 4000);
+//   }, []);
+
+//   // ✅ VÉRIFIER L'AUTHENTIFICATION - SIMPLIFIÉ
+//   const checkAuthentication = useCallback(() => {
+//     const authenticated = authService.isAuthenticated();
+//     const currentUser = authService.getCurrentUser();
+    
+//     console.log('🔍 Vérification auth:', {
+//       authenticated,
+//       user: currentUser,
+//       token: authService.getAccessToken()?.substring(0, 20) + '...'
+//     });
+    
+//     setIsAuthenticated(authenticated);
+    
+//     if (!authenticated) {
+//       showMessage('🔒 Veuillez vous connecter pour accéder à votre profil', 'warning');
+//       setTimeout(() => navigate('/login'), 1500);
+//     }
+    
+//     return {
+//       isLoggedIn: authenticated,
+//       user: currentUser
+//     };
+//   }, [showMessage, navigate]);
+
+//   // ✅ CHARGER LE PROFIL DEPUIS LA BASE DE DONNÉES
+//   const loadProfile = useCallback(async () => {
+//     try {
+//       setLoading(true);
+      
+//       const { isLoggedIn, user: authUser } = checkAuthentication();
+      
+//       if (!isLoggedIn || !authUser) {
+//         setLoading(false);
+//         return;
+//       }
+      
+//       console.log('📥 Chargement du profil pour:', authUser.username);
+      
+//       try {
+//         // 1. Charger le profil utilisateur depuis l'API Django
+//         const profileResponse = await axios.get('http://localhost:8000/api/users/profile/', {
+//           headers: authService.getAuthHeaders()
+//         });
+        
+//         const profileData = profileResponse.data;
+//         console.log('✅ Données récupérées depuis BD:', profileData);
+        
+//         // 2. Mettre à jour l'état utilisateur
+//         setUser(profileData);
+        
+//         // 3. Remplir le formulaire avec les données de la BD
+//         setFormData({
+//           first_name: profileData.first_name || authUser.first_name || '',
+//           last_name: profileData.last_name || authUser.last_name || '',
+//           email: profileData.email || authUser.email || '',
+//           phone: profileData.phone || '',
+//           bio: profileData.bio || '',
+//           location: profileData.location || '',
+//           company: profileData.company || '',
+//           position: profileData.position || '',
+//           website: profileData.website || '',
+//           github: profileData.github || '',
+//           linkedin: profileData.linkedin || '',
+//           twitter: profileData.twitter || '',
+//           cohort: profileData.cohort || authUser.cohort || '',
+//           specialite: profileData.specialite || '',
+//           date_entree: profileData.date_entree || '',
+//           date_sortie: profileData.date_sortie || '',
+//         });
+        
+//         // 4. Charger les statistiques depuis la BD
+//         try {
+//           const projectsResponse = await axios.get('http://localhost:8000/api/projects/user/', {
+//             headers: authService.getAuthHeaders()
+//           });
+          
+//           const projects = projectsResponse.data.results || projectsResponse.data || [];
+          
+//           const stats = {
+//             projectsCount: projects.length,
+//             totalDownloads: projects.reduce((sum, p) => sum + (p.downloads || 0), 0),
+//             totalViews: projects.reduce((sum, p) => sum + (p.views || 0), 0)
+//           };
+          
+//           setUserStats(stats);
+//         } catch (statsError) {
+//           console.warn('⚠️ Impossible de charger les statistiques:', statsError);
+//           setUserStats({
+//             projectsCount: 0,
+//             totalDownloads: 0,
+//             totalViews: 0
+//           });
+//         }
+        
+//         setApiStatus('connected');
+//         showMessage('✅ Profil chargé depuis la base de données', 'success');
+        
+//       } catch (apiError) {
+//         console.error('❌ Erreur API Django:', apiError);
+        
+//         if (apiError.response?.status === 401) {
+//           showMessage('🔒 Session expirée. Veuillez vous reconnecter.', 'error');
+//           authService.logout();
+//           setTimeout(() => navigate('/login'), 1000);
+//           return;
+//         }
+        
+//         // Utiliser les données locales
+//         console.log('🔄 Utilisation des données locales');
+//         setUser(authUser);
+        
+//         // Charger les données étendues depuis localStorage
+//         const extendedData = JSON.parse(localStorage.getItem('simplon_profile_extended') || '{}');
+        
+//         setFormData({
+//           first_name: authUser.first_name || '',
+//           last_name: authUser.last_name || '',
+//           email: authUser.email || '',
+//           phone: extendedData.phone || '',
+//           bio: extendedData.bio || '',
+//           location: extendedData.location || '',
+//           company: extendedData.company || '',
+//           position: extendedData.position || '',
+//           website: extendedData.website || '',
+//           github: extendedData.github || '',
+//           linkedin: extendedData.linkedin || '',
+//           twitter: extendedData.twitter || '',
+//           cohort: authUser.cohort || '',
+//           specialite: extendedData.specialite || '',
+//           date_entree: extendedData.date_entree || '',
+//           date_sortie: extendedData.date_sortie || '',
+//         });
+        
+//         setApiStatus('offline');
+//         showMessage('⚠️ Base de données temporairement inaccessible. Mode hors-ligne activé.', 'warning');
+//       }
+      
+//     } catch (error) {
+//       console.error('❌ Erreur chargement profil:', error);
+//       showMessage('❌ Impossible de charger le profil', 'error');
+//       setApiStatus('error');
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [checkAuthentication, showMessage, navigate]);
+
+//   // ✅ SAUVEGARDER LE PROFIL DANS LA BASE DE DONNÉES
+//   const saveProfile = useCallback(async () => {
+//     const { isLoggedIn } = checkAuthentication();
+    
+//     if (!isLoggedIn) {
+//       showMessage('🔒 Connectez-vous pour sauvegarder', 'error');
+//       navigate('/login');
+//       return;
+//     }
+    
+//     try {
+//       setLoading(true);
+      
+//       // Préparer les données pour l'API
+//       const dataToSend = {
+//         first_name: formData.first_name,
+//         last_name: formData.last_name,
+//         email: formData.email,
+//         phone: formData.phone || '',
+//         bio: formData.bio || '',
+//         location: formData.location || '',
+//         company: formData.company || '',
+//         position: formData.position || '',
+//         website: formData.website || '',
+//         github: formData.github || '',
+//         linkedin: formData.linkedin || '',
+//         twitter: formData.twitter || '',
+//         cohort: formData.cohort || '',
+//         specialite: formData.specialite || '',
+//         date_entree: formData.date_entree || '',
+//         date_sortie: formData.date_sortie || '',
+//       };
+      
+//       console.log('📤 Sauvegarde dans la base de données:', dataToSend);
+      
+//       try {
+//         // Envoyer les données à l'API Django
+//         const response = await axios.patch(
+//           'http://localhost:8000/api/users/profile/',
+//           dataToSend,
+//           {
+//             headers: authService.getAuthHeaders()
+//           }
+//         );
+        
+//         console.log('✅ Réponse sauvegarde:', response.data);
+        
+//         // Mettre à jour le localStorage avec les nouvelles données
+//         const currentUser = authService.getCurrentUser();
+//         const updatedUser = {
+//           ...currentUser,
+//           ...response.data
+//         };
+//         authService.setCurrentUser(updatedUser);
+        
+//         setApiStatus('connected');
+//         showMessage('✅ Profil sauvegardé avec succès dans la base de données!', 'success');
+        
+//       } catch (apiError) {
+//         console.error('❌ Erreur sauvegarde API:', apiError);
+        
+//         if (apiError.response?.status === 401) {
+//           showMessage('🔒 Session expirée. Veuillez vous reconnecter.', 'error');
+//           authService.logout();
+//           setTimeout(() => navigate('/login'), 1000);
+//           return;
+//         }
+        
+//         // Sauvegarde en mode hors-ligne
+//         const currentUser = authService.getCurrentUser();
+//         const updatedUser = {
+//           ...currentUser,
+//           first_name: formData.first_name,
+//           last_name: formData.last_name,
+//           email: formData.email,
+//           cohort: formData.cohort
+//         };
+        
+//         authService.setCurrentUser(updatedUser);
+        
+//         // Sauvegarder les données étendues dans localStorage
+//         const extendedData = {
+//           phone: formData.phone,
+//           bio: formData.bio,
+//           location: formData.location,
+//           company: formData.company,
+//           position: formData.position,
+//           website: formData.website,
+//           github: formData.github,
+//           linkedin: formData.linkedin,
+//           twitter: formData.twitter,
+//           specialite: formData.specialite,
+//           date_entree: formData.date_entree,
+//           date_sortie: formData.date_sortie,
+//         };
+        
+//         localStorage.setItem('simplon_profile_extended', JSON.stringify(extendedData));
+        
+//         setApiStatus('offline');
+//         showMessage('⚠️ Base de données inaccessible. Données sauvegardées localement.', 'warning');
+//       }
+      
+//       setEditMode(false);
+      
+//       // Recharger les données fraîches
+//       await loadProfile();
+      
+//     } catch (error) {
+//       console.error('❌ Erreur générale sauvegarde:', error);
+//       showMessage('❌ Erreur lors de la sauvegarde', 'error');
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [formData, checkAuthentication, showMessage, navigate, loadProfile]);
+
+//   // ✅ GÉRER LE CHANGEMENT D'INPUT
+//   const handleInputChange = (field, value) => {
+//     setFormData(prev => ({
+//       ...prev,
+//       [field]: value
+//     }));
+//   };
+
+//   // ✅ SÉLECTIONNER UNE IMAGE
+//   const handleImageSelect = (event) => {
+//     const file = event.target.files[0];
+    
+//     if (file) {
+//       if (!file.type.startsWith('image/')) {
+//         showMessage('⚠️ Veuillez sélectionner une image valide', 'error');
+//         return;
+//       }
+      
+//       if (file.size > 5 * 1024 * 1024) {
+//         showMessage('⚠️ L\'image est trop volumineuse (max 5MB)', 'error');
+//         return;
+//       }
+      
+//       setSelectedImage(file);
+      
+//       const reader = new FileReader();
+//       reader.onload = (e) => {
+//         setImagePreview(e.target.result);
+//       };
+//       reader.readAsDataURL(file);
+//     }
+//   };
+
+//   // ✅ UPLOADER UNE PHOTO DE PROFIL
+//   const handleImageUpload = useCallback(async (file) => {
+//     try {
+//       setUploadingImage(true);
+      
+//       const formData = new FormData();
+//       formData.append('avatar', file);
+      
+//       const response = await axios.post(
+//         'http://localhost:8000/api/users/upload-avatar/',
+//         formData,
+//         {
+//           headers: {
+//             'Authorization': `Bearer ${authService.getAccessToken()}`,
+//             'Content-Type': 'multipart/form-data'
+//           }
+//         }
+//       );
+      
+//       console.log('✅ Photo uploadée:', response.data);
+      
+//       // Mettre à jour l'utilisateur local
+//       const currentUser = authService.getCurrentUser();
+//       const updatedUser = {
+//         ...currentUser,
+//         avatar_url: response.data.avatar_url
+//       };
+//       authService.setCurrentUser(updatedUser);
+      
+//       showMessage('✅ Photo de profil mise à jour!', 'success');
+      
+//       // Recharger le profil
+//       await loadProfile();
+      
+//     } catch (error) {
+//       console.error('❌ Erreur upload:', error);
+      
+//       if (error.response?.status === 401) {
+//         showMessage('🔒 Session expirée. Veuillez vous reconnecter.', 'error');
+//         authService.logout();
+//         navigate('/login');
+//       } else {
+//         showMessage(`❌ Erreur: ${error.response?.data?.message || error.message}`, 'error');
+//       }
+//     } finally {
+//       setUploadingImage(false);
+//       setShowEditModal(false);
+//       setSelectedImage(null);
+//       setImagePreview(null);
+//     }
+//   }, [showMessage, loadProfile, navigate]);
+
+//   // ✅ SUPPRIMER LA PHOTO DE PROFIL
+//   const deleteProfilePicture = useCallback(async () => {
+//     try {
+//       const response = await axios.delete(
+//         'http://localhost:8000/api/users/delete-avatar/',
+//         {
+//           headers: authService.getAuthHeaders()
+//         }
+//       );
+      
+//       console.log('✅ Photo supprimée:', response.data);
+      
+//       // Mettre à jour l'utilisateur local
+//       const currentUser = authService.getCurrentUser();
+//       const updatedUser = {
+//         ...currentUser,
+//         avatar_url: null
+//       };
+//       authService.setCurrentUser(updatedUser);
+      
+//       setImagePreview(null);
+//       showMessage('✅ Photo de profil supprimée', 'success');
+      
+//       // Recharger le profil
+//       await loadProfile();
+      
+//     } catch (error) {
+//       console.error('❌ Erreur suppression:', error);
+//       showMessage('❌ Impossible de supprimer la photo de profil', 'error');
+//     }
+//   }, [showMessage, loadProfile]);
+
+//   // ✅ SE DÉCONNECTER
+//   const handleLogout = useCallback(() => {
+//     authService.logout();
+//     showMessage('✅ Déconnecté avec succès', 'success');
+//     setTimeout(() => navigate('/login'), 1000);
+//   }, [navigate, showMessage]);
+
+//   // ✅ SAUVEGARDER LA BIO
+//   const saveBio = async () => {
+//     try {
+//       setLoading(true);
+//       await saveProfile();
+//       setShowBioModal(false);
+//     } catch (error) {
+//       console.error('Erreur sauvegarde bio:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // ✅ EFFET INITIAL - Charger le profil au montage
+//   useEffect(() => {
+//     console.log('🏁 Initialisation du composant Profile');
+//     loadProfile();
+//   }, [loadProfile]);
+
+//   // ✅ PHOTO DE PROFIL À AFFICHER
+//   const displayProfilePicture = user?.avatar_url || 
+//     imagePreview ||
+//     'https://ui-avatars.com/api/?name=' + encodeURIComponent(`${formData.first_name}+${formData.last_name}`) + 
+//     '&background=random&color=fff&size=128';
+
+//   // ⏳ ÉCRAN DE CHARGEMENT
+//   if (loading && !user) {
+//     return (
+//       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+//         <div className="text-center">
+//           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#E30613] mx-auto mb-4"></div>
+//           <p className="text-gray-600 font-medium">Chargement du profil...</p>
+//           <p className="text-gray-400 text-sm mt-2">
+//             {apiStatus === 'checking' ? 'Vérification de l\'authentification...' : 
+//              apiStatus === 'connected' ? 'Connexion à la base de données...' : 
+//              apiStatus === 'offline' ? 'Mode hors-ligne' : 
+//              'Erreur de connexion'}
+//           </p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   // Si non authentifié, afficher un message
+//   if (!isAuthenticated) {
+//     return (
+//       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+//         <div className="text-center">
+//           <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+//             <Lock className="w-12 h-12 text-red-600" />
+//           </div>
+//           <h2 className="text-2xl font-bold text-gray-800 mb-4">Accès non autorisé</h2>
+//           <p className="text-gray-600 mb-8">Vous devez être connecté pour accéder à cette page.</p>
+//           <div className="space-y-4">
+//             <button 
+//               onClick={() => navigate('/login')}
+//               className="px-6 py-3 bg-[#E30613] text-white rounded-lg hover:bg-[#E30613]/90 transition-colors font-medium"
+//             >
+//               Se connecter
+//             </button>
+//             <button 
+//               onClick={() => navigate('/')}
+//               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium ml-4"
+//             >
+//               Retour à l'accueil
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
+//       {/* Bandeau d'information */}
+//       {apiStatus === 'offline' && (
+//         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
+//           <div className="flex items-center justify-center gap-2">
+//             <AlertCircle size={16} />
+//             <span className="font-medium">Mode hors-ligne</span>
+//             <span className="text-yellow-600">- Base de données temporairement inaccessible</span>
+//           </div>
+//         </div>
+//       )}
+      
+//       {apiStatus === 'connected' && (
+//         <div className="bg-green-50 border-b border-green-200 px-4 py-2 text-sm text-green-800">
+//           <div className="flex items-center justify-center gap-2">
+//             <CheckCircle size={16} />
+//             <span className="font-medium">Connecté à la base de données</span>
+//             <span className="text-green-600">- Données synchronisées</span>
+//           </div>
+//         </div>
+//       )}
+
+//       <main className="p-6">
+//         <div className="mx-auto max-w-6xl space-y-6">
+          
+//           {/* Header Section */}
+//           <section className="rounded-xl bg-white p-8 shadow-sm dark:bg-[#1a2f44]">
+//             <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start">
+              
+//               {/* Photo de profil */}
+//               <div className="relative group">
+//                 <div 
+//                   className="h-28 w-28 shrink-0 rounded-full bg-cover bg-center bg-no-repeat ring-4 ring-white dark:ring-gray-800 shadow-lg cursor-pointer transition-transform group-hover:scale-105"
+//                   style={{ backgroundImage: `url(${displayProfilePicture})` }}
+//                   onClick={() => isAuthenticated ? setShowEditModal(true) : showMessage('Connectez-vous pour modifier', 'warning')}
+//                   title={isAuthenticated ? "Modifier la photo" : "Connectez-vous"}
+//                 />
+//                 <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+//                   <Camera className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
+//                 </div>
+//                 {isAuthenticated && (
+//                   <div className="absolute -bottom-2 -right-2 bg-[#E30613] text-white rounded-full p-2 shadow-lg">
+//                     <Edit size={14} />
+//                   </div>
+//                 )}
+//               </div>
+              
+//               {/* Informations */}
+//               <div className="flex-grow space-y-4 text-center sm:text-left">
+//                 <div>
+//                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+//                     <h2 className="text-2xl font-bold text-[#001F3F] dark:text-white">
+//                       {formData.first_name} {formData.last_name}
+//                     </h2>
+//                     <div className="flex items-center gap-2">
+//                       {isAuthenticated && (
+//                         <button 
+//                           onClick={handleLogout}
+//                           className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+//                         >
+//                           <LogOut size={16} />
+//                           Déconnexion
+//                         </button>
+//                       )}
+//                       {apiStatus === 'connected' && (
+//                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+//                           ✅ Base de données
+//                         </span>
+//                       )}
+//                       {apiStatus === 'offline' && (
+//                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+//                           ⚠️ Hors ligne
+//                         </span>
+//                       )}
+//                     </div>
+//                   </div>
+                  
+//                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+//                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 rounded-full text-sm font-medium">
+//                       <User size={14} />
+//                       {user?.username || 'Utilisateur'}
+//                     </span>
+//                     {formData.cohort && (
+//                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 rounded-full text-sm font-medium">
+//                         <GraduationCap size={14} />
+//                         {formData.cohort}
+//                       </span>
+//                     )}
+//                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+//                       isAuthenticated 
+//                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+//                         : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+//                     }`}>
+//                       {isAuthenticated ? '✅ Connecté' : '🔒 Non connecté'}
+//                     </span>
+//                   </div>
+                  
+//                   <p className="text-gray-600 dark:text-gray-400 mt-3 flex items-center gap-2 justify-center sm:justify-start">
+//                     <Mail size={18} />
+//                     {formData.email || 'Non renseigné'}
+//                   </p>
+                  
+//                   {formData.phone && (
+//                     <p className="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2 justify-center sm:justify-start">
+//                       <Phone size={18} />
+//                       {formData.phone}
+//                     </p>
+//                   )}
+//                 </div>
+
+//                 {/* Bio */}
+//                 <div className="max-w-2xl">
+//                   <div className="flex items-center justify-between mb-3">
+//                     <h3 className="font-semibold text-[#001F3F] dark:text-white flex items-center gap-2">
+//                       Bio
+//                     </h3>
+//                     {isAuthenticated && (
+//                       <button 
+//                         onClick={() => setShowBioModal(true)}
+//                         className="flex items-center gap-1 text-[#E30613] hover:text-[#E30613]/80 text-sm font-medium transition-colors"
+//                       >
+//                         <Edit size={14} />
+//                         {formData.bio ? 'Modifier' : 'Ajouter une bio'}
+//                       </button>
+//                     )}
+//                   </div>
+                  
+//                   {formData.bio ? (
+//                     <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-line bg-gray-50 dark:bg-[#0d1a29] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+//                       {formData.bio}
+//                     </p>
+//                   ) : (
+//                     <div 
+//                       className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-[#E30613] transition-colors"
+//                       onClick={() => isAuthenticated ? setShowBioModal(true) : showMessage('Connectez-vous pour modifier', 'warning')}
+//                     >
+//                       <Edit size={32} className="text-gray-400 mb-2 mx-auto" />
+//                       <p className="text-gray-400 dark:text-gray-500 text-sm">
+//                         {isAuthenticated ? 'Cliquez pour ajouter une bio' : 'Connectez-vous pour modifier votre profil'}
+//                       </p>
+//                     </div>
+//                   )}
+//                 </div>
+//               </div>
+              
+//               {/* Boutons d'action */}
+//               <div className="flex flex-col gap-3 w-full sm:w-auto">
+//                 {isAuthenticated ? (
+//                   <>
+//                     <button 
+//                       onClick={() => setShowEditModal(true)}
+//                       className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#E30613] px-6 text-sm font-semibold text-white hover:bg-[#E30613]/90 transition-colors shadow-sm w-full sm:w-auto"
+//                     >
+//                       <Camera size={18} />
+//                       <span>Modifier la photo</span>
+//                     </button>
+//                     <button 
+//                       onClick={() => setEditMode(true)}
+//                       className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm w-full sm:w-auto dark:border-gray-600 dark:bg-[#1a2f44] dark:text-white dark:hover:bg-[#253b52]"
+//                     >
+//                       <Edit size={18} />
+//                       <span>Modifier le profil</span>
+//                     </button>
+//                   </>
+//                 ) : (
+//                   <button 
+//                     onClick={() => navigate('/login')}
+//                     className="flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#E30613] to-red-600 px-6 text-sm font-semibold text-white hover:from-red-600 hover:to-[#E30613] transition-all shadow-lg w-full sm:w-auto"
+//                   >
+//                     <User size={18} />
+//                     <span>Se connecter</span>
+//                   </button>
+//                 )}
+//               </div>
+//             </div>
+//           </section>
+
+//           {/* Statistiques */}
+//           <section className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+//             <div className="flex items-center gap-6 rounded-xl bg-white p-6 shadow-sm dark:bg-[#1a2f44] hover:shadow-md transition-shadow">
+//               <div className="flex items-center justify-center w-14 h-14 bg-red-50 dark:bg-[#E30613]/10 rounded-xl">
+//                 <FolderOpen className="text-2xl text-[#E30613]" />
+//               </div>
+//               <div>
+//                 <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Projets créés</p>
+//                 <p className="text-3xl font-bold text-[#001F3F] dark:text-white">
+//                   {userStats.projectsCount.toLocaleString()}
+//                 </p>
+//                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                   {apiStatus === 'connected' ? 'Base de données' : 'Données locales'}
+//                 </p>
+//               </div>
+//             </div>
+            
+//             <div className="flex items-center gap-6 rounded-xl bg-white p-6 shadow-sm dark:bg-[#1a2f44] hover:shadow-md transition-shadow">
+//               <div className="flex items-center justify-center w-14 h-14 bg-blue-50 dark:bg-blue-900/10 rounded-xl">
+//                 <User className="text-2xl text-blue-600 dark:text-blue-400" />
+//               </div>
+//               <div>
+//                 <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Statut</p>
+//                 <p className="text-3xl font-bold text-[#001F3F] dark:text-white">
+//                   {apiStatus === 'connected' ? '✅' : apiStatus === 'offline' ? '⚠️' : '❌'}
+//                 </p>
+//                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                   {apiStatus === 'connected' ? 'Connecté à la BD' : 
+//                    apiStatus === 'offline' ? 'Hors ligne' : 'Non connecté'}
+//                 </p>
+//               </div>
+//             </div>
+            
+//             <div className="flex items-center gap-6 rounded-xl bg-white p-6 shadow-sm dark:bg-[#1a2f44] hover:shadow-md transition-shadow">
+//               <div className="flex items-center justify-center w-14 h-14 bg-purple-50 dark:bg-purple-900/10 rounded-xl">
+//                 <Eye className="text-2xl text-purple-600 dark:text-purple-400" />
+//               </div>
+//               <div>
+//                 <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Mode</p>
+//                 <p className="text-3xl font-bold text-[#001F3F] dark:text-white">
+//                   {editMode ? '✏️' : '👁️'}
+//                 </p>
+//                 <div className="flex gap-2 mt-2">
+//                   <button 
+//                     onClick={() => isAuthenticated ? setEditMode(!editMode) : showMessage('Connectez-vous pour modifier', 'warning')}
+//                     className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+//                       editMode 
+//                         ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-300'
+//                         : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-300'
+//                     } ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
+//                   >
+//                     {editMode ? 'Annuler' : 'Modifier'}
+//                   </button>
+//                   {editMode && isAuthenticated && (
+//                     <button 
+//                       onClick={saveProfile}
+//                       disabled={loading}
+//                       className="px-4 py-2 text-sm bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors dark:bg-green-900/20 dark:text-green-300 disabled:opacity-50"
+//                     >
+//                       {loading ? 'Sauvegarde...' : 'Sauvegarder'}
+//                     </button>
+//                   )}
+//                 </div>
+//               </div>
+//             </div>
+//           </section>
+
+//           {/* Onglets */}
+//           <div className="bg-white rounded-xl shadow-lg p-2 border border-gray-200 dark:bg-[#1a2f44] dark:border-gray-700">
+//             <div className="flex flex-wrap gap-2">
+//               <button
+//                 onClick={() => setActiveTab('profile')}
+//                 className={`flex items-center gap-3 px-5 py-3 rounded-lg transition-all font-medium ${
+//                   activeTab === 'profile'
+//                     ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+//                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'
+//                 }`}
+//               >
+//                 <User size={20} />
+//                 <span>Profil</span>
+//               </button>
+              
+//               {isAuthenticated && (
+//                 <button
+//                   onClick={() => setActiveTab('security')}
+//                   className={`flex items-center gap-3 px-5 py-3 rounded-lg transition-all font-medium ${
+//                     activeTab === 'security'
+//                       ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+//                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'
+//                   }`}
+//                 >
+//                   <Lock size={20} />
+//                   <span>Sécurité</span>
+//                 </button>
+//               )}
+//             </div>
+//           </div>
+
+//           {/* Contenu Profil */}
+//           {activeTab === 'profile' && (
+//             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200 dark:bg-[#1a2f44] dark:border-gray-700">
+//               <div className="flex items-center justify-between mb-8">
+//                 <div>
+//                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Informations personnelles</h2>
+//                   <p className="text-gray-600 dark:text-gray-400 mt-1">
+//                     {apiStatus === 'connected' 
+//                       ? 'Vos données sont sauvegardées dans la base de données'
+//                       : 'Mode hors-ligne - Les modifications seront synchronisées lors de la reconnexion'
+//                     }
+//                   </p>
+//                 </div>
+//                 {!isAuthenticated && (
+//                   <button 
+//                     onClick={() => navigate('/login')}
+//                     className="px-4 py-2 text-sm bg-gradient-to-r from-[#E30613] to-red-600 text-white rounded-lg hover:from-red-600 hover:to-[#E30613] transition-all"
+//                   >
+//                     Se connecter
+//                   </button>
+//                 )}
+//               </div>
+              
+//               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+//                 {/* Section informations de base */}
+//                 <div className="space-y-6">
+//                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 dark:from-blue-900/10 dark:to-indigo-900/10 dark:border-blue-800/20">
+//                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-3">
+//                       <div className="p-2 bg-white dark:bg-[#0d1a29] rounded-lg shadow-sm">
+//                         <User size={20} className="text-blue-600 dark:text-blue-400" />
+//                       </div>
+//                       Informations de base
+//                     </h3>
+                    
+//                     <div className="space-y-4">
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Prénom
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.first_name}
+//                           onChange={(e) => handleInputChange('first_name', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Votre prénom"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Nom
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.last_name}
+//                           onChange={(e) => handleInputChange('last_name', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Votre nom"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Email
+//                         </label>
+//                         <input
+//                           type="email"
+//                           value={formData.email}
+//                           onChange={(e) => handleInputChange('email', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="votre@email.com"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Téléphone
+//                         </label>
+//                         <input
+//                           type="tel"
+//                           value={formData.phone}
+//                           onChange={(e) => handleInputChange('phone', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="+33 1 23 45 67 89"
+//                         />
+//                       </div>
+//                     </div>
+//                   </div>
+                  
+//                   {/* Section informations supplémentaires */}
+//                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100 dark:from-purple-900/10 dark:to-pink-900/10 dark:border-purple-800/20">
+//                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Informations supplémentaires</h3>
+                    
+//                     <div className="space-y-4">
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Localisation
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.location}
+//                           onChange={(e) => handleInputChange('location', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:focus:ring-purple-400 dark:focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Ville, Pays"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Entreprise
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.company}
+//                           onChange={(e) => handleInputChange('company', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:focus:ring-purple-400 dark:focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Nom de l'entreprise"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Poste
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.position}
+//                           onChange={(e) => handleInputChange('position', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:focus:ring-purple-400 dark:focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Votre poste"
+//                         />
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+                
+//                 {/* Section informations Simplon et liens */}
+//                 <div className="space-y-6">
+//                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 dark:from-green-900/10 dark:to-emerald-900/10 dark:border-green-800/20">
+//                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-3">
+//                       <div className="p-2 bg-white dark:bg-[#0d1a29] rounded-lg shadow-sm">
+//                         <GraduationCap size={20} className="text-green-600 dark:text-green-400" />
+//                       </div>
+//                       Informations Simplon
+//                     </h3>
+                    
+//                     <div className="space-y-4">
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Promotion
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.cohort}
+//                           onChange={(e) => handleInputChange('cohort', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Ex: Admin 2024"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                           Spécialité
+//                         </label>
+//                         <input
+//                           type="text"
+//                           value={formData.specialite}
+//                           onChange={(e) => handleInputChange('specialite', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="Ex: Administration Système"
+//                         />
+//                       </div>
+                      
+//                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                         <div>
+//                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                             Date d'entrée
+//                           </label>
+//                           <input
+//                             type="date"
+//                             value={formData.date_entree}
+//                             onChange={(e) => handleInputChange('date_entree', e.target.value)}
+//                             disabled={!editMode || !isAuthenticated}
+//                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           />
+//                         </div>
+                        
+//                         <div>
+//                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+//                             Date de sortie
+//                           </label>
+//                           <input
+//                             type="date"
+//                             value={formData.date_sortie}
+//                             onChange={(e) => handleInputChange('date_sortie', e.target.value)}
+//                             disabled={!editMode || !isAuthenticated}
+//                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           />
+//                         </div>
+//                       </div>
+//                     </div>
+//                   </div>
+                  
+//                   {/* Section liens */}
+//                   <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100 dark:from-orange-900/10 dark:to-amber-900/10 dark:border-orange-800/20">
+//                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Liens professionnels</h3>
+                    
+//                     <div className="space-y-4">
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+//                           <Github size={18} className="text-gray-700 dark:text-gray-300" />
+//                           GitHub
+//                         </label>
+//                         <input
+//                           type="url"
+//                           value={formData.github}
+//                           onChange={(e) => handleInputChange('github', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 dark:focus:ring-gray-400 dark:focus:border-gray-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="https://github.com/votre-username"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+//                           <Linkedin size={18} className="text-blue-600 dark:text-blue-400" />
+//                           LinkedIn
+//                         </label>
+//                         <input
+//                           type="url"
+//                           value={formData.linkedin}
+//                           onChange={(e) => handleInputChange('linkedin', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="https://linkedin.com/in/votre-profile"
+//                         />
+//                       </div>
+                      
+//                       <div>
+//                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+//                           <Globe size={18} className="text-green-600 dark:text-green-400" />
+//                           Portfolio / Site web
+//                         </label>
+//                         <input
+//                           type="url"
+//                           value={formData.website}
+//                           onChange={(e) => handleInputChange('website', e.target.value)}
+//                           disabled={!editMode || !isAuthenticated}
+//                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
+//                           placeholder="https://votre-portfolio.com"
+//                         />
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+              
+//               {/* Boutons d'action pour la section profil */}
+//               {isAuthenticated && editMode && (
+//                 <div className="flex gap-3 justify-end mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+//                   <button
+//                     onClick={() => {
+//                       setEditMode(false);
+//                       loadProfile();
+//                     }}
+//                     className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 shadow-lg font-medium"
+//                   >
+//                     <X size={20} />
+//                     Annuler
+//                   </button>
+                  
+//                   <button
+//                     onClick={saveProfile}
+//                     disabled={loading}
+//                     className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-green-500 transition-all duration-300 shadow-lg hover:shadow-xl font-medium disabled:opacity-50"
+//                   >
+//                     {loading ? (
+//                       <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+//                     ) : (
+//                       <Save size={20} />
+//                     )}
+//                     {apiStatus === 'connected' ? 'Sauvegarder dans la BD' : 'Sauvegarder localement'}
+//                   </button>
+//                 </div>
+//               )}
+//             </div>
+//           )}
+
+//           {/* Section Sécurité */}
+//           {activeTab === 'security' && isAuthenticated && (
+//             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200 dark:bg-[#1a2f44] dark:border-gray-700">
+//               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Sécurité du compte</h2>
+              
+//               <div className="space-y-6">
+//                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+//                   <div className="flex items-start gap-4">
+//                     <Lock size={24} className="text-red-600 dark:text-red-400 mt-1" />
+//                     <div>
+//                       <h3 className="font-semibold text-red-700 dark:text-red-300 mb-2">Déconnexion</h3>
+//                       <p className="text-red-600 dark:text-red-400 text-sm mb-4">
+//                         Déconnectez-vous de votre session en cours.
+//                       </p>
+//                       <button
+//                         onClick={handleLogout}
+//                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+//                       >
+//                         Se déconnecter
+//                       </button>
+//                     </div>
+//                   </div>
+//                 </div>
+                
+//                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
+//                   <div className="flex items-start gap-4">
+//                     <CheckCircle size={24} className="text-green-600 dark:text-green-400 mt-1" />
+//                     <div>
+//                       <h3 className="font-semibold text-green-700 dark:text-green-300 mb-2">Authentification JWT</h3>
+//                       <p className="text-green-600 dark:text-green-400 text-sm mb-4">
+//                         Vous êtes authentifié avec JSON Web Token. Votre session est sécurisée.
+//                       </p>
+//                       <div className="flex gap-2">
+//                         <button
+//                           onClick={() => authService.debug()}
+//                           className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+//                         >
+//                           Debug Token
+//                         </button>
+//                         <button
+//                           onClick={() => {
+//                             console.log('🔍 Debug auth:');
+//                             console.log('Token:', authService.getAccessToken());
+//                             console.log('User:', authService.getCurrentUser());
+//                             console.log('Authenticated:', authService.isAuthenticated());
+//                             showMessage('Informations de debug affichées dans la console', 'info');
+//                           }}
+//                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+//                         >
+//                           Vérifier Auth
+//                         </button>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+                
+//                 {apiStatus === 'connected' && (
+//                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+//                     <div className="flex items-start gap-4">
+//                       <CheckCircle size={24} className="text-blue-600 dark:text-blue-400 mt-1" />
+//                       <div>
+//                         <h3 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">Connexion Base de données</h3>
+//                         <p className="text-blue-600 dark:text-blue-400 text-sm mb-4">
+//                           ✅ Connecté à la base de données Django<br/>
+//                           📊 Données synchronisées<br/>
+//                           🔒 Authentification sécurisée
+//                         </p>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+//           )}
+          
+//         </div>
+//       </main>
+
+//       {/* Modals */}
+      
+//       {/* Profile Picture Modal */}
+//       {showEditModal && (
+//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+//           <div className="bg-white dark:bg-[#1a2f44] rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+//             <div className="flex items-center justify-between mb-6">
+//               <h3 className="text-lg font-bold text-[#001F3F] dark:text-white flex items-center gap-2">
+//                 <Camera size={20} />
+//                 Photo de profil
+//               </h3>
+//               <button 
+//                 onClick={() => setShowEditModal(false)}
+//                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+//               >
+//                 <X size={24} />
+//               </button>
+//             </div>
+
+//             <div className="flex flex-col items-center gap-6 mb-6">
+//               <div 
+//                 className="h-32 w-32 rounded-full bg-cover bg-center bg-no-repeat border-4 border-gray-200 dark:border-gray-600 shadow-lg"
+//                 style={{ backgroundImage: `url(${imagePreview || displayProfilePicture})` }}
+//               />
+              
+//               <div className="flex flex-col gap-3 w-full">
+//                 <label className="flex items-center justify-center gap-3 bg-[#E30613] text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-[#E30613]/90 transition-colors font-medium shadow-sm">
+//                   <Camera size={20} />
+//                   <span>Choisir une photo</span>
+//                   <input
+//                     type="file"
+//                     accept="image/*"
+//                     onChange={handleImageSelect}
+//                     className="hidden"
+//                   />
+//                 </label>
+                
+//                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+//                   Formats supportés: JPG, PNG, GIF • Max: 5MB
+//                 </p>
+//               </div>
+
+//               {/* Bouton réinitialiser */}
+//               {displayProfilePicture && !displayProfilePicture.includes('ui-avatars.com') && isAuthenticated && (
+//                 <button 
+//                   onClick={deleteProfilePicture}
+//                   className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium transition-colors"
+//                 >
+//                   <Trash2 size={16} />
+//                   Supprimer la photo
+//                 </button>
+//               )}
+//             </div>
+
+//             <div className="flex gap-3 justify-end">
+//               <button 
+//                 onClick={() => setShowEditModal(false)}
+//                 className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition-colors"
+//               >
+//                 Annuler
+//               </button>
+//               <button 
+//                 onClick={() => {
+//                   if (selectedImage) {
+//                     handleImageUpload(selectedImage);
+//                   } else {
+//                     setShowEditModal(false);
+//                   }
+//                 }}
+//                 disabled={uploadingImage || !selectedImage}
+//                 className="flex items-center gap-2 bg-[#E30613] text-white px-6 py-2.5 rounded-lg hover:bg-[#E30613]/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-sm"
+//               >
+//                 {uploadingImage ? (
+//                   <>
+//                     <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+//                     Enregistrement...
+//                   </>
+//                 ) : (
+//                   <>
+//                     <Save size={20} />
+//                     {selectedImage ? 'Enregistrer' : 'Fermer'}
+//                   </>
+//                 )}
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Bio Modal */}
+//       {showBioModal && (
+//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+//           <div className="bg-white dark:bg-[#1a2f44] rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+//             <div className="flex items-center justify-between mb-6">
+//               <h3 className="text-lg font-bold text-[#001F3F] dark:text-white flex items-center gap-2">
+//                 <Edit size={20} />
+//                 {formData.bio ? 'Modifier la bio' : 'Ajouter une bio'}
+//               </h3>
+//               <button 
+//                 onClick={() => setShowBioModal(false)}
+//                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+//               >
+//                 <X size={24} />
+//               </button>
+//             </div>
+
+//             <div className="mb-6">
+//               <textarea
+//                 value={formData.bio}
+//                 onChange={(e) => handleInputChange('bio', e.target.value)}
+//                 rows="6"
+//                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#E30613] focus:border-[#E30613] dark:bg-[#0d1a29] dark:text-white resize-none transition-colors"
+//                 placeholder="Parlez de vous, de vos compétences, de vos passions... (300 caractères maximum)"
+//                 maxLength="300"
+//               />
+//               <div className="flex justify-between items-center mt-2">
+//                 <p className="text-xs text-gray-500 dark:text-gray-400">
+//                   Décrivez-vous en quelques mots
+//                 </p>
+//                 <p className={`text-xs ${formData.bio.length >= 280 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+//                   {formData.bio.length}/300 caractères
+//                 </p>
+//               </div>
+//             </div>
+
+//             <div className="flex gap-3 justify-end">
+//               <button 
+//                 onClick={() => setShowBioModal(false)}
+//                 className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition-colors"
+//               >
+//                 Annuler
+//               </button>
+//               <button 
+//                 onClick={saveBio}
+//                 disabled={loading}
+//                 className="flex items-center gap-2 bg-[#E30613] text-white px-6 py-2.5 rounded-lg hover:bg-[#E30613]/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-sm"
+//               >
+//                 {loading ? (
+//                   <>
+//                     <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+//                     Enregistrement...
+//                   </>
+//                 ) : (
+//                   <>
+//                     <Save size={20} />
+//                     Enregistrer
+//                   </>
+//                 )}
+//               </button> 
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Message Toast */}
+//       {message.text && (
+//         <div className={`fixed top-4 right-4 z-50 p-4 rounded-xl shadow-xl max-w-sm ${
+//           message.type === 'success' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800 dark:text-green-300' :
+//           message.type === 'error' ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 text-red-800 dark:from-red-900/20 dark:to-orange-900/20 dark:border-red-800 dark:text-red-300' :
+//           message.type === 'warning' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800 dark:from-yellow-900/20 dark:to-amber-900/20 dark:border-yellow-800 dark:text-yellow-300' :
+//           'bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-800 dark:from-blue-900/20 dark:to-cyan-900/20 dark:border-blue-800 dark:text-blue-300'
+//         }`}>
+//           <div className="flex items-center gap-3">
+//             {message.type === 'success' ? (
+//               <CheckCircle size={24} className="flex-shrink-0" />
+//             ) : message.type === 'error' ? (
+//               <X size={24} className="flex-shrink-0" />
+//             ) : (
+//               <Bell size={24} className="flex-shrink-0" />
+//             )}
+//             <div className="flex-1">
+//               <p className="font-medium">{message.text}</p>
+//             </div>
+//             <button
+//               onClick={() => setMessage({ text: '', type: '' })}
+//               className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+//             >
+//               <X size={20} />
+//             </button>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default Profile;
+
+
+
+// src/components/admin/Profile.jsx - VERSION CORRIGÉE AVEC BONNES ROUTES API
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Phone, Camera, Save, Edit, X,
   FolderOpen, Eye, Github, Linkedin, Globe,
-  GraduationCap, CheckCircle, Bell, Lock, Trash2, LogOut, AlertCircle
+  GraduationCap, CheckCircle, Bell, Trash2, LogOut, AlertCircle,
+  Settings
 } from 'lucide-react';
 import authService from '../../services/auth';
 
@@ -4613,6 +5972,16 @@ const Profile = () => {
   });
   const [apiStatus, setApiStatus] = useState('checking');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // États pour les notifications
+  const [notifications, setNotifications] = useState([]);
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    projectUpdates: true,
+    newMessages: true,
+    weeklyDigest: false,
+    marketingEmails: false
+  });
 
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -4643,7 +6012,7 @@ const Profile = () => {
     setTimeout(() => setMessage({ text: '', type: '' }), 4000);
   }, []);
 
-  // ✅ VÉRIFIER L'AUTHENTIFICATION - SIMPLIFIÉ
+  // ✅ VÉRIFIER L'AUTHENTIFICATION
   const checkAuthentication = useCallback(() => {
     const authenticated = authService.isAuthenticated();
     const currentUser = authService.getCurrentUser();
@@ -4667,7 +6036,59 @@ const Profile = () => {
     };
   }, [showMessage, navigate]);
 
-  // ✅ CHARGER LE PROFIL DEPUIS LA BASE DE DONNÉES
+  // ✅ GET AUTH HEADERS
+  const getAuthHeaders = useCallback(() => {
+    const token = authService.getAccessToken();
+    if (!token) {
+      console.warn('⚠️ No access token found');
+      return {};
+    }
+    
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }, []);
+
+  // ✅ CHARGER LES NOTIFICATIONS
+  const loadNotifications = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      // Simuler des notifications
+      const mockNotifications = [
+        {
+          id: 1,
+          title: 'Bienvenue sur Simplon !',
+          description: 'Votre compte a été créé avec succès. Commencez à créer vos premiers projets.',
+          time: 'Il y a 5 minutes',
+          read: false,
+          type: 'welcome'
+        },
+        {
+          id: 2,
+          title: 'Mise à jour du profil',
+          description: 'Votre profil a été mis à jour avec succès',
+          time: 'Il y a 2 heures',
+          read: true,
+          type: 'profile'
+        }
+      ];
+      
+      setNotifications(mockNotifications);
+      
+      // Charger les préférences de notifications depuis localStorage
+      const savedSettings = localStorage.getItem('simplon_notification_settings');
+      if (savedSettings) {
+        setNotificationSettings(JSON.parse(savedSettings));
+      }
+      
+    } catch (error) {
+      console.error('❌ Erreur chargement notifications:', error);
+    }
+  }, [isAuthenticated]);
+
+  // ✅ CHARGER LE PROFIL
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
@@ -4682,18 +6103,21 @@ const Profile = () => {
       console.log('📥 Chargement du profil pour:', authUser.username);
       
       try {
-        // 1. Charger le profil utilisateur depuis l'API Django
-        const profileResponse = await axios.get('http://localhost:8000/api/users/profile/', {
-          headers: authService.getAuthHeaders()
+        // Charger le profil utilisateur depuis l'API Django
+        const headers = getAuthHeaders();
+        console.log('📤 Headers pour API:', headers);
+        
+        // Route corrigée - Vérifier la route exacte de votre API
+        const profileResponse = await axios.get('http://localhost:8000/api/profile/', {
+          headers: headers
         });
         
         const profileData = profileResponse.data;
         console.log('✅ Données récupérées depuis BD:', profileData);
         
-        // 2. Mettre à jour l'état utilisateur
         setUser(profileData);
         
-        // 3. Remplir le formulaire avec les données de la BD
+        // Remplir le formulaire avec les données récupérées
         setFormData({
           first_name: profileData.first_name || authUser.first_name || '',
           last_name: profileData.last_name || authUser.last_name || '',
@@ -4713,23 +6137,37 @@ const Profile = () => {
           date_sortie: profileData.date_sortie || '',
         });
         
-        // 4. Charger les statistiques depuis la BD
+        // Charger les statistiques - Route corrigée
         try {
-          const projectsResponse = await axios.get('http://localhost:8000/api/projects/user/', {
-            headers: authService.getAuthHeaders()
+          const projectsResponse = await axios.get('http://localhost:8000/api/projects/', {
+            headers: headers,
+            params: {
+              user_id: authUser.id || authUser.user_id
+            }
           });
           
           const projects = projectsResponse.data.results || projectsResponse.data || [];
+          console.log('📊 Projets de l\'utilisateur:', projects);
+          
+          // Filtrer les projets de l'utilisateur si nécessaire
+          const userProjects = projects.filter(project => 
+            project.user_id === authUser.id || 
+            project.user?.id === authUser.id ||
+            project.author?.id === authUser.id
+          );
           
           const stats = {
-            projectsCount: projects.length,
-            totalDownloads: projects.reduce((sum, p) => sum + (p.downloads || 0), 0),
-            totalViews: projects.reduce((sum, p) => sum + (p.views || 0), 0)
+            projectsCount: userProjects.length,
+            totalDownloads: userProjects.reduce((sum, p) => sum + (p.downloads || 0), 0),
+            totalViews: userProjects.reduce((sum, p) => sum + (p.views || 0), 0)
           };
           
           setUserStats(stats);
+          console.log('📈 Statistiques:', stats);
+          
         } catch (statsError) {
           console.warn('⚠️ Impossible de charger les statistiques:', statsError);
+          // Valeurs par défaut
           setUserStats({
             projectsCount: 0,
             totalDownloads: 0,
@@ -4738,7 +6176,7 @@ const Profile = () => {
         }
         
         setApiStatus('connected');
-        showMessage('✅ Profil chargé depuis la base de données', 'success');
+        showMessage('✅ Profil chargé avec succès', 'success');
         
       } catch (apiError) {
         console.error('❌ Erreur API Django:', apiError);
@@ -4750,11 +6188,49 @@ const Profile = () => {
           return;
         }
         
+        // Si route /api/profile/ ne fonctionne pas, essayez /api/users/profile/
+        if (apiError.response?.status === 404) {
+          try {
+            console.log('🔄 Tentative avec route alternative /api/users/profile/');
+            const altResponse = await axios.get('http://localhost:8000/api/users/profile/', {
+              headers: getAuthHeaders()
+            });
+            
+            const altData = altResponse.data;
+            setUser(altData);
+            
+            setFormData({
+              first_name: altData.first_name || authUser.first_name || '',
+              last_name: altData.last_name || authUser.last_name || '',
+              email: altData.email || authUser.email || '',
+              phone: altData.phone || '',
+              bio: altData.bio || '',
+              location: altData.location || '',
+              company: altData.company || '',
+              position: altData.position || '',
+              website: altData.website || '',
+              github: altData.github || '',
+              linkedin: altData.linkedin || '',
+              twitter: altData.twitter || '',
+              cohort: altData.cohort || authUser.cohort || '',
+              specialite: altData.specialite || '',
+              date_entree: altData.date_entree || '',
+              date_sortie: altData.date_sortie || '',
+            });
+            
+            setApiStatus('connected');
+            showMessage('✅ Profil chargé avec succès', 'success');
+            return;
+            
+          } catch (altError) {
+            console.error('❌ Route alternative échouée:', altError);
+          }
+        }
+        
         // Utiliser les données locales
         console.log('🔄 Utilisation des données locales');
         setUser(authUser);
         
-        // Charger les données étendues depuis localStorage
         const extendedData = JSON.parse(localStorage.getItem('simplon_profile_extended') || '{}');
         
         setFormData({
@@ -4777,7 +6253,7 @@ const Profile = () => {
         });
         
         setApiStatus('offline');
-        showMessage('⚠️ Base de données temporairement inaccessible. Mode hors-ligne activé.', 'warning');
+        showMessage('⚠️ Mode hors-ligne activé', 'warning');
       }
       
     } catch (error) {
@@ -4787,9 +6263,9 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  }, [checkAuthentication, showMessage, navigate]);
+  }, [checkAuthentication, showMessage, navigate, getAuthHeaders]);
 
-  // ✅ SAUVEGARDER LE PROFIL DANS LA BASE DE DONNÉES
+  // ✅ SAUVEGARDER LE PROFIL
   const saveProfile = useCallback(async () => {
     const { isLoggedIn } = checkAuthentication();
     
@@ -4802,7 +6278,6 @@ const Profile = () => {
     try {
       setLoading(true);
       
-      // Préparer les données pour l'API
       const dataToSend = {
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -4822,17 +6297,32 @@ const Profile = () => {
         date_sortie: formData.date_sortie || '',
       };
       
-      console.log('📤 Sauvegarde dans la base de données:', dataToSend);
+      console.log('📤 Sauvegarde des données:', dataToSend);
       
       try {
-        // Envoyer les données à l'API Django
-        const response = await axios.patch(
-          'http://localhost:8000/api/users/profile/',
-          dataToSend,
-          {
-            headers: authService.getAuthHeaders()
+        // Envoyer les données à l'API Django - Route corrigée
+        const headers = getAuthHeaders();
+        let response;
+        
+        try {
+          // Essayer /api/profile/ d'abord
+          response = await axios.patch(
+            'http://localhost:8000/api/profile/',
+            dataToSend,
+            { headers }
+          );
+        } catch (patchError) {
+          if (patchError.response?.status === 404) {
+            // Essayer /api/users/profile/ en alternative
+            response = await axios.patch(
+              'http://localhost:8000/api/users/profile/',
+              dataToSend,
+              { headers }
+            );
+          } else {
+            throw patchError;
           }
-        );
+        }
         
         console.log('✅ Réponse sauvegarde:', response.data);
         
@@ -4842,10 +6332,10 @@ const Profile = () => {
           ...currentUser,
           ...response.data
         };
-        authService.setCurrentUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         
         setApiStatus('connected');
-        showMessage('✅ Profil sauvegardé avec succès dans la base de données!', 'success');
+        showMessage('✅ Profil sauvegardé avec succès!', 'success');
         
       } catch (apiError) {
         console.error('❌ Erreur sauvegarde API:', apiError);
@@ -4867,7 +6357,7 @@ const Profile = () => {
           cohort: formData.cohort
         };
         
-        authService.setCurrentUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         
         // Sauvegarder les données étendues dans localStorage
         const extendedData = {
@@ -4888,12 +6378,10 @@ const Profile = () => {
         localStorage.setItem('simplon_profile_extended', JSON.stringify(extendedData));
         
         setApiStatus('offline');
-        showMessage('⚠️ Base de données inaccessible. Données sauvegardées localement.', 'warning');
+        showMessage('⚠️ Mode hors-ligne - Données sauvegardées localement.', 'warning');
       }
       
       setEditMode(false);
-      
-      // Recharger les données fraîches
       await loadProfile();
       
     } catch (error) {
@@ -4902,7 +6390,7 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  }, [formData, checkAuthentication, showMessage, navigate, loadProfile]);
+  }, [formData, checkAuthentication, showMessage, navigate, loadProfile, getAuthHeaders]);
 
   // ✅ GÉRER LE CHANGEMENT D'INPUT
   const handleInputChange = (field, value) => {
@@ -4910,6 +6398,39 @@ const Profile = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // ✅ GÉRER LES NOTIFICATIONS
+  const markNotificationAsRead = (id) => {
+    setNotifications(notifications.map(notif => 
+      notif.id === id ? { ...notif, read: true } : notif
+    ));
+    showMessage('✅ Notification marquée comme lue', 'success');
+  };
+
+  const deleteNotification = (id) => {
+    setNotifications(notifications.filter(notif => notif.id !== id));
+    showMessage('✅ Notification supprimée', 'success');
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(notif => ({ ...notif, read: true })));
+    showMessage('✅ Toutes les notifications marquées comme lues', 'success');
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    showMessage('✅ Toutes les notifications supprimées', 'success');
+  };
+
+  const updateNotificationSetting = (setting, value) => {
+    const newSettings = {
+      ...notificationSettings,
+      [setting]: value
+    };
+    setNotificationSettings(newSettings);
+    localStorage.setItem('simplon_notification_settings', JSON.stringify(newSettings));
+    showMessage('✅ Préférences de notification mises à jour', 'success');
   };
 
   // ✅ SÉLECTIONNER UNE IMAGE
@@ -4937,24 +6458,48 @@ const Profile = () => {
     }
   };
 
-  // ✅ UPLOADER UNE PHOTO DE PROFIL
+  // ✅ UPLOADER UNE PHOTO DE PROFIL - FONCTION SIMPLIFIÉE
   const handleImageUpload = useCallback(async (file) => {
     try {
       setUploadingImage(true);
       
       const formData = new FormData();
       formData.append('avatar', file);
+      formData.append('profile_picture', file); // Alternative key
       
-      const response = await axios.post(
-        'http://localhost:8000/api/users/upload-avatar/',
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${authService.getAccessToken()}`,
-            'Content-Type': 'multipart/form-data'
+      const token = authService.getAccessToken();
+      
+      let response;
+      
+      try {
+        // Essayer la première route
+        response = await axios.post(
+          'http://localhost:8000/api/upload-avatar/',
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
           }
+        );
+      } catch (uploadError) {
+        if (uploadError.response?.status === 404) {
+          // Essayer une autre route
+          response = await axios.post(
+            'http://localhost:8000/api/profile/upload/',
+            formData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          );
+        } else {
+          throw uploadError;
         }
-      );
+      }
       
       console.log('✅ Photo uploadée:', response.data);
       
@@ -4962,9 +6507,9 @@ const Profile = () => {
       const currentUser = authService.getCurrentUser();
       const updatedUser = {
         ...currentUser,
-        avatar_url: response.data.avatar_url
+        avatar_url: response.data.avatar_url || response.data.profile_picture
       };
-      authService.setCurrentUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       
       showMessage('✅ Photo de profil mise à jour!', 'success');
       
@@ -4978,6 +6523,19 @@ const Profile = () => {
         showMessage('🔒 Session expirée. Veuillez vous reconnecter.', 'error');
         authService.logout();
         navigate('/login');
+      } else if (error.response?.status === 404) {
+        // Simuler un upload réussi pour le développement
+        showMessage('⚠️ API upload non disponible. Simulation réussie.', 'warning');
+        
+        const currentUser = authService.getCurrentUser();
+        const updatedUser = {
+          ...currentUser,
+          avatar_url: URL.createObjectURL(selectedImage)
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Recharger le profil
+        await loadProfile();
       } else {
         showMessage(`❌ Erreur: ${error.response?.data?.message || error.message}`, 'error');
       }
@@ -4987,19 +6545,23 @@ const Profile = () => {
       setSelectedImage(null);
       setImagePreview(null);
     }
-  }, [showMessage, loadProfile, navigate]);
+  }, [showMessage, loadProfile, navigate, selectedImage]);
 
-  // ✅ SUPPRIMER LA PHOTO DE PROFIL
+  // ✅ SUPPRIMER LA PHOTO DE PROFIL - FONCTION SIMPLIFIÉE
   const deleteProfilePicture = useCallback(async () => {
     try {
-      const response = await axios.delete(
-        'http://localhost:8000/api/users/delete-avatar/',
-        {
-          headers: authService.getAuthHeaders()
-        }
-      );
+      const headers = getAuthHeaders();
       
-      console.log('✅ Photo supprimée:', response.data);
+      try {
+        await axios.delete('http://localhost:8000/api/delete-avatar/', { headers });
+      } catch (deleteError) {
+        if (deleteError.response?.status === 404) {
+          // Route alternative
+          await axios.delete('http://localhost:8000/api/profile/avatar/', { headers });
+        } else {
+          throw deleteError;
+        }
+      }
       
       // Mettre à jour l'utilisateur local
       const currentUser = authService.getCurrentUser();
@@ -5007,7 +6569,7 @@ const Profile = () => {
         ...currentUser,
         avatar_url: null
       };
-      authService.setCurrentUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       
       setImagePreview(null);
       showMessage('✅ Photo de profil supprimée', 'success');
@@ -5017,9 +6579,25 @@ const Profile = () => {
       
     } catch (error) {
       console.error('❌ Erreur suppression:', error);
-      showMessage('❌ Impossible de supprimer la photo de profil', 'error');
+      
+      // Simuler la suppression pour le développement
+      if (error.response?.status === 404) {
+        showMessage('⚠️ API suppression non disponible. Simulation réussie.', 'warning');
+        
+        const currentUser = authService.getCurrentUser();
+        const updatedUser = {
+          ...currentUser,
+          avatar_url: null
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        setImagePreview(null);
+        await loadProfile();
+      } else {
+        showMessage('❌ Impossible de supprimer la photo de profil', 'error');
+      }
     }
-  }, [showMessage, loadProfile]);
+  }, [showMessage, loadProfile, getAuthHeaders]);
 
   // ✅ SE DÉCONNECTER
   const handleLogout = useCallback(() => {
@@ -5036,16 +6614,23 @@ const Profile = () => {
       setShowBioModal(false);
     } catch (error) {
       console.error('Erreur sauvegarde bio:', error);
+      showMessage('❌ Erreur lors de la sauvegarde de la bio', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ EFFET INITIAL - Charger le profil au montage
+  // ✅ EFFETS INITIAUX
   useEffect(() => {
     console.log('🏁 Initialisation du composant Profile');
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadNotifications();
+    }
+  }, [isAuthenticated, loadNotifications]);
 
   // ✅ PHOTO DE PROFIL À AFFICHER
   const displayProfilePicture = user?.avatar_url || 
@@ -5060,24 +6645,18 @@ const Profile = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#E30613] mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">Chargement du profil...</p>
-          <p className="text-gray-400 text-sm mt-2">
-            {apiStatus === 'checking' ? 'Vérification de l\'authentification...' : 
-             apiStatus === 'connected' ? 'Connexion à la base de données...' : 
-             apiStatus === 'offline' ? 'Mode hors-ligne' : 
-             'Erreur de connexion'}
-          </p>
         </div>
       </div>
     );
   }
 
-  // Si non authentifié, afficher un message
+  // Si non authentifié
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
           <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-12 h-12 text-red-600" />
+            <User className="w-12 h-12 text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Accès non autorisé</h2>
           <p className="text-gray-600 mb-8">Vous devez être connecté pour accéder à cette page.</p>
@@ -5118,7 +6697,6 @@ const Profile = () => {
           <div className="flex items-center justify-center gap-2">
             <CheckCircle size={16} />
             <span className="font-medium">Connecté à la base de données</span>
-            <span className="text-green-600">- Données synchronisées</span>
           </div>
         </div>
       )}
@@ -5135,17 +6713,15 @@ const Profile = () => {
                 <div 
                   className="h-28 w-28 shrink-0 rounded-full bg-cover bg-center bg-no-repeat ring-4 ring-white dark:ring-gray-800 shadow-lg cursor-pointer transition-transform group-hover:scale-105"
                   style={{ backgroundImage: `url(${displayProfilePicture})` }}
-                  onClick={() => isAuthenticated ? setShowEditModal(true) : showMessage('Connectez-vous pour modifier', 'warning')}
-                  title={isAuthenticated ? "Modifier la photo" : "Connectez-vous"}
+                  onClick={() => setShowEditModal(true)}
+                  title="Modifier la photo"
                 />
                 <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
                   <Camera className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
                 </div>
-                {isAuthenticated && (
-                  <div className="absolute -bottom-2 -right-2 bg-[#E30613] text-white rounded-full p-2 shadow-lg">
-                    <Edit size={14} />
-                  </div>
-                )}
+                <div className="absolute -bottom-2 -right-2 bg-[#E30613] text-white rounded-full p-2 shadow-lg">
+                  <Edit size={14} />
+                </div>
               </div>
               
               {/* Informations */}
@@ -5156,15 +6732,13 @@ const Profile = () => {
                       {formData.first_name} {formData.last_name}
                     </h2>
                     <div className="flex items-center gap-2">
-                      {isAuthenticated && (
-                        <button 
-                          onClick={handleLogout}
-                          className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                        >
-                          <LogOut size={16} />
-                          Déconnexion
-                        </button>
-                      )}
+                      <button 
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        Déconnexion
+                      </button>
                       {apiStatus === 'connected' && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                           ✅ Base de données
@@ -5189,13 +6763,6 @@ const Profile = () => {
                         {formData.cohort}
                       </span>
                     )}
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
-                      isAuthenticated 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
-                    }`}>
-                      {isAuthenticated ? '✅ Connecté' : '🔒 Non connecté'}
-                    </span>
                   </div>
                   
                   <p className="text-gray-600 dark:text-gray-400 mt-3 flex items-center gap-2 justify-center sm:justify-start">
@@ -5217,15 +6784,13 @@ const Profile = () => {
                     <h3 className="font-semibold text-[#001F3F] dark:text-white flex items-center gap-2">
                       Bio
                     </h3>
-                    {isAuthenticated && (
-                      <button 
-                        onClick={() => setShowBioModal(true)}
-                        className="flex items-center gap-1 text-[#E30613] hover:text-[#E30613]/80 text-sm font-medium transition-colors"
-                      >
-                        <Edit size={14} />
-                        {formData.bio ? 'Modifier' : 'Ajouter une bio'}
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => setShowBioModal(true)}
+                      className="flex items-center gap-1 text-[#E30613] hover:text-[#E30613]/80 text-sm font-medium transition-colors"
+                    >
+                      <Edit size={14} />
+                      {formData.bio ? 'Modifier' : 'Ajouter une bio'}
+                    </button>
                   </div>
                   
                   {formData.bio ? (
@@ -5235,11 +6800,11 @@ const Profile = () => {
                   ) : (
                     <div 
                       className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-[#E30613] transition-colors"
-                      onClick={() => isAuthenticated ? setShowBioModal(true) : showMessage('Connectez-vous pour modifier', 'warning')}
+                      onClick={() => setShowBioModal(true)}
                     >
                       <Edit size={32} className="text-gray-400 mb-2 mx-auto" />
                       <p className="text-gray-400 dark:text-gray-500 text-sm">
-                        {isAuthenticated ? 'Cliquez pour ajouter une bio' : 'Connectez-vous pour modifier votre profil'}
+                        Cliquez pour ajouter une bio
                       </p>
                     </div>
                   )}
@@ -5248,32 +6813,20 @@ const Profile = () => {
               
               {/* Boutons d'action */}
               <div className="flex flex-col gap-3 w-full sm:w-auto">
-                {isAuthenticated ? (
-                  <>
-                    <button 
-                      onClick={() => setShowEditModal(true)}
-                      className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#E30613] px-6 text-sm font-semibold text-white hover:bg-[#E30613]/90 transition-colors shadow-sm w-full sm:w-auto"
-                    >
-                      <Camera size={18} />
-                      <span>Modifier la photo</span>
-                    </button>
-                    <button 
-                      onClick={() => setEditMode(true)}
-                      className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm w-full sm:w-auto dark:border-gray-600 dark:bg-[#1a2f44] dark:text-white dark:hover:bg-[#253b52]"
-                    >
-                      <Edit size={18} />
-                      <span>Modifier le profil</span>
-                    </button>
-                  </>
-                ) : (
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#E30613] to-red-600 px-6 text-sm font-semibold text-white hover:from-red-600 hover:to-[#E30613] transition-all shadow-lg w-full sm:w-auto"
-                  >
-                    <User size={18} />
-                    <span>Se connecter</span>
-                  </button>
-                )}
+                <button 
+                  onClick={() => setShowEditModal(true)}
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#E30613] px-6 text-sm font-semibold text-white hover:bg-[#E30613]/90 transition-colors shadow-sm w-full sm:w-auto"
+                >
+                  <Camera size={18} />
+                  <span>Modifier la photo</span>
+                </button>
+                <button 
+                  onClick={() => setEditMode(true)}
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm w-full sm:w-auto dark:border-gray-600 dark:bg-[#1a2f44] dark:text-white dark:hover:bg-[#253b52]"
+                >
+                  <Edit size={18} />
+                  <span>Modifier le profil</span>
+                </button>
               </div>
             </div>
           </section>
@@ -5297,16 +6850,15 @@ const Profile = () => {
             
             <div className="flex items-center gap-6 rounded-xl bg-white p-6 shadow-sm dark:bg-[#1a2f44] hover:shadow-md transition-shadow">
               <div className="flex items-center justify-center w-14 h-14 bg-blue-50 dark:bg-blue-900/10 rounded-xl">
-                <User className="text-2xl text-blue-600 dark:text-blue-400" />
+                <Bell className="text-2xl text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Statut</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Notifications</p>
                 <p className="text-3xl font-bold text-[#001F3F] dark:text-white">
-                  {apiStatus === 'connected' ? '✅' : apiStatus === 'offline' ? '⚠️' : '❌'}
+                  {notifications.filter(n => !n.read).length}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {apiStatus === 'connected' ? 'Connecté à la BD' : 
-                   apiStatus === 'offline' ? 'Hors ligne' : 'Non connecté'}
+                  non lues
                 </p>
               </div>
             </div>
@@ -5322,16 +6874,16 @@ const Profile = () => {
                 </p>
                 <div className="flex gap-2 mt-2">
                   <button 
-                    onClick={() => isAuthenticated ? setEditMode(!editMode) : showMessage('Connectez-vous pour modifier', 'warning')}
+                    onClick={() => setEditMode(!editMode)}
                     className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                       editMode 
                         ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-300'
                         : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-300'
-                    } ${!isAuthenticated && 'opacity-50 cursor-not-allowed'}`}
+                    }`}
                   >
                     {editMode ? 'Annuler' : 'Modifier'}
                   </button>
-                  {editMode && isAuthenticated && (
+                  {editMode && (
                     <button 
                       onClick={saveProfile}
                       disabled={loading}
@@ -5345,7 +6897,7 @@ const Profile = () => {
             </div>
           </section>
 
-          {/* Onglets */}
+          {/* Onglets - PROFIL ET NOTIFICATIONS */}
           <div className="bg-white rounded-xl shadow-lg p-2 border border-gray-200 dark:bg-[#1a2f44] dark:border-gray-700">
             <div className="flex flex-wrap gap-2">
               <button
@@ -5360,19 +6912,22 @@ const Profile = () => {
                 <span>Profil</span>
               </button>
               
-              {isAuthenticated && (
-                <button
-                  onClick={() => setActiveTab('security')}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-lg transition-all font-medium ${
-                    activeTab === 'security'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'
-                  }`}
-                >
-                  <Lock size={20} />
-                  <span>Sécurité</span>
-                </button>
-              )}
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`flex items-center gap-3 px-5 py-3 rounded-lg transition-all font-medium ${
+                  activeTab === 'notifications'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200'
+                }`}
+              >
+                <Bell size={20} />
+                <span>Notifications</span>
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -5389,14 +6944,6 @@ const Profile = () => {
                     }
                   </p>
                 </div>
-                {!isAuthenticated && (
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="px-4 py-2 text-sm bg-gradient-to-r from-[#E30613] to-red-600 text-white rounded-lg hover:from-red-600 hover:to-[#E30613] transition-all"
-                  >
-                    Se connecter
-                  </button>
-                )}
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -5419,7 +6966,7 @@ const Profile = () => {
                           type="text"
                           value={formData.first_name}
                           onChange={(e) => handleInputChange('first_name', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Votre prénom"
                         />
@@ -5433,7 +6980,7 @@ const Profile = () => {
                           type="text"
                           value={formData.last_name}
                           onChange={(e) => handleInputChange('last_name', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Votre nom"
                         />
@@ -5447,7 +6994,7 @@ const Profile = () => {
                           type="email"
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="votre@email.com"
                         />
@@ -5461,7 +7008,7 @@ const Profile = () => {
                           type="tel"
                           value={formData.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="+33 1 23 45 67 89"
                         />
@@ -5482,7 +7029,7 @@ const Profile = () => {
                           type="text"
                           value={formData.location}
                           onChange={(e) => handleInputChange('location', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:focus:ring-purple-400 dark:focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Ville, Pays"
                         />
@@ -5496,7 +7043,7 @@ const Profile = () => {
                           type="text"
                           value={formData.company}
                           onChange={(e) => handleInputChange('company', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:focus:ring-purple-400 dark:focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Nom de l'entreprise"
                         />
@@ -5510,7 +7057,7 @@ const Profile = () => {
                           type="text"
                           value={formData.position}
                           onChange={(e) => handleInputChange('position', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:focus:ring-purple-400 dark:focus:border-purple-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Votre poste"
                         />
@@ -5538,7 +7085,7 @@ const Profile = () => {
                           type="text"
                           value={formData.cohort}
                           onChange={(e) => handleInputChange('cohort', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Ex: Admin 2024"
                         />
@@ -5552,7 +7099,7 @@ const Profile = () => {
                           type="text"
                           value={formData.specialite}
                           onChange={(e) => handleInputChange('specialite', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="Ex: Administration Système"
                         />
@@ -5567,7 +7114,7 @@ const Profile = () => {
                             type="date"
                             value={formData.date_entree}
                             onChange={(e) => handleInputChange('date_entree', e.target.value)}
-                            disabled={!editMode || !isAuthenticated}
+                            disabled={!editMode}
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           />
                         </div>
@@ -5580,7 +7127,7 @@ const Profile = () => {
                             type="date"
                             value={formData.date_sortie}
                             onChange={(e) => handleInputChange('date_sortie', e.target.value)}
-                            disabled={!editMode || !isAuthenticated}
+                            disabled={!editMode}
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           />
                         </div>
@@ -5602,7 +7149,7 @@ const Profile = () => {
                           type="url"
                           value={formData.github}
                           onChange={(e) => handleInputChange('github', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 dark:focus:ring-gray-400 dark:focus:border-gray-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="https://github.com/votre-username"
                         />
@@ -5617,7 +7164,7 @@ const Profile = () => {
                           type="url"
                           value={formData.linkedin}
                           onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="https://linkedin.com/in/votre-profile"
                         />
@@ -5632,7 +7179,7 @@ const Profile = () => {
                           type="url"
                           value={formData.website}
                           onChange={(e) => handleInputChange('website', e.target.value)}
-                          disabled={!editMode || !isAuthenticated}
+                          disabled={!editMode}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-400 dark:focus:border-green-400 outline-none transition-all disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-gray-500 dark:text-white dark:bg-[#0d1a29]"
                           placeholder="https://votre-portfolio.com"
                         />
@@ -5643,7 +7190,7 @@ const Profile = () => {
               </div>
               
               {/* Boutons d'action pour la section profil */}
-              {isAuthenticated && editMode && (
+              {editMode && (
                 <div className="flex gap-3 justify-end mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
                   <button
                     onClick={() => {
@@ -5673,77 +7220,246 @@ const Profile = () => {
             </div>
           )}
 
-          {/* Section Sécurité */}
-          {activeTab === 'security' && isAuthenticated && (
+          {/* Section Notifications */}
+          {activeTab === 'notifications' && (
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200 dark:bg-[#1a2f44] dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Sécurité du compte</h2>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Gérez vos notifications et préférences de communication
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors text-sm font-medium"
+                    >
+                      Tout marquer comme lu
+                    </button>
+                  )}
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={clearAllNotifications}
+                      className="px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
+                    >
+                      Tout effacer
+                    </button>
+                  )}
+                </div>
+              </div>
               
-              <div className="space-y-6">
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
-                  <div className="flex items-start gap-4">
-                    <Lock size={24} className="text-red-600 dark:text-red-400 mt-1" />
-                    <div>
-                      <h3 className="font-semibold text-red-700 dark:text-red-300 mb-2">Déconnexion</h3>
-                      <p className="text-red-600 dark:text-red-400 text-sm mb-4">
-                        Déconnectez-vous de votre session en cours.
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Liste des notifications */}
+                <div className="lg:col-span-2">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                    <Bell size={20} />
+                    Dernières notifications
+                    <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 text-xs px-2 py-1 rounded-full">
+                      {notifications.length}
+                    </span>
+                  </h3>
+                  
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+                      <Bell size={48} className="text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <h4 className="text-gray-700 dark:text-gray-300 font-medium mb-2">Aucune notification</h4>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        Vous n'avez aucune notification pour le moment.
                       </p>
-                      <button
-                        onClick={handleLogout}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                      >
-                        Se déconnecter
-                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id}
+                          className={`p-4 rounded-xl border transition-all hover:shadow-md ${
+                            notification.read 
+                              ? 'bg-gray-50 dark:bg-[#0d1a29] border-gray-200 dark:border-gray-700' 
+                              : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  notification.read ? 'bg-gray-400' : 'bg-blue-500'
+                                }`}></div>
+                                <h4 className="font-medium text-gray-900 dark:text-white">
+                                  {notification.title}
+                                </h4>
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  notification.type === 'message' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
+                                  notification.type === 'profile' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
+                                  notification.type === 'welcome' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300' :
+                                  'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+                                }`}>
+                                  {notification.type === 'message' ? 'Message' :
+                                   notification.type === 'profile' ? 'Profil' :
+                                   notification.type === 'welcome' ? 'Bienvenue' : 'Système'}
+                                </span>
+                              </div>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                                {notification.description}
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {notification.time}
+                                </span>
+                                <div className="flex gap-2">
+                                  {!notification.read && (
+                                    <button
+                                      onClick={() => markNotificationAsRead(notification.id)}
+                                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
+                                    >
+                                      Marquer comme lu
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => deleteNotification(notification.id)}
+                                    className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 font-medium"
+                                  >
+                                    Supprimer
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
-                  <div className="flex items-start gap-4">
-                    <CheckCircle size={24} className="text-green-600 dark:text-green-400 mt-1" />
-                    <div>
-                      <h3 className="font-semibold text-green-700 dark:text-green-300 mb-2">Authentification JWT</h3>
-                      <p className="text-green-600 dark:text-green-400 text-sm mb-4">
-                        Vous êtes authentifié avec JSON Web Token. Votre session est sécurisée.
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => authService.debug()}
-                          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
-                        >
-                          Debug Token
-                        </button>
+                {/* Paramètres des notifications */}
+                <div>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100 dark:from-purple-900/10 dark:to-pink-900/10 dark:border-purple-800/20 sticky top-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                      <Settings size={20} />
+                      Paramètres des notifications
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-800 dark:text-white text-sm">Notifications par email</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              Recevoir des notifications par email
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateNotificationSetting('emailNotifications', !notificationSettings.emailNotifications)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              notificationSettings.emailNotifications ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-800 dark:text-white text-sm">Mises à jour de projet</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              Notifications sur vos projets
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateNotificationSetting('projectUpdates', !notificationSettings.projectUpdates)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              notificationSettings.projectUpdates ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings.projectUpdates ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-800 dark:text-white text-sm">Nouveaux messages</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              Notifications de messages
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateNotificationSetting('newMessages', !notificationSettings.newMessages)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              notificationSettings.newMessages ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings.newMessages ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-800 dark:text-white text-sm">Résumé hebdomadaire</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              Recevoir un résumé hebdomadaire
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateNotificationSetting('weeklyDigest', !notificationSettings.weeklyDigest)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              notificationSettings.weeklyDigest ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings.weeklyDigest ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-800 dark:text-white text-sm">Emails marketing</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              Recevoir des offres et promotions
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateNotificationSetting('marketingEmails', !notificationSettings.marketingEmails)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              notificationSettings.marketingEmails ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings.marketingEmails ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
                         <button
                           onClick={() => {
-                            console.log('🔍 Debug auth:');
-                            console.log('Token:', authService.getAccessToken());
-                            console.log('User:', authService.getCurrentUser());
-                            console.log('Authenticated:', authService.isAuthenticated());
-                            showMessage('Informations de debug affichées dans la console', 'info');
+                            const defaultSettings = {
+                              emailNotifications: true,
+                              projectUpdates: true,
+                              newMessages: true,
+                              weeklyDigest: false,
+                              marketingEmails: false
+                            };
+                            setNotificationSettings(defaultSettings);
+                            localStorage.setItem('simplon_notification_settings', JSON.stringify(defaultSettings));
+                            showMessage('✅ Paramètres réinitialisés', 'success');
                           }}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
                         >
-                          Vérifier Auth
+                          Réinitialiser les paramètres
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
-                
-                {apiStatus === 'connected' && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-                    <div className="flex items-start gap-4">
-                      <CheckCircle size={24} className="text-blue-600 dark:text-blue-400 mt-1" />
-                      <div>
-                        <h3 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">Connexion Base de données</h3>
-                        <p className="text-blue-600 dark:text-blue-400 text-sm mb-4">
-                          ✅ Connecté à la base de données Django<br/>
-                          📊 Données synchronisées<br/>
-                          🔒 Authentification sécurisée
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -5794,7 +7510,7 @@ const Profile = () => {
               </div>
 
               {/* Bouton réinitialiser */}
-              {displayProfilePicture && !displayProfilePicture.includes('ui-avatars.com') && isAuthenticated && (
+              {displayProfilePicture && !displayProfilePicture.includes('ui-avatars.com') && (
                 <button 
                   onClick={deleteProfilePicture}
                   className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium transition-colors"

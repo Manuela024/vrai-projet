@@ -1,131 +1,104 @@
-# # projects/urls_simple.py
+
+
+# # projects/urls_simple.py - VERSION CORRECTE ET SIMPLE
 # from django.urls import path
-# from .views_api import project_list, projects_with_users, dashboard_stats, api_status
-# from .views import APITestView
-# from users.views import QuickLoginView, UserProfileView
-# from rest_framework_simplejwt.views import TokenRefreshView
+# from . import views_api
 
 # urlpatterns = [
-#     # ENDPOINTS PRINCIPAUX
-#     path('projects/', project_list, name='project-list'),
-#     path('projects-with-users/', projects_with_users, name='projects-with-users'),
-#     path('stats/', dashboard_stats, name='stats'),
-#     path('status/', api_status, name='api-status'),
-#     path('test/', APITestView.as_view(), name='api-test'),
+#     # IMPORTANT: Une seule route racine qui accepte GET et POST
+#     path('', views_api.project_list, name='project-list'),  # GET tous les projets & POST créer
     
-#     # AUTHENTIFICATION
-#     path('auth/login/', QuickLoginView.as_view(), name='login'),
-#     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
-#     path('auth/profile/', UserProfileView.as_view(), name='user-profile'),
+#     # Route alternative pour créer un projet (POST seulement)
+#     path('create/', views_api.create_project, name='project-create'),
     
-#     # RACINE
-#     path('', api_status, name='api-root'),
+#     # Route pour un projet spécifique (GET, PUT, DELETE)
+#     path('<int:project_id>/', views_api.project_detail, name='project-detail'),
+    
+#     # Route pour les projets de l'utilisateur connecté
+#     path('my-projects/', views_api.my_projects, name='my-projects'),
+    
+#     # Route pour debug
+#     path('debug/', views_api.debug_projects, name='debug-projects'),
+    
+#     # Route pour les statistiques
+#     path('stats/', views_api.dashboard_stats, name='stats'),
+    
+#     # Route pour la santé de l'API
+#     path('health/', views_api.health_check, name='health-check'),
+    
+#     # Route pour rechercher
+#     path('search/', views_api.search_projects, name='search-projects'),
+    
+#     # Route pour projets groupés par utilisateur
+#     path('grouped/', views_api.ProjectsGroupedByUserView.as_view(), name='projects-grouped'),
+    
+#     # Route pour projets avec détails utilisateurs
+#     path('with-users/', views_api.projects_with_users, name='projects-with-users'),
+    
+#     # Route pour le statut de l'API
+#     path('status/', views_api.api_status, name='api-status'),
 # ]
 
+# print("=" * 70)
+# print("✅ URLs simplifiées chargées!")
+# print("📊 Endpoints disponibles:")
+# print(f"   - GET /api/projects/ → Liste tous les projets")
+# print(f"   - POST /api/projects/ → Créer un nouveau projet")
+# print(f"   - POST /api/projects/create/ → Créer un projet (alternative)")
+# print(f"   - GET /api/projects/my-projects/ → Mes projets (connecté)")
+# print(f"   - GET /api/projects/<id>/ → Détails d'un projet")
+# print(f"   - PUT /api/projects/<id>/ → Modifier un projet")
+# print(f"   - DELETE /api/projects/<id>/ → Supprimer un projet")
+# print("=" * 70)
 
-# projects/urls_simple.py - VERSION CORRIGÉE ET SIMPLE
+
+# projects/urls_simple.py - VERSION COMPLÈTE
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
+from . import views_api
 
-# IMPORTATION UNIFIÉE
-try:
-    # Essayez d'abord views_api
-    from .views_api import (
-        project_list,
-        projects_with_users,
-        dashboard_stats,
-        api_status,
-        project_list_all,
-        debug_projects,
-        ProjectsGroupedByUserView
-    )
-    from .views import APITestView
-    from users.views import QuickLoginView, UserProfileView
-    
-    print("✅ Import des vues API réussi!")
-    
-except ImportError as e:
-    print(f"❌ Erreur d'import: {e}")
-    
-    # Créer des vues de secours minimales
-    from rest_framework.decorators import api_view, permission_classes
-    from rest_framework.permissions import AllowAny
-    from rest_framework.response import Response
-    from django.utils import timezone
-    
-    @api_view(['GET'])
-    @permission_classes([AllowAny])
-    def fallback_view(request):
-        return Response({
-            'status': 'fallback',
-            'endpoint': request.path,
-            'timestamp': timezone.now().isoformat(),
-            'message': 'Veuillez vérifier views_api.py'
-        })
-    
-    project_list = fallback_view
-    projects_with_users = fallback_view
-    dashboard_stats = fallback_view
-    api_status = fallback_view
-    project_list_all = fallback_view
-    debug_projects = fallback_view
-    
-    from rest_framework.views import APIView
-    class FallbackAPIView(APIView):
-        permission_classes = [AllowAny]
-        def get(self, request):
-            return Response({'status': 'fallback'})
-    
-    ProjectsGroupedByUserView = FallbackAPIView
-    APITestView = FallbackAPIView
-    
-    from rest_framework.views import APIView as BaseAPIView
-    class FallbackAuthView(BaseAPIView):
-        permission_classes = [AllowAny]
-        def post(self, request):
-            return Response({'status': 'fallback'})
-    
-    QuickLoginView = FallbackAuthView
-    UserProfileView = FallbackAuthView
-
-# URLS FINALES
 urlpatterns = [
-    # ========== ENDPOINTS PRINCIPAUX ==========
-    # IMPORTANT: Cette URL sera accessible à http://localhost:8000/api/projects/projects/
-    path('projects/', project_list, name='project-list'),
+    # Route principale (GET & POST)
+    path('', views_api.project_list, name='project-list'),
     
-    # Alternative
-    path('projects/all/', project_list_all, name='project-list-all'),
+    # Routes de création
+    path('create/', views_api.create_project, name='project-create'),
+    path('create-auth/', views_api.create_project_authenticated_only, name='project-create-auth'),
     
-    # Debug
-    path('projects/debug/', debug_projects, name='debug-projects'),
+    # Route pour les projets de l'utilisateur connecté
+    path('my-projects/', views_api.my_projects, name='my-projects'),
     
-    # Projets groupés par utilisateur
-    path('projects-grouped/', ProjectsGroupedByUserView.as_view(), name='projects-grouped'),
+    # Route pour un projet spécifique
+    path('<int:project_id>/', views_api.project_detail, name='project-detail'),
     
-    # Projets avec utilisateurs détaillés
-    path('projects-with-users/', projects_with_users, name='projects-with-users'),
+    # Route pour debug
+    path('debug/', views_api.debug_projects, name='debug-projects'),
     
-    # ========== STATISTIQUES ==========
-    path('stats/', dashboard_stats, name='stats'),
+    # Route pour les statistiques
+    path('stats/', views_api.dashboard_stats, name='stats'),
     
-    # ========== STATUS API ==========
-    path('status/', api_status, name='api-status'),
-    path('test/', APITestView.as_view(), name='api-test'),
+    # Route pour la santé de l'API
+    path('health/', views_api.health_check, name='health-check'),
     
-    # ========== AUTHENTIFICATION (optionnel) ==========
-    path('auth/login/', QuickLoginView.as_view(), name='login'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
-    path('auth/profile/', UserProfileView.as_view(), name='user-profile'),
+    # Route pour rechercher
+    path('search/', views_api.search_projects, name='search-projects'),
     
-    # ========== RACINE ==========
-    path('', api_status, name='api-root'),
+    # Route pour projets groupés par utilisateur
+    path('grouped/', views_api.ProjectsGroupedByUserView.as_view(), name='projects-grouped'),
+    
+    # Route pour projets avec détails utilisateurs
+    path('with-users/', views_api.projects_with_users, name='projects-with-users'),
+    
+    # Route pour le statut de l'API
+    path('status/', views_api.api_status, name='api-status'),
 ]
 
 print("=" * 70)
-print("🚀 API PROJETS - URLs chargées!")
-print("=" * 70)
+print("✅ URLs chargées!")
 print("📊 Endpoints disponibles:")
-for url in urlpatterns:
-    print(f"   http://localhost:8000/api/projects{url.pattern}")
+print(f"   - GET  /api/projects/ → Liste tous les projets")
+print(f"   - POST /api/projects/ → Créer un projet (auteur garanti)")
+print(f"   - POST /api/projects/create/ → Création sécurisée")
+print(f"   - POST /api/projects/create-auth/ → Création (connectés)")
+print(f"   - GET  /api/projects/my-projects/ → Mes projets")
+print(f"   - GET  /api/projects/<id>/ → Détails d'un projet")
 print("=" * 70)
